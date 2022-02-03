@@ -1,3 +1,5 @@
+import { ethers } from "ethers";
+
 export default [
     {
       "inputs": [
@@ -302,5 +304,5 @@ export default [
       "type": "function"
     },
     { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
-  ]
+  ] as unknown as ethers.utils.Fragment[];
   
