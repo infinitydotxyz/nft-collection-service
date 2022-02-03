@@ -1,4 +1,7 @@
 
+# Sensitive
+.env
+
 
 # Logs
 logs
