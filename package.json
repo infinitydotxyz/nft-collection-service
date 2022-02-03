@@ -32,5 +32,12 @@
   "dependencies": {
     "dotenv": "^16.0.0",
     "ethers": "^5.5.4"
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "printWidth": 120,
+    "singleQuote": true,
+    "trailingComma": "none",
+    "semi": true
   }
 }
