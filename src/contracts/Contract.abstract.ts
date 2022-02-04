@@ -39,6 +39,9 @@ export default abstract class Contract implements IContract {
 
   abstract getTokenIds(): Promise<string[]>;
 
+    /**
+   * throws an error if the chainId is invalid
+   */
   constructor(address: string, chainId: string, abi: ethers.utils.Fragment[]) {
     this.address = address;
     this.chainId = chainId;
