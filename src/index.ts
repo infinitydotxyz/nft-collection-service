@@ -11,9 +11,17 @@ async function main(): Promise<void> {
     // const tokens = await bayc.getTokenIds();
     // console.log(tokens.map((item) => parseInt(item, 10)).sort((a,b) => a-b));
 
-    const opensea = new OpenSeaClient(3);
-    const metadata = await opensea.getCollectionMetadata(addr);
-    console.log(metadata)
+    // const opensea = new OpenSeaClient(3);
+    // const metadata = await opensea.getCollectionMetadata(addr);
+    // console.log(metadata)
+
+    // get token uri(s)
+
+    const tokenUri = await bayc.getTokenUri('1');
+
+    console.log(tokenUri)
+
+
     
 }
 

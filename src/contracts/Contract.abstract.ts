@@ -39,7 +39,7 @@ export default abstract class Contract implements IContract {
 
   abstract getTokenIds(): Promise<string[]>;
 
-    /**
+  /**
    * throws an error if the chainId is invalid
    */
   constructor(address: string, chainId: string, abi: ethers.utils.Fragment[]) {
@@ -60,7 +60,7 @@ export default abstract class Contract implements IContract {
     thunkedLogRequest: ThunkedLogRequest,
     provider: ethers.providers.JsonRpcProvider,
     options: PaginateLogsOptions
-  ) {
+  ): Promise<ethers.Event[]> {
     let {
       fromBlock,
       toBlock = 'latest',
@@ -71,7 +71,7 @@ export default abstract class Contract implements IContract {
 
     toBlock = toBlock ?? 'latest';
 
-    const getMaxBlock = async (provider: ethers.providers.JsonRpcProvider, toBlock: number | 'latest') => {
+    const getMaxBlock = async (provider: ethers.providers.JsonRpcProvider, toBlock: number | 'latest'): Promise<number> => {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
@@ -92,7 +92,7 @@ export default abstract class Contract implements IContract {
     let attempts = 0;
 
     while (from < maxBlock) {
-      let to = from + 1999;
+      let to = from + 2000; // we can get a max of 2k blocks at once
 
       if (to > maxBlock) {
         to = maxBlock;
@@ -104,8 +104,8 @@ export default abstract class Contract implements IContract {
         const size = maxBlock - fromBlock;
         const progress = Math.floor(((from - fromBlock) / size) * 100 * 100) / 100;
         console.log(`[${progress}%] Got blocks: ${from} - ${to} found: ${events.length} tokens`); // TODO
-        from = to;
-        attempts = 0; // resets each time we successfully get a block
+        from = to + 1; 
+        attempts = 0; // resets each time we successfully get a page
       } catch (err) {
         attempts += 1;
         if (attempts > maxAttempts) {

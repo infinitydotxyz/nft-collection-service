@@ -40,6 +40,10 @@ function isGotError(error: GotError | unknown): boolean {
   );
 }
 
+/**
+ * we try not to use OpenSea more than we have to 
+ * prefer other methods of getting data if possible
+ */
 export default class OpenSeaClient {
   private readonly client: Got;
   private readonly maxAttempts: number;
@@ -61,7 +65,12 @@ export default class OpenSeaClient {
   }
 
   /**
-   * getCollectionMetadata 
+   * getCollectionMetadata gets basic info about a collection: name, description, links, images
+   * 
+   * it seems like rate limits are not an issue on this endpoint - at this time
+   * (it handles ~500 requests at once using the default api key and none get rate limited)
+   * 
+   * etherscan has a similar endpoint that seems decent if this begins to fail
    */
   async getCollectionMetadata(address: string, attempt?: number): Promise<CollectionMetadata> {
 
