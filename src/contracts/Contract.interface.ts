@@ -1,9 +1,12 @@
 import { ethers } from "ethers";
+import { Readable } from "node:stream";
 
 export enum TokenStandard {
     ERC721 = 'ERC721',
     ERC1155 = 'ERC1155'
 }
+
+export type HistoricalLogs = Readable | ethers.Event[] | Generator<Promise<ethers.Event[]>, void, unknown>;
 
 export default interface Contract {
     address: string;
@@ -23,9 +26,9 @@ export default interface Contract {
     getContractCreationTx: () => Promise<ethers.Event>;
 
     /**
-     * returns a promise for all of the mint events
+     * returns a promise of a readable stream of mint events
      */
-    getMints: (options?: { fromBlock?: number; toBlock?: number | 'latest' }) => Promise<ethers.Event[]>;
+    getMints: (options?: { fromBlock?: number; toBlock?: number | 'latest', returnType?: 'stream' | 'promise' | 'generator' }) => Promise<HistoricalLogs>;
 
     /**
      * returns a promise for all token ids in the collection

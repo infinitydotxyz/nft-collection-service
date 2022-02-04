@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
-import { filterDuplicates } from '../utils';
+import { Readable } from 'node:stream';
 import { getProviderByChainId } from '../utils/ethers';
-import IContract, { TokenStandard } from './Contract.interface';
+import IContract, { HistoricalLogs, TokenStandard } from './Contract.interface';
 
 export interface LogRequestOptions {
   fromBlock?: number;
@@ -16,8 +16,16 @@ export interface PaginateLogsOptions {
   fromBlock: number;
   toBlock?: number | 'latest';
   maxAttempts?: number;
-  removeDuplicates?: boolean;
-  duplicateSelector?: (event: ethers.Event) => string;
+  
+  /**
+   * stream return type should be used for getting events as fast as 
+   * possible and handling events as they are available
+   * 
+   * generator should be used to lazily request events 
+   * 
+   * promise should be used to get all events at once
+   */
+  returnType?: 'stream' | 'generator' | 'promise';
 }
 
 export default abstract class Contract implements IContract {
@@ -35,7 +43,7 @@ export default abstract class Contract implements IContract {
 
   abstract getContractCreationTx(): Promise<ethers.Event>;
 
-  abstract getMints(): Promise<ethers.Event[]>;
+  abstract getMints(): Promise<HistoricalLogs>;
 
   abstract getTokenIds(): Promise<string[]>;
 
@@ -59,19 +67,21 @@ export default abstract class Contract implements IContract {
   protected async paginateLogs(
     thunkedLogRequest: ThunkedLogRequest,
     provider: ethers.providers.JsonRpcProvider,
-    options: PaginateLogsOptions
-  ): Promise<ethers.Event[]> {
+    options: PaginateLogsOptions,
+  ): Promise<HistoricalLogs> {
     let {
       fromBlock,
       toBlock = 'latest',
       maxAttempts = 3,
-      removeDuplicates = true,
-      duplicateSelector = (event: ethers.Event) => event.transactionHash
+      returnType = 'stream'
     } = options;
 
     toBlock = toBlock ?? 'latest';
 
-    const getMaxBlock = async (provider: ethers.providers.JsonRpcProvider, toBlock: number | 'latest'): Promise<number> => {
+    const getMaxBlock = async (
+      provider: ethers.providers.JsonRpcProvider,
+      toBlock: number | 'latest'
+    ): Promise<number> => {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
@@ -86,39 +96,65 @@ export default abstract class Contract implements IContract {
     };
 
     const maxBlock = await getMaxBlock(provider, toBlock);
+    const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts)
+    switch(returnType) {
+      case 'stream': 
+      const readable = Readable.from(generator);
+      return readable;
+      case 'generator': 
+        return generator;
+      case 'promise': 
+        return await new Promise<ethers.Event[]>((resolve,reject) => {
+          const readable = Readable.from(generator);
+          let events: ethers.Event[] = [];
+          readable.on('data', (chunk: ethers.Event[]) => {
+            events = [...events, ...chunk];
+          })
+          
+          readable.on('end', () => {
+            resolve(events);
+          })
 
-    let from = fromBlock;
-    let events: ethers.Event[] = [];
+          readable.on('error', (err)=> {
+            reject(err);
+          })
+
+        })      
+    }
+  }
+
+
+  private *paginateLogsHelper(
+    thunkedLogRequest: ThunkedLogRequest,
+    minBlock: number,
+    maxBlock: number,
+    maxAttempts: number
+  ): Generator<Promise<ethers.Event[]>, void, unknown> {
+    let from = minBlock;
+
     let attempts = 0;
-
     while (from < maxBlock) {
-      let to = from + 2000; // we can get a max of 2k blocks at once
-
+      // we can get a max of 2k blocks at once
+      let to = from + 2000; 
+      
       if (to > maxBlock) {
         to = maxBlock;
       }
 
       try {
-        const pageEvents = await thunkedLogRequest(from, to);
-        events = [...events, ...pageEvents];
-        const size = maxBlock - fromBlock;
-        const progress = Math.floor(((from - fromBlock) / size) * 100 * 100) / 100;
-        console.log(`[${progress}%] Got blocks: ${from} - ${to} found: ${events.length} tokens`); // TODO
-        from = to + 1; 
-        attempts = 0; // resets each time we successfully get a page
+        yield thunkedLogRequest(from, to);
+        attempts = 0;
+        from = to + 1;
       } catch (err) {
         attempts += 1;
         if (attempts > maxAttempts) {
           throw err;
         }
-        console.error(err);
       }
-    }
 
-    if (removeDuplicates) {
-      events = filterDuplicates(events, duplicateSelector);
+      const size = maxBlock - minBlock;
+      const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
+      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
     }
-
-    return events;
   }
 }

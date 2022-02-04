@@ -1,5 +1,5 @@
 import { BigNumber, ethers } from 'ethers';
-import { TokenStandard } from './Contract.interface';
+import { HistoricalLogs, TokenStandard } from './Contract.interface';
 import Erc721Abi from '../abi/Erc721';
 import { NULL_ADDR } from '../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
@@ -36,10 +36,8 @@ export default class Erc721Contract extends AbstractContract {
     }
   }
 
-  async getMints(options?: { fromBlock?: number; toBlock?: number | 'latest' }): Promise<ethers.Event[]> {
+  async getMints(options?: { fromBlock?: number; toBlock?: number | 'latest', returnType: 'stream' | 'promise' | 'generator' }): Promise<HistoricalLogs> {
     const mintsFilter = this.contract.filters.Transfer(NULL_ADDR);
-
-    console.time('start');
     try {
       const thunkedLogRequest: ThunkedLogRequest = async (fromBlock: number, toBlock: number | 'latest') => {
         return await this.contract.queryFilter(mintsFilter, fromBlock, toBlock);
@@ -51,16 +49,13 @@ export default class Erc721Contract extends AbstractContract {
         fromBlock = firstTransaction.blockNumber;
       }
 
-      const mints = await this.paginateLogs(thunkedLogRequest, this.provider, {
+      const mintsReadable = await this.paginateLogs(thunkedLogRequest, this.provider, {
         fromBlock,
         toBlock: options?.toBlock,
-        removeDuplicates: true,
-        duplicateSelector: (event) => (event?.args?.[2] as BigNumber)?.toString?.() // remove duplicates by token id
-      });
+        returnType: options?.returnType
+      })
 
-      console.log(`Found: ${mints.length} mints`);
-      console.timeEnd('start');
-      return mints;
+      return mintsReadable;
     } catch (err) {
       console.error(err);
       throw new Error('failed to get mints'); // TODO improve error handling
@@ -68,7 +63,8 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   async getTokenIds(): Promise<string[]> {
-    const mints = (await this.getMints()) ?? [];
+    const mints = (await this.getMints({returnType: 'promise'})) as ethers.Event[];
+
     return mints.map((mint) => {
       const args = mint?.args;
       const tokenId = (args?.[2] as BigNumber)?.toString?.();

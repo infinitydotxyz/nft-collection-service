@@ -15,35 +15,36 @@ async function main(): Promise<void> {
     const tokens = await bayc.getTokenIds();
 
 
-    const opensea = new OpenSeaClient();
-    /**
-     * get collection metadata 
-     * name, description, links
-     */
-    const metadata = await opensea.getCollectionMetadata(addr);
+    console.log(tokens);
+    // const opensea = new OpenSeaClient();
+    // /**
+    //  * get collection metadata 
+    //  * name, description, links
+    //  */
+    // const metadata = await opensea.getCollectionMetadata(addr);
 
-    /**
-     * get token uris
-     */
-    const tokenUris: string[] = [];
-    let index = 0;
-    for(const tokenId of tokens) {
-        const tokenUri = await bayc.getTokenUri(tokenId);
-        tokenUris.push(tokenUri);
-        if(index % 100 === 0) {
-            console.log(`[${index / 100} %] token uri: ${tokenUri}`);
-        }
-        index += 1;
-    }
+    // /**
+    //  * get token uris
+    //  */
+    // const tokenUris: string[] = [];
+    // let index = 0;
+    // for(const tokenId of tokens) {
+    //     const tokenUri = await bayc.getTokenUri(tokenId);
+    //     tokenUris.push(tokenUri);
+    //     if(index % 100 === 0) {
+    //         console.log(`[${index / 100} %] token uri: ${tokenUri}`);
+    //     }
+    //     index += 1;
+    // }
 
-    /**
-     * get metadata for all tokens
-     */
-    const metadataClient = new MetadataClient();
-    for (const url of tokenUris) {
-        const metadata = await metadataClient.getMetadata(url)
-        console.log(metadata);
-    }
+    // /**
+    //  * get metadata for all tokens
+    //  */
+    // const metadataClient = new MetadataClient();
+    // for (const url of tokenUris) {
+    //     const metadata = await metadataClient.getMetadata(url)
+    //     console.log(metadata);
+    // }
 
 }
 
