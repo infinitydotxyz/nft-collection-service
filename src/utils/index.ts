@@ -14,7 +14,7 @@ export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => s
 }
 
 
-export async function sleep(duration: number) {
+export async function sleep(duration: number): Promise<void> {
   return await new Promise<void>((resolve) => {
     setTimeout(()=> {
       resolve();

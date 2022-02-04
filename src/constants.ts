@@ -1,7 +1,7 @@
 
 
-function getEnvironmentVariable(name: string, required = true) {
-    const variable = process.env[name];
+function getEnvironmentVariable(name: string, required = true): string {
+    const variable = process.env[name] ?? "";
     if (required && !variable) {
       throw new Error(`Missing environment variable ${name}`);
     }

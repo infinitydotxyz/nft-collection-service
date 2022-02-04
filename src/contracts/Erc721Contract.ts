@@ -1,6 +1,5 @@
-import { BigNumber, Contract, ethers } from 'ethers';
-import { getProviderByChainId } from '../utils/ethers';
-import IContract, { TokenStandard } from './Contract.interface';
+import { BigNumber, ethers } from 'ethers';
+import { TokenStandard } from './Contract.interface';
 import Erc721Abi from '../abi/Erc721';
 import { NULL_ADDR } from '../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
