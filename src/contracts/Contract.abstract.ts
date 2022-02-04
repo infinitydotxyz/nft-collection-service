@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
 import { getProviderByChainId } from '../utils/ethers';
-import IContract, { HistoricalLogs, TokenStandard } from './Contract.interface';
+import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
 export interface LogRequestOptions {
   fromBlock?: number;
@@ -16,7 +16,7 @@ export interface PaginateLogsOptions {
   fromBlock: number;
   toBlock?: number | 'latest';
   maxAttempts?: number;
-  
+
   /**
    * stream return type should be used for getting events as fast as 
    * possible and handling events as they are available
@@ -27,6 +27,9 @@ export interface PaginateLogsOptions {
    */
   returnType?: 'stream' | 'generator' | 'promise';
 }
+
+
+
 
 export default abstract class Contract implements IContract {
   address: string;
@@ -43,7 +46,7 @@ export default abstract class Contract implements IContract {
 
   abstract getContractCreationTx(): Promise<ethers.Event>;
 
-  abstract getMints(): Promise<HistoricalLogs>;
+  abstract getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs>;
 
   abstract getTokenIds(): Promise<string[]>;
 

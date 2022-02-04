@@ -1,5 +1,5 @@
 import { BigNumber, ethers } from 'ethers';
-import { HistoricalLogs, TokenStandard } from './Contract.interface';
+import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 import Erc721Abi from '../abi/Erc721';
 import { NULL_ADDR } from '../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
@@ -36,7 +36,7 @@ export default class Erc721Contract extends AbstractContract {
     }
   }
 
-  async getMints(options?: { fromBlock?: number; toBlock?: number | 'latest', returnType: 'stream' | 'promise' | 'generator' }): Promise<HistoricalLogs> {
+  async getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs> {
     const mintsFilter = this.contract.filters.Transfer(NULL_ADDR);
     try {
       const thunkedLogRequest: ThunkedLogRequest = async (fromBlock: number, toBlock: number | 'latest') => {

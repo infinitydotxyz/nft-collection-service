@@ -8,6 +8,12 @@ export enum TokenStandard {
 
 export type HistoricalLogs = Readable | ethers.Event[] | Generator<Promise<ethers.Event[]>, void, unknown>;
 
+export interface HistoricalLogsOptions {
+    fromBlock?: number;
+    toBlock?: number | 'latest';
+    returnType?: "stream" | 'promise' | 'generator';
+  }
+
 export default interface Contract {
     address: string;
 
@@ -28,7 +34,7 @@ export default interface Contract {
     /**
      * returns a promise of a readable stream of mint events
      */
-    getMints: (options?: { fromBlock?: number; toBlock?: number | 'latest', returnType?: 'stream' | 'promise' | 'generator' }) => Promise<HistoricalLogs>;
+    getMints: (options?: HistoricalLogsOptions) => Promise<HistoricalLogs>;
 
     /**
      * returns a promise for all token ids in the collection

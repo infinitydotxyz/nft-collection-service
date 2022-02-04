@@ -1,3 +1,5 @@
+import { TokenStandard } from "contracts/Contract.interface";
+
 export interface CollectionMetadata {
     name: string;
     description: string;
@@ -19,3 +21,25 @@ export interface Links {
     wiki?: string;
     facebook?: string;
 }
+
+
+
+export interface Collection {
+    chainId: string;
+    address: string;
+    tokenStandard: TokenStandard;
+
+    deployer: string;
+    owner: string;
+
+    /**
+     * editable collection metadata
+     */
+    metadata: CollectionMetadata;
+
+    /**
+     * traits for all tokens
+     */
+    traits: any;
+}
+
