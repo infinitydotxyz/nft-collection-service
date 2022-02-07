@@ -21,3 +21,7 @@ export async function sleep(duration: number): Promise<void> {
     }, duration)
   })
 }
+
+export function isDev(): boolean {
+  return process.env.NODE_ENV === 'development';
+}

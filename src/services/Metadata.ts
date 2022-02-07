@@ -96,6 +96,7 @@ export default class MetadataClient {
 
   /**
    * returns a promise for a successful response (i.e. status code 200)
+   * 
    */
   async get(url: string | URL, attempt = 0): Promise<Response> {
     attempt += 1;
