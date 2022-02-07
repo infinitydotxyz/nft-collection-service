@@ -14,10 +14,32 @@ export default class Erc721Contract extends AbstractContract {
     super(address, chainId, Erc721Abi);
   }
 
-  async getContractCreator(): Promise<string> {
-    const tx = await this.getContractCreationTx();
-    const creator: string = (tx?.args?.[1] as string)?.toLowerCase?.() ?? '';
-    return creator;
+  decodeDeployer(event: ethers.Event): string {
+    const deployer: string = (event?.args?.[1] as string)?.toLowerCase?.() ?? '';
+    return deployer;
+  }
+
+  decodeTransfer(event: ethers.Event): {from: string, to: string, tokenId: string} {
+    const args = event?.args;
+    const from = args?.[0];
+    const to = args?.[1];
+    const tokenId = (args?.[2] as BigNumber)?.toString?.();
+
+    if(!to || !from || !tokenId) {
+      throw new Error("failed to get token id from event");
+    }
+
+    return {
+      from,
+      to,
+      tokenId
+    }
+  }
+
+  async getContractDeployer(): Promise<string> {
+    const event = await this.getContractCreationTx();
+    const deployer = this.decodeDeployer(event);
+    return deployer;
   }
 
   async getContractCreationTx(): Promise<ethers.Event> {
@@ -36,6 +58,11 @@ export default class Erc721Contract extends AbstractContract {
     }
   }
 
+  /**
+   * get all transfers from 0x0
+   * 
+   * use options to specify a block range and how to receive the events
+   */
   async getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs> {
     const mintsFilter = this.contract.filters.Transfer(NULL_ADDR);
     try {
@@ -45,6 +72,9 @@ export default class Erc721Contract extends AbstractContract {
 
       let fromBlock = options?.fromBlock;
       if (typeof fromBlock !== 'number') {
+        /**
+         * the first transaction for this contract
+         */
         const firstTransaction = await this.getContractCreationTx();
         fromBlock = firstTransaction.blockNumber;
       }
@@ -66,14 +96,13 @@ export default class Erc721Contract extends AbstractContract {
     const mints = (await this.getMints({returnType: 'promise'})) as ethers.Event[];
 
     return mints.map((mint) => {
-      const args = mint?.args;
-      const tokenId = (args?.[2] as BigNumber)?.toString?.();
+      const tokenId = this.decodeTransfer(mint).tokenId;
       return tokenId;
     });
   }
 
   /**
-   * there are two ways to get the token uri
+   * there are ways to get the token uri
    * 1. call tokenUri on the contract
    * 2. call baseUri on the contract and append the tokenId to the response
    */

@@ -22,9 +22,18 @@ export default interface Contract {
     standard: TokenStandard;
 
     /**
-     * returns a promise for the address of the creator of the contract
+     * takes the event that created the contract
+     * returns the address that deployed the contract
      */
-    getContractCreator: () => Promise<string>;
+    decodeDeployer: (event: ethers.Event) => string;
+
+    
+    decodeTransfer: (event: ethers.Event) => {to: string, from: string, tokenId: string};
+
+    /**
+     * returns a promise for the address of the deployer of the contract
+     */
+    getContractDeployer: () => Promise<string>;
 
     /**
      * returns a promise for the event where the contract was created
@@ -40,4 +49,9 @@ export default interface Contract {
      * returns a promise for all token ids in the collection
      */
     getTokenIds: () => Promise<string[]>;
+
+    /**
+     * returns a promise for the uri of the token's metadata
+     */
+    getTokenUri: (tokenId: string) => Promise<string>;
 }

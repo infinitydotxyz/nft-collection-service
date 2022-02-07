@@ -1,16 +1,26 @@
+
 import Erc721Contract from './contracts/Erc721Contract';
 import MetadataClient from './services/Metadata';
-
+import Aggregator from './Aggregator';
+import OpenSeaClient from './services/OpenSea';
+import ContractFactory from './contracts/ContractFactory';
+import { TokenStandard } from './contracts/Contract.interface';
 
 async function main(): Promise<void> {
     const addr = '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'.toLowerCase();
     // const addr= '0x8a90cab2b38dba80c64b7734e58ee1db38b8992e';
     // const addr = '0x806010c3c09f76aaa95193bb81656baa8a04a646';
 
-    // const contractFactory = new ContractFactory();
+    const contractFactory = new ContractFactory();
 
-    // const bayc = contractFactory.create(addr, '1', TokenStandard.ERC721);
-    const bayc = new Erc721Contract(addr, '1');
+    const bayc = contractFactory.create(addr, '1', TokenStandard.ERC721);
+    const metadataClient = new MetadataClient();
+    const openseaClient = new OpenSeaClient();
+
+    const agg = new Aggregator(bayc, metadataClient, openseaClient);
+
+    await agg.getInitalData();
+    // const bayc = new Erc721Contract(addr, '1');
 
 
     /**
@@ -20,10 +30,10 @@ async function main(): Promise<void> {
 
     // const mints = await bayc.getMints({returnType: 'generator'}) as unknown as Generator<Promise<ethers.Event[]>>;
     // console.log(tokens);
-    const tokens: string[] = [];
-    for(let x = 0; x < 10; x +=1) {
-        tokens.push(`${x}`);
-    }
+    // const tokens: string[] = [];
+    // for(let x = 0; x < 10; x +=1) {
+    //     tokens.push(`${x}`);
+    // }
 
     // console.log(tokens);
     // const opensea = new OpenSeaClient();
@@ -52,7 +62,7 @@ async function main(): Promise<void> {
     // //  * get metadata for all tokens
     // //  */
     // console.time('');
-    const metadataClient = new MetadataClient();
+
     // const metadataPromises: Array<Promise<{data: string}>> = [];
     // index = 0;
     // for (const url of tokenUris) {
@@ -74,8 +84,13 @@ async function main(): Promise<void> {
     const response = await metadataClient.get(imageUrl);
     const contentType = response.headers['content-type'];
     console.log(contentType);
+
     // console.log(image);
     // await writeFile('./image', Buffer.from(image.data));
+
+
+
+
 }
 
 void main();

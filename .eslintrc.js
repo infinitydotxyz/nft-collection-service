@@ -22,7 +22,7 @@ module.exports = {
         '@typescript-eslint/strict-boolean-expressions': 0,
         '@typescript-eslint/restrict-template-expressions': 0,
         '@typescript-eslint/no-case-declarations': 0,
-        "@typescript-eslint/no-unsafe-member-access": 0
+        '@typescript-eslint/no-unsafe-member-access': 0
       },
       parserOptions: {
         project: ['./tsconfig.json'] // Specify it only for TypeScript files
@@ -39,7 +39,8 @@ module.exports = {
   },
   rules: {
     'no-case-declarations': 0,
-    'restrict-template-expressions': 0
+    'restrict-template-expressions': 0,
+    'no-async-promise-executor': 0
   },
   ignorePatterns: ['/dist/**', '**/node_modules/**']
 };

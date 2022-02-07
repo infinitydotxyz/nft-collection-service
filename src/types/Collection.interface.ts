@@ -28,9 +28,11 @@ export interface Links {
   facebook?: string;
 }
 
-export interface Collection {
+interface BaseCollection {
   chainId: string;
+
   address: string;
+
   tokenStandard: TokenStandard;
 
   /**
@@ -48,26 +50,12 @@ export interface Collection {
    * editable collection metadata
    */
   metadata: CollectionMetadata;
-}
-
-interface BaseCollection {
-  chainId: string;
-
-  address: string;
-
-  tokenStandard: TokenStandard;
-
-  deployer: string;
-  
-  owner: string;
-
-  metadata: CollectionMetadata;
 
   /**
-   * number of available tokens in the collection 
+   * number of available tokens in the collection
    * (i.e. not burned/destroyed)
    */
-  tokens: number; 
+  tokens: number;
 
   traits: { [traitType: string]: { [traitValue: string | number]: TraitValueMetadata } };
 }
@@ -76,9 +64,14 @@ export interface ERC721Collection extends BaseCollection {
   tokenStandard: TokenStandard.ERC721;
 }
 
+
+
 interface TraitValueMetadata {
-    /**
-     * number of tokens with this trait
-     */
-    count: number;
+  /**
+   * number of tokens with this trait
+   */
+  count: number;
 }
+
+
+export type Collection = ERC721Collection;

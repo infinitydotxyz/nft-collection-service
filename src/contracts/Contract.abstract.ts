@@ -42,13 +42,19 @@ export default abstract class Contract implements IContract {
 
   protected provider: ethers.providers.JsonRpcProvider;
 
-  abstract getContractCreator(): Promise<string>;
+  abstract decodeDeployer(event: ethers.Event): string;
+
+  abstract decodeTransfer(event: ethers.Event): {to: string, from: string, tokenId: string};
+
+  abstract getContractDeployer(): Promise<string>;
 
   abstract getContractCreationTx(): Promise<ethers.Event>;
 
   abstract getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs>;
 
   abstract getTokenIds(): Promise<string[]>;
+
+  abstract getTokenUri(tokenId: string): Promise<string>;
 
   /**
    * throws an error if the chainId is invalid
