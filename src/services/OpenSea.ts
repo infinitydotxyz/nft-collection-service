@@ -13,7 +13,7 @@ import got, {
 } from 'got';
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import {CollectionMetadata} from '../types/collection' 
+import {CollectionMetadata} from '../types/Collection.interface' 
 
 type GotError =
   | RequestError

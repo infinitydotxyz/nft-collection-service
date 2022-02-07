@@ -1,4 +1,4 @@
-import { INFURA_IPFS_PROJECT_SECRET, INFURA_IPFS_PROJECT_ID } from '../constants';
+import { INFURA_API_KEY } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
 
@@ -8,17 +8,17 @@ enum Protocol {
   IPFS = 'ipfs:'
 }
 
-const infuraApiKey = Buffer.from(`${INFURA_IPFS_PROJECT_ID}:${INFURA_IPFS_PROJECT_SECRET}`).toString('base64');
-const infuraAuth = `Basic ${infuraApiKey}`;
-
 type RequestTransformer = ((options: Options) => void) | null;
+
 interface MetadataClientOptions {
-  concurrency: number;
   protocols: Record<Protocol, RequestTransformer>;
 }
 
+/**
+ * config allows us to define handling of protocols besides 
+ * http and https
+ */
 export const config: MetadataClientOptions = {
-  concurrency: 30,
   protocols: {
     [Protocol.IPFS]: (options: Options) => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -29,7 +29,7 @@ export const config: MetadataClientOptions = {
       const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
       options.url = new URL(`${domain}${cid}${id}`);
       options.headers = {
-        Authorization: infuraAuth
+        Authorization: INFURA_API_KEY
       };
     },
     [Protocol.HTTP]: null,
@@ -50,7 +50,7 @@ export default class MetadataClient {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: config.concurrency
+      concurrency: 30
     });
 
     this.client = got.extend({
@@ -77,7 +77,7 @@ export default class MetadataClient {
     });
   }
 
-  async getMetadata(url: string | URL, attempts = 0): Promise<unknown> {
+  async get(url: string | URL, attempts = 0): Promise<unknown> {
     attempts += 1;
     try {
       const response: Response = await this.queue.add(async () => {
@@ -101,7 +101,7 @@ export default class MetadataClient {
       if (attempts > 3) {
         throw err;
       }
-      return await this.getMetadata(url, attempts);
+      return await this.get(url, attempts);
     }
   }
 }
