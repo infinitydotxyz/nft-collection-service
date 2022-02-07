@@ -1,6 +1,8 @@
 import { INFURA_API_KEY } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
+import { detectContentType } from '../utils/sniff';
+import {Readable} from 'stream';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -11,31 +13,46 @@ enum Protocol {
 type RequestTransformer = ((options: Options) => void) | null;
 
 interface MetadataClientOptions {
-  protocols: Record<Protocol, RequestTransformer>;
+  protocols: Record<Protocol, { transform: RequestTransformer; ipfsPathFromUrl: (url: string | URL) => string }>;
 }
 
+const defaultIpfsPathFromUrl = (url: string | URL): string => {
+  url = new URL(url);
+  const cid = url.host;
+  const id = url.pathname;
+  return `${cid}${id}`;
+};
+
 /**
- * config allows us to define handling of protocols besides 
+ * config allows us to define handling of protocols besides
  * http and https
  */
 export const config: MetadataClientOptions = {
   protocols: {
-    [Protocol.IPFS]: (options: Options) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const url = new URL(options.url!);
-      options.method = 'post';
-      const cid = url.host;
-      const id = url.pathname;
-      const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
-      options.url = new URL(`${domain}${cid}${id}`);
-      options.headers = {
-        Authorization: INFURA_API_KEY
-      };
+    [Protocol.IPFS]: {
+      transform: (options: Options) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const url = new URL(options.url!);
+        options.method = 'post';
+        const cid = url.host;
+        const id = url.pathname;
+        const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
+        options.url = new URL(`${domain}${cid}${id}`);
+        options.headers = {
+          Authorization: INFURA_API_KEY
+        };
+      },
+      ipfsPathFromUrl: defaultIpfsPathFromUrl
     },
-    [Protocol.HTTP]: null,
-    [Protocol.HTTPS]:  null
+
+    [Protocol.HTTP]: { transform: null, ipfsPathFromUrl: defaultIpfsPathFromUrl },
+    [Protocol.HTTPS]: { transform: null, ipfsPathFromUrl: defaultIpfsPathFromUrl }
   }
 };
+
+function isIpfs(requestUrl: string | URL): boolean {
+  return requestUrl.toString().includes('ipfs.infura.io:5001')
+}
 
 /**
  * TODO we should handle concurrency separately for http/https urls
@@ -44,7 +61,7 @@ export default class MetadataClient {
   private readonly client: Got;
 
   /**
-   * we only use one 
+   * we only use one
    */
   private readonly queue: PQueue;
 
@@ -65,11 +82,11 @@ export default class MetadataClient {
             }
             const url = new URL(options.url);
             const protocol = url.protocol.toLowerCase();
-            const transform = config.protocols[protocol as Protocol];
-            if(typeof transform === 'function') {
-              transform(options);
-            }else if (transform !== null) {
-              throw new Error(`Invalid protocol: ${protocol}`)
+            const protocolConfig = config.protocols[protocol as Protocol];
+            if (typeof protocolConfig.transform === 'function') {
+              protocolConfig.transform(options);
+            } else if (protocolConfig.transform !== null) {
+              throw new Error(`Invalid protocol: ${protocol}`);
             }
           }
         ]
@@ -77,19 +94,31 @@ export default class MetadataClient {
     });
   }
 
-  async get(url: string | URL, attempts = 0): Promise<unknown> {
-    attempts += 1;
+  /**
+   * returns a promise for a successful response (i.e. status code 200)
+   */
+  async get(url: string | URL, attempt = 0): Promise<Response> {
+    attempt += 1;
     try {
       const response: Response = await this.queue.add(async () => {
         /**
-         * you have to set the url in options for it to be defined in the init hook 
+         * you have to set the url in options for it to be defined in the init hook
          */
-        return await this.client({ url }); 
+        return await this.client({ url });
       });
 
       switch (response.statusCode) {
         case 200:
-          return response.body;
+
+          if(isIpfs(response.requestUrl)) {
+            const path = config.protocols[Protocol.IPFS].ipfsPathFromUrl(url);
+            const { contentType: ipfsContentType} = await detectContentType(path,  Readable.from(response.rawBody));
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+            const contentType = ipfsContentType || 'text/plain';
+            response.headers['content-type'] = contentType;
+          }
+
+          return response;
 
         case 429:
           throw new Error('Rate limited');
@@ -98,10 +127,10 @@ export default class MetadataClient {
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
     } catch (err) {
-      if (attempts > 3) {
+      if (attempt > 3) {
         throw err;
       }
-      return await this.get(url, attempts);
+      return await this.get(url, attempt);
     }
   }
 }

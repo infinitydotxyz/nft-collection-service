@@ -1,5 +1,3 @@
-
-import { writeFile } from 'fs/promises';
 import Erc721Contract from './contracts/Erc721Contract';
 import MetadataClient from './services/Metadata';
 
@@ -23,7 +21,7 @@ async function main(): Promise<void> {
     // const mints = await bayc.getMints({returnType: 'generator'}) as unknown as Generator<Promise<ethers.Event[]>>;
     // console.log(tokens);
     const tokens: string[] = [];
-    for(let x = 0; x < 10_000; x +=1) {
+    for(let x = 0; x < 10; x +=1) {
         tokens.push(`${x}`);
     }
 
@@ -39,35 +37,45 @@ async function main(): Promise<void> {
     // /**
     //  * get token uris
     //  */
-    const tokenUris: string[] = [];
-    let index = 0;
-    for(const tokenId of tokens) {
-        const tokenUri = await bayc.getTokenUri(tokenId);
-        tokenUris.push(tokenUri);
-        if(index % 100 === 0) {
-            console.log(`[${index / 100} %] token uri: ${tokenUri}`);
-        }
-        index += 1;
-    }
+    // const tokenUris: string[] = [];
+    // let index = 0;
+    // for(const tokenId of tokens) {
+    //     const tokenUri = await bayc.getTokenUri(tokenId);
+    //     tokenUris.push(tokenUri);
+    //     if(index % 100 === 0) {
+    //         console.log(`[${index / 100} %] token uri: ${tokenUri}`);
+    //     }
+    //     index += 1;
+    // }
 
-    // /**
-    //  * get metadata for all tokens
-    //  */
-    console.time('');
+    // // /**
+    // //  * get metadata for all tokens
+    // //  */
+    // console.time('');
     const metadataClient = new MetadataClient();
-    const metadataPromises: Array<Promise<any>> = [];
-    index = 0;
-    for (const url of tokenUris) {
-        metadataPromises.push(metadataClient.getMetadata(url))
-        index += 1;
+    // const metadataPromises: Array<Promise<{data: string}>> = [];
+    // index = 0;
+    // for (const url of tokenUris) {
+    //     metadataPromises.push(metadataClient.get(url))
+    //     index += 1;
 
-        console.timeLog('', `${index / 100}%`);
-    }
+    //     console.timeLog('', `${index / 100}%`);
+    // }
 
-    const metadata = await Promise.all(metadataPromises);
+    // const metadata = await Promise.all(metadataPromises);
 
-    console.timeEnd('')
-    console.log(metadata.length);
+    // console.timeEnd('')
+    // console.log(metadata.length);
+
+    // console.log(metadata.map((item) => item.data))
+
+
+    const imageUrl = 'ipfs://QmRRPWG96cmgTn2qSzjwr2qvfNEuhunv6FNeMFGa9bx6mQ';
+    const response = await metadataClient.get(imageUrl);
+    const contentType = response.headers['content-type'];
+    console.log(contentType);
+    // console.log(image);
+    // await writeFile('./image', Buffer.from(image.data));
 }
 
 void main();
