@@ -1,8 +1,8 @@
 import { TokenStandard } from './contracts/Contract.interface';
 import ContractFactory from './contracts/ContractFactory';
-import MetadataClient from './services/Metadata';
 import OpenSeaClient from './services/OpenSea';
 import Aggregator from './Aggregator';
+import { metadataClient } from './container';
 
 export async function main(): Promise<void> {
         const addr = '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'.toLowerCase();
@@ -12,11 +12,9 @@ export async function main(): Promise<void> {
     const contractFactory = new ContractFactory();
 
     const bayc = contractFactory.create(addr, '1', TokenStandard.ERC721);
-    const metadataClient = new MetadataClient();
     const openseaClient = new OpenSeaClient();
 
     const agg = new Aggregator(bayc, metadataClient, openseaClient);
 
     await agg.getInitalData();
-    
 }

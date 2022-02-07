@@ -2,7 +2,8 @@ import { INFURA_API_KEY } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
 import { detectContentType } from '../utils/sniff';
-import {Readable} from 'stream';
+import { Readable } from 'stream';
+import { singleton } from 'tsyringe';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -51,12 +52,15 @@ export const config: MetadataClientOptions = {
 };
 
 function isIpfs(requestUrl: string | URL): boolean {
-  return requestUrl.toString().includes('ipfs.infura.io:5001')
+  return requestUrl.toString().includes('ipfs.infura.io:5001');
 }
 
 /**
- * TODO we should handle concurrency separately for http/https urls
+ * Metadata client handles transforming requests for different protocols, 
+ * basic error handling of responses, and controls concurrency to prevent
+ * flooding our network 
  */
+@singleton()
 export default class MetadataClient {
   private readonly client: Got;
 
@@ -96,7 +100,7 @@ export default class MetadataClient {
 
   /**
    * returns a promise for a successful response (i.e. status code 200)
-   * 
+   *
    */
   async get(url: string | URL, attempt = 0): Promise<Response> {
     attempt += 1;
@@ -110,10 +114,9 @@ export default class MetadataClient {
 
       switch (response.statusCode) {
         case 200:
-
-          if(isIpfs(response.requestUrl)) {
+          if (isIpfs(response.requestUrl)) {
             const path = config.protocols[Protocol.IPFS].ipfsPathFromUrl(url);
-            const { contentType: ipfsContentType} = await detectContentType(path,  Readable.from(response.rawBody));
+            const { contentType: ipfsContentType } = await detectContentType(path, Readable.from(response.rawBody));
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
             const contentType = ipfsContentType || 'text/plain';
             response.headers['content-type'] = contentType;

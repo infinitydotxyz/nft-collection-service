@@ -37,6 +37,7 @@
     "dotenv": "^16.0.0",
     "ethers": "^5.5.4",
     "file-type": "^16.5.3",
+    "firebase-admin": "^10.0.2",
     "got": "^11.8.3",
     "it-reader": "^3.0.0",
     "mime-types": "^2.1.30",

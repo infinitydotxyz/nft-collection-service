@@ -3,9 +3,9 @@ import { isDev } from './utils';
 import {main as dev} from './dev';
 import { main } from './index';
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
     if(isDev()) {
-        dev();
+        await dev();
     } else {
         main();
     }
