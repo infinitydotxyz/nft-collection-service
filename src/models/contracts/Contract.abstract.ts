@@ -1,5 +1,8 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
+import { CollectionTraits } from 'types/Collection.interface';
+import { Token } from 'types/Token.interface';
+import { sleep } from '../../utils';
 import { getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
@@ -18,18 +21,15 @@ export interface PaginateLogsOptions {
   maxAttempts?: number;
 
   /**
-   * stream return type should be used for getting events as fast as 
+   * stream return type should be used for getting events as fast as
    * possible and handling events as they are available
-   * 
-   * generator should be used to lazily request events 
-   * 
+   *
+   * generator should be used to lazily request events
+   *
    * promise should be used to get all events at once
    */
   returnType?: 'stream' | 'generator' | 'promise';
 }
-
-
-
 
 export default abstract class Contract implements IContract {
   address: string;
@@ -42,9 +42,11 @@ export default abstract class Contract implements IContract {
 
   protected provider: ethers.providers.JsonRpcProvider;
 
+  abstract aggregateTraits(tokens: Token[]): CollectionTraits;
+
   abstract decodeDeployer(event: ethers.Event): string;
 
-  abstract decodeTransfer(event: ethers.Event): {to: string, from: string, tokenId: string};
+  abstract decodeTransfer(event: ethers.Event): { to: string; from: string; tokenId: string };
 
   abstract getContractDeployer(): Promise<string>;
 
@@ -76,14 +78,9 @@ export default abstract class Contract implements IContract {
   protected async paginateLogs(
     thunkedLogRequest: ThunkedLogRequest,
     provider: ethers.providers.JsonRpcProvider,
-    options: PaginateLogsOptions,
+    options: PaginateLogsOptions
   ): Promise<HistoricalLogs> {
-    let {
-      fromBlock,
-      toBlock = 'latest',
-      maxAttempts = 3,
-      returnType = 'stream'
-    } = options;
+    let { fromBlock, toBlock = 'latest', maxAttempts = 5, returnType = 'stream' } = options;
 
     toBlock = toBlock ?? 'latest';
 
@@ -105,33 +102,31 @@ export default abstract class Contract implements IContract {
     };
 
     const maxBlock = await getMaxBlock(provider, toBlock);
-    const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts)
-    switch(returnType) {
-      case 'stream': 
-      const readable = Readable.from(generator);
-      return readable;
-      case 'generator': 
+    const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts);
+    switch (returnType) {
+      case 'stream':
+        const readable = Readable.from(generator);
+        return readable;
+      case 'generator':
         return generator;
-      case 'promise': 
-        return await new Promise<ethers.Event[]>((resolve,reject) => {
+      case 'promise':
+        return await new Promise<ethers.Event[]>((resolve, reject) => {
           const readable = Readable.from(generator);
           let events: ethers.Event[] = [];
           readable.on('data', (chunk: ethers.Event[]) => {
             events = [...events, ...chunk];
-          })
-          
+          });
+
           readable.on('end', () => {
             resolve(events);
-          })
+          });
 
-          readable.on('error', (err)=> {
+          readable.on('error', (err) => {
             reject(err);
-          })
-
-        })      
+          });
+        });
     }
   }
-
 
   private *paginateLogsHelper(
     thunkedLogRequest: ThunkedLogRequest,
@@ -144,8 +139,8 @@ export default abstract class Contract implements IContract {
     let attempts = 0;
     while (from < maxBlock) {
       // we can get a max of 2k blocks at once
-      let to = from + 2000; 
-      
+      let to = from + 2000;
+
       if (to > maxBlock) {
         to = maxBlock;
       }
@@ -154,7 +149,14 @@ export default abstract class Contract implements IContract {
         yield thunkedLogRequest(from, to);
         attempts = 0;
         from = to + 1;
-      } catch (err) {
+      } catch (err: any) {
+        if (err.code === 'ETIMEDOUT') {
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises
+          yield new Promise<any[]>(async (resolve) => {
+            await sleep(2000);
+            resolve([]);
+          });
+        }
         attempts += 1;
         if (attempts > maxAttempts) {
           throw err;

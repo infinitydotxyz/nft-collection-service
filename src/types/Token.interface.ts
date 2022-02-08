@@ -1,7 +1,6 @@
-import { ERC721Metadata } from './Metadata.interface';
+import { Erc721Metadata } from './Metadata.interface';
 
-
-export type TokenMetadata = ERC721Metadata;
+export type TokenMetadata = Erc721Metadata;
 
 interface BaseToken {
   /**
@@ -26,34 +25,41 @@ interface BaseToken {
   /**
    * cached raw metadata
    */
-  metadata: TokenMetadata;
+  metadata: {
+    data: TokenMetadata;
+
+    updatedAt: number;
+
+    tokenUri: string;
+  };
 
   /**
-   * unix timestamp of when the metadata was updated
+   * cached token image
    */
-  metadataUpdatedAt: number;
-
   image: {
-      /**
-       * url to the image stored in gcs
-       */
-      url: string;
+    /**
+     * url to the image stored in gcs
+     */
+    url: string;
 
-      /**
-       * mime type for the media
-       */
-      mime: string;
+    /**
+     * mime type for the media
+     */
+    contentType: string;
 
-      /**
-       * unix timestamp of when the image was updated
-       */
-      updatedAt: number;
-  }
+    /**
+     * unix timestamp of when the image was updated
+     */
+    updatedAt: number;
+  };
 }
 
-export interface ERC721Token extends BaseToken {
-  metadata: ERC721Metadata;
+export interface Erc721Token extends BaseToken {
+  metadata: {
+    data: Erc721Metadata;
+    updatedAt: number;
+    tokenUri: string;
+  };
 }
 
-
-export type Token = ERC721Token;
+export type Token = Erc721Token;

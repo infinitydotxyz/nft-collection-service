@@ -1,6 +1,9 @@
 import { TokenStandard } from './models/contracts/Contract.interface';
 import ContractFactory from './models/contracts/ContractFactory';
 import CollectionMetadataProvider from './models/CollectionMetadataProvider';
+import Collection from './models/Collection';
+import { firebase, metadataClient } from './container';
+import {writeFile} from 'fs/promises';
 
 
 export async function main(): Promise<void> {
@@ -11,7 +14,52 @@ export async function main(): Promise<void> {
     const contractFactory = new ContractFactory();
 
     const bayc = contractFactory.create(addr, '1', TokenStandard.ERC721);
-    const openseaClient = new CollectionMetadataProvider();
+    const collectionMetadataProvider = new CollectionMetadataProvider();
+
+    const collection = new Collection(bayc, metadataClient, collectionMetadataProvider);
+
+    const {collection: collectionData, tokens} = await collection.getInitialData();
+
+    await writeFile('./collection.json', JSON.stringify(collectionData));
+
+    await writeFile('./tokens.json', JSON.stringify(tokens));
+
+    const collectionDoc = firebase.db.collection('collections').doc(`${collectionData.chainId}:${collectionData.address.toLowerCase()}`);
+    await collectionDoc.set(collectionData, { merge: true});
+
+    console.log('Updated collection doc');
+
+    // TODO update tokens as we get data for them
+    interface Batch {
+        batch: FirebaseFirestore.WriteBatch,
+        size: number
+    }
+    const batches: Batch[] = [];
+    const newBatch = (): Batch => {
+        return { batch: firebase.db.batch(), size: 0 };
+    }
+    let currentBatch = newBatch();
+    for(const token of tokens) {
+        if(currentBatch.size >= 500) {
+            batches.push(currentBatch);
+            currentBatch = newBatch();
+            console.log(`Created new batch. Batches: ${batches.length}`);
+        }
+        const tokenDoc = collectionDoc.collection('tokens').doc(token.tokenId)
+        currentBatch.batch.set(tokenDoc, token, {merge: true});
+
+        currentBatch.size += 1;
+    }
+
+    try{
+
+        const batchPromises = batches.map(async (item) => await item.batch.commit());
+        await Promise.all(batchPromises);
+        console.log('wrote all batches');
+    }catch(err) {
+        console.error('failed to write batches');
+        console.error(err);
+    }
 
     // const agg = new Aggregator(bayc, metadataClient, openseaClient);
 

@@ -1,5 +1,5 @@
 
-export interface ERC721Metadata {
+export interface Erc721Metadata {
     /**
      * URL to the image of the item
      */
@@ -36,7 +36,7 @@ export interface ERC721Metadata {
     youtube_url: string;
 
 
-    attributes: ERC721Attribute[];
+    attributes: Erc721Attribute[];
 }
 
 /**
@@ -83,4 +83,4 @@ export interface Attribute {
     trait_type?: string;
 }
 
-export type ERC721Attribute = Attribute | DateAttribute | NumberAttribute | BoostNumberAttribute | BoostPercentageAttribute;
+export type Erc721Attribute = Attribute | DateAttribute | NumberAttribute | BoostNumberAttribute | BoostPercentageAttribute;

@@ -1,4 +1,5 @@
 import { TokenStandard } from '../models/contracts/Contract.interface';
+import { DisplayType } from './Metadata.interface';
 
 /**
  * Collection metadata that can be edited by the owner
@@ -28,6 +29,12 @@ export interface Links {
   facebook?: string;
 }
 
+export interface CollectionTraits { [traitType: string]: { 
+  displayType?: DisplayType;
+
+  values: {[traitValue: string | number]: TraitValueMetadata } }
+}
+
 interface BaseCollection {
   chainId: string;
 
@@ -40,6 +47,11 @@ interface BaseCollection {
    * (i.e the address that created the contract)
    */
   deployer: string;
+
+  /**
+   * unix timestamp that the contract was deployed at
+   */
+  deployedAt: number;
 
   /**
    * current owner of the contract
@@ -57,13 +69,17 @@ interface BaseCollection {
    */
   tokens: number;
 
-  traits: { [traitType: string]: { [traitValue: string | number]: TraitValueMetadata } };
+  traits: CollectionTraits;
 }
 
-export interface ERC721Collection extends BaseCollection {
+export interface Erc721Collection extends BaseCollection {
   tokenStandard: TokenStandard.ERC721;
 }
 
+export interface Erc1155Collection extends BaseCollection {
+  tokenStandard: TokenStandard.ERC1155;
+  // TODO this is not finished
+}
 
 
 interface TraitValueMetadata {
@@ -74,4 +90,4 @@ interface TraitValueMetadata {
 }
 
 
-export type Collection = ERC721Collection;
+export type Collection = Erc721Collection | Erc1155Collection ;

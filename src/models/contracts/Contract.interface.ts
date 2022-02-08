@@ -1,5 +1,7 @@
 import { ethers } from "ethers";
 import { Readable } from "node:stream";
+import { CollectionTraits } from "types/Collection.interface";
+import { Token } from "types/Token.interface";
 
 export enum TokenStandard {
     ERC721 = 'ERC721',
@@ -20,6 +22,8 @@ export default interface Contract {
     chainId: string;
 
     standard: TokenStandard;
+
+    aggregateTraits: (tokens: Token[]) => CollectionTraits;
 
     /**
      * takes the event that created the contract

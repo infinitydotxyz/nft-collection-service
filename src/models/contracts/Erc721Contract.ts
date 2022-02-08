@@ -3,6 +3,9 @@ import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
+import { CollectionTraits } from 'types/Collection.interface';
+import { Erc721Token } from 'types/Token.interface';
+import { DisplayType } from 'types/Metadata.interface';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -34,6 +37,57 @@ export default class Erc721Contract extends AbstractContract {
       to,
       tokenId
     }
+  }
+
+  aggregateTraits(tokens: Erc721Token[]): CollectionTraits {
+    const tokenMetadata = tokens.map((item) => item.metadata);
+    const collectionTraits: CollectionTraits = {};
+
+    const incrementTrait = (value: string | number, traitType?: string, displayType?: DisplayType ): void => {
+      const displayTypeField = displayType ? {displayType} : {};
+      if(!traitType) {
+        traitType = `${value}`
+      }
+
+      /**
+       * initialize traitType if it doesn't exist
+       */
+      if(!collectionTraits[traitType]) {
+        collectionTraits[traitType] = { 
+          ...displayTypeField, 
+          values: {}
+        };
+      }
+
+      /**
+       * initialize value if it doesn't exist
+       */
+      if(!collectionTraits[traitType].values[value]) {
+        const prevValues = collectionTraits[traitType].values ?? {};
+        collectionTraits[traitType].values = {
+          ...prevValues,
+          [value]: {count: 0 }
+        }
+      }
+
+      // increment count
+      collectionTraits[traitType].values[value].count += 1;
+
+    }
+
+    for(const metadata of tokenMetadata) {
+      const attributes = metadata.data.attributes;
+
+      for(const attribute of attributes) {
+        if('display_type' in attribute) {
+          incrementTrait(attribute.value, attribute.trait_type, attribute.display_type);
+        } else {
+          incrementTrait(attribute.value, attribute.trait_type);
+        }
+      }
+    }
+
+    return collectionTraits;
   }
 
   async getContractDeployer(): Promise<string> {
