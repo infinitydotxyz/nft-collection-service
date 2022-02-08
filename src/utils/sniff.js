@@ -1,12 +1,12 @@
 import fileType from 'file-type'
-// @ts-ignore no types
 import mime from 'mime-types'
-// @ts-ignore no types
 import Reader from 'it-reader'
 
 const minimumBytes = 4100
 
 /**
+ * detectContentType attempts to determine the content type of a readable stream 
+ * 
  * code is from js-ipfs/packages/ipfs-http-response/src/utils/content-type.js
  * 
  * @param {string} path

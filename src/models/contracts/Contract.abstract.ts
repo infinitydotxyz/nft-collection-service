@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { getProviderByChainId } from '../utils/ethers';
+import { getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
 export interface LogRequestOptions {

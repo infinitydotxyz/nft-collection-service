@@ -14,6 +14,7 @@ import got, {
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
 import {CollectionMetadata} from '../types/Collection.interface' 
+import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 
 type GotError =
   | RequestError
@@ -44,7 +45,7 @@ function isGotError(error: GotError | unknown): boolean {
  * we try not to use OpenSea more than we have to 
  * prefer other methods of getting data if possible
  */
-export default class OpenSeaClient {
+export default class OpenSeaClient implements CollectionMetadataProvider {
   private readonly client: Got;
   private readonly maxAttempts: number;
   constructor(maxAttempts?: number) {

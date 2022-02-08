@@ -1,7 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
-import Erc721Abi from '../abi/Erc721';
-import { NULL_ADDR } from '../constants';
+import Erc721Abi from '../../abi/Erc721';
+import { NULL_ADDR } from '../../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
 
 export default class Erc721Contract extends AbstractContract {

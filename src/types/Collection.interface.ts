@@ -1,4 +1,4 @@
-import { TokenStandard } from 'contracts/Contract.interface';
+import { TokenStandard } from '../models/contracts/Contract.interface';
 
 /**
  * Collection metadata that can be edited by the owner
