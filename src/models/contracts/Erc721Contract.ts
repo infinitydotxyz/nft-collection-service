@@ -2,7 +2,7 @@ import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
-import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
+import AbstractContract from './Contract.abstract';
 import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
@@ -126,10 +126,11 @@ export default class Erc721Contract extends AbstractContract {
    */
   async getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs> {
     const mintsFilter = this.contract.filters.Transfer(NULL_ADDR);
-    try {
-      const thunkedLogRequest: ThunkedLogRequest = async (fromBlock: number, toBlock: number | 'latest') => {
-        return await this.contract.queryFilter(mintsFilter, fromBlock, toBlock);
-      };
+      const queryFilter = this.contract.queryFilter.bind(this.contract);
+      
+      async function thunkedLogRequest(fromBlock: number, toBlock: number | 'latest'): Promise<ethers.Event[]> {
+        return await queryFilter(mintsFilter, fromBlock, toBlock)
+      }
 
       let fromBlock = options?.fromBlock;
       if (typeof fromBlock !== 'number') {
@@ -147,10 +148,6 @@ export default class Erc721Contract extends AbstractContract {
       });
 
       return mintsReadable;
-    } catch (err) {
-      console.error(err);
-      throw new Error('failed to get mints'); // TODO improve error handling
-    }
   }
 
   async getTokenIds(): Promise<string[]> {

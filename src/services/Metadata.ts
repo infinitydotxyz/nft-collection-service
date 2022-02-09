@@ -81,7 +81,6 @@ export default class MetadataClient {
     this.client = got.extend({
       timeout: 10_000,
       throwHttpErrors: false,
-      cache: false,
       hooks: {
         init: [
           (options) => {

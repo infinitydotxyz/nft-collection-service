@@ -23,7 +23,10 @@ enum JsonRpcError {
 
 type EthersJsonRpcRequest<Response> = () => Promise<Response>;
 
-export function ethersErrorHandler<Response>(maxAttempts = 5, retryDelay = 1000): (request: EthersJsonRpcRequest<Response>) => Promise<Response> {
+export function ethersErrorHandler<Response>(
+  maxAttempts = 5,
+  retryDelay = 1000
+): (request: EthersJsonRpcRequest<Response>) => Promise<Response> {
   return async (request: EthersJsonRpcRequest<Response>): Promise<Response> => {
     const attempt = async (attempts = 0): Promise<Response> => {
       attempts += 1;
@@ -64,10 +67,18 @@ export function ethersErrorHandler<Response>(maxAttempts = 5, retryDelay = 1000)
               await sleep(retryDelay);
               return await attempt(attempts);
 
+            case 'SERVER_ERROR':
+              await sleep(retryDelay);
+              return await attempt(attempts);
+
             default:
+              console.log(`Encountered unknown error code ${err.code}`);
               throw err;
           }
         }
+
+        console.log('failed to get code from ethers error');
+        console.log(err);
 
         return await attempt(attempts);
       }

@@ -3,7 +3,6 @@ import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
 import { CollectionAttributes } from 'types/Collection.interface';
 import { Token } from 'types/Token.interface';
-import { sleep } from '../../utils';
 import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
@@ -92,7 +91,7 @@ export default abstract class Contract implements IContract {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
-          maxBlock =(await provider.getBlockNumber()) - MAX_UNCLE_ABLE_BLOCKS; 
+          maxBlock = (await provider.getBlockNumber()) - MAX_UNCLE_ABLE_BLOCKS;
         } catch (err) {
           throw new Error('failed to get current block number');
         }
@@ -139,13 +138,14 @@ export default abstract class Contract implements IContract {
       if (to > maxBlock) {
         to = maxBlock;
       }
-        yield errorHandler(async () => await thunkedLogRequest(from, to));
 
-        const size = maxBlock - minBlock; // TODO
-        const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
-        console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
+      yield errorHandler(async () => await thunkedLogRequest(from, to));
 
-        from = to + 1;
+      const size = maxBlock - minBlock; // TODO
+      const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
+      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
+
+      from = to + 1;
     }
   }
 }
