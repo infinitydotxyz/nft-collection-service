@@ -1,38 +1,14 @@
 import { TokenStandard } from '../models/contracts/Contract.interface';
 import { DisplayType } from './Metadata.interface';
 
-/**
- * Collection metadata that can be edited by the owner
- */
-export interface CollectionMetadata {
-  name: string;
-  description: string;
-  symbol: string;
-  profileImage: string;
-  bannerImage: string;
-  links: Links;
+export type Collection = Erc721Collection | Erc1155Collection ;
+export interface Erc721Collection extends BaseCollection {
+  tokenStandard: TokenStandard.ERC721;
 }
 
-/**
- * Relevant links
- */
-export interface Links {
-  timestamp: number;
-  twitter?: string;
-  discord?: string;
-  external?: string;
-  medium?: string;
-  slug?: string;
-  telegram?: string;
-  instagram?: string;
-  wiki?: string;
-  facebook?: string;
-}
-
-export interface CollectionTraits { [traitType: string]: { 
-  displayType?: DisplayType;
-
-  values: {[traitValue: string | number]: TraitValueMetadata } }
+export interface Erc1155Collection extends BaseCollection {
+  tokenStandard: TokenStandard.ERC1155;
+  // TODO this is not finished
 }
 
 interface BaseCollection {
@@ -67,20 +43,15 @@ interface BaseCollection {
    * number of available tokens in the collection
    * (i.e. not burned/destroyed)
    */
-  tokens: number;
+  numNfts: number;
 
-  traits: CollectionTraits;
+  attributes: CollectionAttributes;
+
+  /**
+   * total number of trait_types in the collection
+   */
+  numTraitTypes: number;
 }
-
-export interface Erc721Collection extends BaseCollection {
-  tokenStandard: TokenStandard.ERC721;
-}
-
-export interface Erc1155Collection extends BaseCollection {
-  tokenStandard: TokenStandard.ERC1155;
-  // TODO this is not finished
-}
-
 
 interface TraitValueMetadata {
   /**
@@ -90,4 +61,45 @@ interface TraitValueMetadata {
 }
 
 
-export type Collection = Erc721Collection | Erc1155Collection ;
+/**
+ * Collection metadata that can be edited by the owner
+ */
+export interface CollectionMetadata {
+  name: string;
+  description: string;
+  symbol: string;
+  profileImage: string;
+  bannerImage: string;
+  links: Links;
+}
+
+/**
+ * Relevant links
+ */
+export interface Links {
+  timestamp: number;
+  twitter?: string;
+  discord?: string;
+  external?: string;
+  medium?: string;
+  slug?: string;
+  telegram?: string;
+  instagram?: string;
+  wiki?: string;
+  facebook?: string;
+}
+
+export interface CollectionAttributes { 
+  [traitType: string]: { 
+
+    displayType?: DisplayType;
+
+    /**
+     * number of nfts with this trait type
+     */
+    count: number;
+
+    values: {[traitValue: string | number]: TraitValueMetadata } 
+  }
+}
+

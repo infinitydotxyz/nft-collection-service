@@ -1,9 +1,10 @@
+import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { CollectionTraits } from 'types/Collection.interface';
+import { CollectionAttributes } from 'types/Collection.interface';
 import { Token } from 'types/Token.interface';
 import { sleep } from '../../utils';
-import { getProviderByChainId } from '../../utils/ethers';
+import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
 export interface LogRequestOptions {
@@ -42,7 +43,7 @@ export default abstract class Contract implements IContract {
 
   protected provider: ethers.providers.JsonRpcProvider;
 
-  abstract aggregateTraits(tokens: Token[]): CollectionTraits;
+  abstract aggregateTraits(tokens: Token[]): CollectionAttributes;
 
   abstract decodeDeployer(event: ethers.Event): string;
 
@@ -91,7 +92,7 @@ export default abstract class Contract implements IContract {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
-          maxBlock = await provider.getBlockNumber();
+          maxBlock =(await provider.getBlockNumber()) - MAX_UNCLE_ABLE_BLOCKS; 
         } catch (err) {
           throw new Error('failed to get current block number');
         }
@@ -103,28 +104,21 @@ export default abstract class Contract implements IContract {
 
     const maxBlock = await getMaxBlock(provider, toBlock);
     const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts);
+    let readable: Readable;
     switch (returnType) {
       case 'stream':
-        const readable = Readable.from(generator);
+        readable = Readable.from(generator);
         return readable;
       case 'generator':
         return generator;
       case 'promise':
-        return await new Promise<ethers.Event[]>((resolve, reject) => {
-          const readable = Readable.from(generator);
-          let events: ethers.Event[] = [];
-          readable.on('data', (chunk: ethers.Event[]) => {
-            events = [...events, ...chunk];
-          });
-
-          readable.on('end', () => {
-            resolve(events);
-          });
-
-          readable.on('error', (err) => {
-            reject(err);
-          });
-        });
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        readable = Readable.from(generator);
+        let events: ethers.Event[] = [];
+        for await (const data of readable) {
+          events = [...events, ...data];
+        }
+        return events;
     }
   }
 
@@ -136,7 +130,7 @@ export default abstract class Contract implements IContract {
   ): Generator<Promise<ethers.Event[]>, void, unknown> {
     let from = minBlock;
 
-    let attempts = 0;
+    // let attempts = 0;
     while (from < maxBlock) {
       // we can get a max of 2k blocks at once
       let to = from + 2000;
@@ -145,27 +139,32 @@ export default abstract class Contract implements IContract {
         to = maxBlock;
       }
 
-      try {
-        yield thunkedLogRequest(from, to);
-        attempts = 0;
-        from = to + 1;
-      } catch (err: any) {
-        if (err.code === 'ETIMEDOUT') {
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          yield new Promise<any[]>(async (resolve) => {
-            await sleep(2000);
-            resolve([]);
-          });
-        }
-        attempts += 1;
-        if (attempts > maxAttempts) {
-          throw err;
-        }
-      }
+      // try {
+        yield ethersErrorHandler(async () => await thunkedLogRequest(from, to));
 
-      const size = maxBlock - minBlock;
-      const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
-      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
+        const size = maxBlock - minBlock;
+        const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
+        console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
+
+        // attempts = 0;
+        from = to + 1;
+
+      // } catch (err: any) {
+      //   console.error(err); // TODO 
+      //   if (err.code === 'ETIMEDOUT') {
+      //     // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      //     yield new Promise<any[]>(async (resolve) => {
+      //       await sleep(2000);
+      //       resolve([]);
+      //     });
+      //   }
+      //   attempts += 1;
+      //   if (attempts > maxAttempts) {
+      //     throw err;
+      //   }
+      // }
+
+
     }
   }
 }

@@ -3,7 +3,7 @@ import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract, { ThunkedLogRequest } from './Contract.abstract';
-import { CollectionTraits } from 'types/Collection.interface';
+import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 
@@ -22,39 +22,40 @@ export default class Erc721Contract extends AbstractContract {
     return deployer;
   }
 
-  decodeTransfer(event: ethers.Event): {from: string, to: string, tokenId: string} {
+  decodeTransfer(event: ethers.Event): { from: string; to: string; tokenId: string } {
     const args = event?.args;
     const from = args?.[0];
     const to = args?.[1];
     const tokenId = (args?.[2] as BigNumber)?.toString?.();
 
-    if(!to || !from || !tokenId) {
-      throw new Error("failed to get token id from event");
+    if (!to || !from || !tokenId) {
+      throw new Error('failed to get token id from event');
     }
 
     return {
       from,
       to,
       tokenId
-    }
+    };
   }
 
-  aggregateTraits(tokens: Erc721Token[]): CollectionTraits {
+  aggregateTraits(tokens: Erc721Token[]): CollectionAttributes {
     const tokenMetadata = tokens.map((item) => item.metadata);
-    const collectionTraits: CollectionTraits = {};
+    const collectionTraits: CollectionAttributes = {};
 
-    const incrementTrait = (value: string | number, traitType?: string, displayType?: DisplayType ): void => {
-      const displayTypeField = displayType ? {displayType} : {};
-      if(!traitType) {
-        traitType = `${value}`
+    const incrementTrait = (value: string | number, traitType?: string, displayType?: DisplayType): void => {
+      const displayTypeField = displayType ? { displayType } : {};
+      if (!traitType) {
+        traitType = `${value}`;
       }
 
       /**
        * initialize traitType if it doesn't exist
        */
-      if(!collectionTraits[traitType]) {
-        collectionTraits[traitType] = { 
-          ...displayTypeField, 
+      if (!collectionTraits[traitType]) {
+        collectionTraits[traitType] = {
+          ...displayTypeField,
+          count: 0,
           values: {}
         };
       }
@@ -62,24 +63,26 @@ export default class Erc721Contract extends AbstractContract {
       /**
        * initialize value if it doesn't exist
        */
-      if(!collectionTraits[traitType].values[value]) {
+      if (!collectionTraits[traitType].values[value]) {
         const prevValues = collectionTraits[traitType].values ?? {};
         collectionTraits[traitType].values = {
           ...prevValues,
-          [value]: {count: 0 }
-        }
+          [value]: { count: 0 }
+        };
       }
 
-      // increment count
+      /**
+       * increment counts 
+       */
+      collectionTraits[traitType].count += 1;
       collectionTraits[traitType].values[value].count += 1;
+    };
 
-    }
+    for (const metadata of tokenMetadata) {
+      const attributes = metadata.attributes;
 
-    for(const metadata of tokenMetadata) {
-      const attributes = metadata.data.attributes;
-
-      for(const attribute of attributes) {
-        if('display_type' in attribute) {
+      for (const attribute of attributes) {
+        if ('display_type' in attribute && attribute.display_type) {
           incrementTrait(attribute.value, attribute.trait_type, attribute.display_type);
         } else {
           incrementTrait(attribute.value, attribute.trait_type);
@@ -114,7 +117,7 @@ export default class Erc721Contract extends AbstractContract {
 
   /**
    * get all transfers from 0x0
-   * 
+   *
    * use options to specify a block range and how to receive the events
    */
   async getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs> {
@@ -137,7 +140,7 @@ export default class Erc721Contract extends AbstractContract {
         fromBlock,
         toBlock: options?.toBlock,
         returnType: options?.returnType
-      })
+      });
 
       return mintsReadable;
     } catch (err) {
@@ -147,7 +150,7 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   async getTokenIds(): Promise<string[]> {
-    const mints = (await this.getMints({returnType: 'promise'})) as ethers.Event[];
+    const mints = (await this.getMints({ returnType: 'promise' })) as ethers.Event[];
 
     return mints.map((mint) => {
       const tokenId = this.decodeTransfer(mint).tokenId;
@@ -175,6 +178,7 @@ export default class Erc721Contract extends AbstractContract {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      console.log('getting token uri')
       const response: string[] = await this.contract.functions.tokenURI(tokenId);
       const tokenUri = response[0];
       if (typeof tokenUri === 'string' && tokenUri) {
@@ -196,6 +200,7 @@ export default class Erc721Contract extends AbstractContract {
     }
 
     try {
+      console.log('getting base uri')
       const response: string[] = await this.contract.functions.baseURI();
 
       if (typeof response[0] === 'string' && response[0]) {

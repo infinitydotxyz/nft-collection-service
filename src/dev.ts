@@ -3,7 +3,6 @@ import ContractFactory from './models/contracts/ContractFactory';
 import CollectionMetadataProvider from './models/CollectionMetadataProvider';
 import Collection from './models/Collection';
 import { firebase, metadataClient } from './container';
-import {writeFile} from 'fs/promises';
 
 
 export async function main(): Promise<void> {
@@ -14,15 +13,12 @@ export async function main(): Promise<void> {
     const contractFactory = new ContractFactory();
 
     const bayc = contractFactory.create(addr, '1', TokenStandard.ERC721);
+
     const collectionMetadataProvider = new CollectionMetadataProvider();
 
     const collection = new Collection(bayc, metadataClient, collectionMetadataProvider);
 
     const {collection: collectionData, tokens} = await collection.getInitialData();
-
-    await writeFile('./collection.json', JSON.stringify(collectionData));
-
-    await writeFile('./tokens.json', JSON.stringify(tokens));
 
     const collectionDoc = firebase.db.collection('collections').doc(`${collectionData.chainId}:${collectionData.address.toLowerCase()}`);
     await collectionDoc.set(collectionData, { merge: true});

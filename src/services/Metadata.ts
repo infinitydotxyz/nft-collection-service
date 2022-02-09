@@ -56,9 +56,13 @@ function isIpfs(requestUrl: string | URL): boolean {
 }
 
 /**
- * Metadata client handles transforming requests for different protocols, 
+ * Metadata client handles transforming requests for different protocols,
  * basic error handling of responses, and controls concurrency to prevent
- * flooding our network 
+ * flooding
+ *
+ *  TODO optimization: ipfs api supports multiple args, we can use this to get 
+ *       metadata for multiple items at once. Alternative is to get an entire 
+ *       directory at once
  */
 @singleton()
 export default class MetadataClient {
@@ -131,7 +135,7 @@ export default class MetadataClient {
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
     } catch (err) {
-      if (attempt > 3) {
+      if (attempt > 5) {
         throw err;
       }
       return await this.get(url, attempt);

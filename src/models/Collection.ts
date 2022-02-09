@@ -8,6 +8,7 @@ import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.
 import { firebase } from '../container';
 import crypto from 'crypto';
 import { Collection as CollectionType } from '../types/Collection.interface';
+import { Optional } from '../types/Utility';
 
 export default class Collection {
   private readonly contract: Contract;
@@ -15,10 +16,6 @@ export default class Collection {
   private readonly tokenMetadataClient: MetadataClient;
 
   private readonly collectionMetadataProvider: CollectionMetadataProvider;
-
-  private readonly collection: Partial<Collection> = {};
-
-  private readonly tokens: Map<string, Token> = new Map();
 
   constructor(
     contract: Contract,
@@ -56,7 +53,7 @@ export default class Collection {
     };
   }
 
-  async uploadTokenImage(imageUrl: string): Promise<{url: string, contentType: string, updatedAt: number}> {
+  async uploadTokenImage(imageUrl: string): Promise<{ url: string; contentType: string; updatedAt: number }> {
     if (!imageUrl) {
       throw new Error('invalid image url');
     }
@@ -74,142 +71,147 @@ export default class Collection {
     } else if (!imageBuffer) {
       throw new Error(`Failed to get image for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
     } else if (!contentType) {
-      throw new Error(`Failed to get content type for image. Collection: ${this.contract.address} imageUrl: ${imageUrl}`);
+      throw new Error(
+        `Failed to get content type for image. Collection: ${this.contract.address} imageUrl: ${imageUrl}`
+      );
     } else if (!publicUrl) {
       throw new Error(`Failed to get image public url for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
     }
 
     const now = Date.now();
     return {
-        url: publicUrl,
-        contentType,
-        updatedAt: now
+      url: publicUrl,
+      contentType,
+      updatedAt: now
     };
   }
 
-  /**
-   *
-   * @returns
-   */
-  async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{tokens: Token[], numTokens: number}> {
-      let tokenPromises: Array<Promise<Token>> = [];
-      const mintsStream = (await this.contract.getMints({
-        fromBlock,
-        toBlock,
-        returnType: 'stream'
-      })) as Readable;
+  async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'owner'>> {
+    const maxAttempts = 5;
+    let attempt = 0;
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      try {
+        const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
 
-      /**
-       * cache of block timestamps
-       */
-      const blockTimestamps: {[blockNumber: number]: Promise<number>} = {};
+        const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
+        const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
 
-      /**
-       * as we receive mints (transfer events) get the token's metadata
-       */
-      mintsStream.on('data', (mintEvents: ethers.Event[]) => {
-        const chunkPromises = mintEvents.map(async (item) => {
-
-          const blockNumber = item.blockNumber
-
-          if(blockTimestamps[blockNumber] === undefined){
-            blockTimestamps[blockNumber] = new Promise<number>((resolve, reject) => {
-              item.getBlock().then((block) => {
-                resolve(block.timestamp * 1000) // convert to ms
-              }).catch((err) => {
-               reject(err)
-              })
-            })
+        const token: Optional<Token, 'mintedAt' | 'owner'> = {
+          tokenId,
+          ...mintedAtProperty,
+          metadata,
+          numTraitTypes: metadata.attributes.length,
+          updatedAt,
+          tokenUri,
+          image: {
+            url,
+            contentType,
+            updatedAt
           }
-          const blockMinedAt = await blockTimestamps[blockNumber];
-
-          const { to, tokenId } = this.contract.decodeTransfer(item);
-
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          return await new Promise<Token>(async (resolve, reject) => {
-            try {
-              const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
-              const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
-              const token: Token = {
-                owner: to,
-                tokenId,
-                mintedAt: blockMinedAt,
-                metadata: {
-                  data: metadata,
-                  updatedAt,
-                  tokenUri
-                },
-                image: {
-                  url, 
-                  contentType, 
-                  updatedAt
-                }
-              }
-              resolve(token);
-            } catch (err) {
-              reject(err);
-            }
-          });
-        });
-
-        tokenPromises = [...tokenPromises, ...chunkPromises];
-      });
-
-      /**
-       * wait for the stream to end
-       */
-      await new Promise<void>((resolve, reject) => {
-        mintsStream.on('end', () => {
-          resolve();
-        });
-        mintsStream.on('error', (err) => { 
-          reject(err);
-        });
-      });
-
-
-      const tokenPromiseResults = await Promise.allSettled(tokenPromises);
-      const results = tokenPromiseResults.reduce(
-        (acc: { failed: unknown[]; successful: Token[] }, item) => {
-          if (item.status === 'fulfilled') {
-            acc.successful.push(item.value);
-            return acc;
-          }
-          acc.failed.push(item.reason);
-          return acc;
-        },
-        { failed: [], successful: [] }
-      );
-
-      console.log(`Failed to get token metadata for: ${results.failed.length} tokens`);
-      await writeFile('./failed.json', JSON.stringify(results.failed));
-
-      console.log(`Successfully got token metadata for: ${results.successful.length} tokens`);
-      await writeFile('./successful.json', JSON.stringify(results.successful));
-
-      return { tokens: results.successful, numTokens: tokenPromises.length };
+        };
+        return token;
+      } catch (err) {
+        console.log(`Failed to get token: ${tokenId}`);
+        console.error(err);
+      }
+    }
+    throw new Error(`Failed to get contract: ${this.contract.address} token: ${tokenId}`)
   }
 
-  async getInitialData(): Promise<{collection: CollectionType, tokens: Token[]}> {
+  async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{ tokens: Token[]; numTokens: number }> {
+    let tokenPromises: Array<Promise<Token>> = [];
+    const mintsStream = (await this.contract.getMints({
+      fromBlock,
+      toBlock,
+      returnType: 'stream'
+    })) as Readable;
+
+    /**
+     * cache of block timestamps
+     */
+    const blockTimestamps = new Map<number, Promise<{ error: any } | { value: number }>>();
+    const getBlockTimestamp = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
+      const result = blockTimestamps.get(item.blockNumber);
+      if (!result) {
+        const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
+          item
+            .getBlock()
+            .then((block) => {
+              resolve({ value: block.timestamp * 1000 });
+            })
+            .catch((err) => {
+              resolve({ error: err });
+            });
+        });
+        blockTimestamps.set(item.blockNumber, promise);
+        return await promise;
+      }
+      return await result;
+    };
+
+    /**
+     * as we receive mints (transfer events) get the token's metadata
+     */
+    // mintsStream.on('data', (mintEvents: ethers.Event[]) => {
+    for await (const chunk of mintsStream) {
+      const mintEvents: ethers.Event[] = chunk;
+
+      const chunkPromises = mintEvents.map(async (item) => {
+        let blockMinedAt = 0;
+        const blockTimestampResult = await getBlockTimestamp(item);
+        if ('value' in blockTimestampResult) {
+          blockMinedAt = blockTimestampResult.value;
+        }
+
+        const { to, tokenId } = this.contract.decodeTransfer(item);
+        const token = await this.getToken(tokenId, blockMinedAt);
+
+        return token as Token;
+      });
+
+      tokenPromises = [...tokenPromises, ...chunkPromises];
+    }
+
+    const tokenPromiseResults = await Promise.allSettled(tokenPromises);
+    const results = tokenPromiseResults.reduce(
+      (acc: { failed: unknown[]; successful: Token[] }, item) => {
+        if (item.status === 'fulfilled') {
+          acc.successful.push(item.value);
+          return acc;
+        }
+        acc.failed.push(item.reason);
+        return acc;
+      },
+      { failed: [], successful: [] }
+    );
+
+    console.log(`Failed to get token metadata for: ${results.failed.length} tokens`);
+    console.log(`Successfully got token metadata for: ${results.successful.length} tokens`);
+
+    return { tokens: results.successful, numTokens: tokenPromises.length };
+  }
+
+  async getInitialData(): Promise<{ collection: CollectionType; tokens: Token[] }> {
     try {
       const deployer = await this.getDeployer();
       const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-      const {tokens, numTokens} = await this.getTokensFromMints(deployer.block);
-
+      const { tokens, numTokens } = await this.getTokensFromMints(deployer.block);
+      const attributes = this.contract.aggregateTraits(tokens) ?? {};
       const collection: CollectionType = {
         chainId: this.contract.chainId,
         address: this.contract.address,
         tokenStandard: this.contract.standard,
         deployer: deployer.address,
         deployedAt: deployer.createdAt,
-        owner: deployer.address, // TODO not the current owner
+        owner: deployer.address, // note - this is may not be the current owner
         metadata: collectionMetadata,
-        tokens:  numTokens, // TODO not the current number of tokens
-        traits: this.contract.aggregateTraits(tokens)
-      }
+        numNfts: numTokens, // note - this may not be the current number of nfts
+        attributes: attributes,
+        numTraitTypes: Object.keys(attributes).length
+      };
 
       return { collection, tokens };
-
     } catch (err) {
       console.error(err);
       throw err;

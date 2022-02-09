@@ -22,7 +22,8 @@ module.exports = {
         '@typescript-eslint/strict-boolean-expressions': 0,
         '@typescript-eslint/restrict-template-expressions': 0,
         '@typescript-eslint/no-case-declarations': 0,
-        '@typescript-eslint/no-unsafe-member-access': 0
+        '@typescript-eslint/no-unsafe-member-access': 0,
+        '@typescript-eslint/no-misused-promises': 0
       },
       parserOptions: {
         project: ['./tsconfig.json'] // Specify it only for TypeScript files

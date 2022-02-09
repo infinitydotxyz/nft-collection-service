@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { Readable } from "node:stream";
-import { CollectionTraits } from "types/Collection.interface";
+import { CollectionAttributes } from "types/Collection.interface";
 import { Token } from "types/Token.interface";
 
 export enum TokenStandard {
@@ -23,7 +23,7 @@ export default interface Contract {
 
     standard: TokenStandard;
 
-    aggregateTraits: (tokens: Token[]) => CollectionTraits;
+    aggregateTraits: (tokens: Token[]) => CollectionAttributes;
 
     /**
      * takes the event that created the contract

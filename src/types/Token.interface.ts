@@ -25,13 +25,20 @@ interface BaseToken {
   /**
    * cached raw metadata
    */
-  metadata: {
-    data: TokenMetadata;
+  metadata: TokenMetadata;
+  
+  /**
+   * number of trait_types that this token has
+   */
+  numTraitTypes: number;
 
-    updatedAt: number;
+  /**
+   * unix timestamp that the token metadata was updated at
+   */
+  updatedAt: number;
 
-    tokenUri: string;
-  };
+  tokenUri: string;
+
 
   /**
    * cached token image
@@ -55,11 +62,7 @@ interface BaseToken {
 }
 
 export interface Erc721Token extends BaseToken {
-  metadata: {
-    data: Erc721Metadata;
-    updatedAt: number;
-    tokenUri: string;
-  };
+  metadata: Erc721Metadata;
 }
 
 export type Token = Erc721Token;

@@ -131,7 +131,6 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
         await sleep(5000);
         return await this.getCollectionMetadata(address, attempt)
 
-
       case 500: 
         return await this.getCollectionMetadata(address, attempt);
 
