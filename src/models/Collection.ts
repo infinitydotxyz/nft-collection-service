@@ -116,11 +116,11 @@ export default class Collection {
         console.error(err);
       }
     }
-    throw new Error(`Failed to get contract: ${this.contract.address} token: ${tokenId}`)
+    throw new Error(`Failed to get contract: ${this.contract.address} token: ${tokenId}`);
   }
 
   async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{ tokens: Token[]; numTokens: number }> {
-    let tokenPromises: Array<Promise<Token>> = [];
+    let tokenPromises: Array<Promise<{ token: Token } | { error: unknown; event: ethers.Event }>> = [];
     const mintsStream = (await this.contract.getMints({
       fromBlock,
       toBlock,
@@ -151,45 +151,80 @@ export default class Collection {
     };
 
     /**
-     * as we receive mints (transfer events) get the token's metadata
+     * attempts to get a token from a transfer event
      */
-    // mintsStream.on('data', (mintEvents: ethers.Event[]) => {
-    for await (const chunk of mintsStream) {
-      const mintEvents: ethers.Event[] = chunk;
-
-      const chunkPromises = mintEvents.map(async (item) => {
-        let blockMinedAt = 0;
-        const blockTimestampResult = await getBlockTimestamp(item);
+    const getTokenFromTransfer = async (
+      event: ethers.Event
+    ): Promise<{ token: Token } | { error: unknown; event: ethers.Event }> => {
+      let tokenId;
+      let blockMinedAt = 0;
+      try {
+        const blockTimestampResult = await getBlockTimestamp(event); // doesn't throw
         if ('value' in blockTimestampResult) {
           blockMinedAt = blockTimestampResult.value;
         }
+        const transfer = this.contract.decodeTransfer(event);
+        tokenId = transfer.tokenId;
+        const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, blockMinedAt);
+        token.owner = transfer.to;
+        return { token: token as Token };
+      } catch (err) {
+        return { error: err, event: event };
+      }
+    };
 
-        const { to, tokenId } = this.contract.decodeTransfer(item);
-        const token = await this.getToken(tokenId, blockMinedAt);
-
-        return token as Token;
+    /**
+     * as we receive mints (transfer events) get the token's metadata
+     */
+    for await (const chunk of mintsStream) {
+      const mintEvents: ethers.Event[] = chunk;
+      const chunkPromises = mintEvents.map(async (event) => {
+        return await getTokenFromTransfer(event);
       });
-
       tokenPromises = [...tokenPromises, ...chunkPromises];
     }
 
     const tokenPromiseResults = await Promise.allSettled(tokenPromises);
-    const results = tokenPromiseResults.reduce(
-      (acc: { failed: unknown[]; successful: Token[] }, item) => {
-        if (item.status === 'fulfilled') {
-          acc.successful.push(item.value);
-          return acc;
+
+    const tokens: Token[] = [];
+    const failedTokenIds: string[] = [];
+    const unknownErrors = [];
+
+    for (const item of tokenPromiseResults) {
+      if (item.status === 'fulfilled' && 'token' in item.value) {
+        tokens.push(item.value.token);
+
+      } else if (item.status === 'fulfilled' && 'event' in item.value) { // failed to get these tokens
+        try {
+          // retry to get the token
+          const result = await getTokenFromTransfer(item.value.event);
+
+          if('token' in result) {
+            tokens.push(result.token);
+          } else {
+            throw result.error ?? new Error('Failed to get token');
+          }
+
+        } catch (err) {
+          const {tokenId} = this.contract.decodeTransfer(item.value.event);
+          failedTokenIds.push(tokenId); // save these to make that they failed
         }
-        acc.failed.push(item.reason);
-        return acc;
-      },
-      { failed: [], successful: [] }
-    );
 
-    console.log(`Failed to get token metadata for: ${results.failed.length} tokens`);
-    console.log(`Successfully got token metadata for: ${results.successful.length} tokens`);
+      } else if (item.status === 'fulfilled') {  // unknown error  
+        unknownErrors.push(new Error("Unknown error"));
 
-    return { tokens: results.successful, numTokens: tokenPromises.length };
+      } else { // unknown error  
+        unknownErrors.push(item.reason);
+
+      }
+    }
+
+    console.log(`Failed to get token metadata for: ${failedTokenIds.length} tokens`);
+    console.log(`Successfully got token metadata for: ${tokens.length} tokens`);
+    
+    const totalNumTokens =  tokens.length + failedTokenIds.length + unknownErrors.length;
+
+    return { tokens, numTokens: totalNumTokens };
   }
 
   async getInitialData(): Promise<{ collection: CollectionType; tokens: Token[] }> {
