@@ -105,7 +105,7 @@ export default class Collection {
     return token;
   }
 
-  async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{ tokens: Token[]; numTokens: number }> {
+  async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{ tokens: Token[]; numTokens: number, tokensWithErrors: Array<{ error: any, tokenId: string}> }> {
     let tokenPromises: Array<Promise<Token | { error: any; event: ethers.Event }>> = [];
     const mintsStream = (await this.contract.getMints({
       fromBlock,
@@ -202,7 +202,7 @@ export default class Collection {
     for (const result of results) {
       if (result.status === 'fulfilled' && !('error' in result.value)) {
         tokens.push(result.value);
-      } else if (result.status === 'fulfilled' && 'error' in result.value) {
+      } else if (result.status === 'fulfilled' && 'event' in result.value) {
         const { tokenId } = this.contract.decodeTransfer(result.value.event);
         failed.push({ error: result.value.error, tokenId });
       } else {
@@ -219,13 +219,13 @@ export default class Collection {
 
     const totalNumTokens = tokens.length + failed.length + unknownErrors;
 
-    return { tokens, numTokens: totalNumTokens };
+    return { tokens, numTokens: totalNumTokens, tokensWithErrors: failed };
   }
 
-  async getInitialData(): Promise<{ collection: CollectionType; tokens: Token[] }> {
+  async getInitialData(): Promise<{ collection: CollectionType; tokens: Token[], tokensWithErrors: Array<{ error: any, tokenId: string}> }> {
     const deployer = await this.getDeployer();
     const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-    const { tokens, numTokens } = await this.getTokensFromMints(deployer.block);
+    const { tokens, numTokens, tokensWithErrors } = await this.getTokensFromMints(deployer.block);
     const attributes = this.contract.aggregateTraits(tokens) ?? {};
     const collection: CollectionType = {
       chainId: this.contract.chainId,
@@ -240,6 +240,6 @@ export default class Collection {
       numTraitTypes: Object.keys(attributes).length
     };
 
-    return { collection, tokens };
+    return { collection, tokens, tokensWithErrors};
   }
 }

@@ -18,7 +18,9 @@ export async function main(): Promise<void> {
 
     const collection = new Collection(bayc, metadataClient, collectionMetadataProvider);
 
-    const {collection: collectionData, tokens} = await collection.getInitialData();
+    const {collection: collectionData, tokens, tokensWithErrors } = await collection.getInitialData();
+
+
 
     const collectionDoc = firebase.db.collection('collections').doc(`${collectionData.chainId}:${collectionData.address.toLowerCase()}`);
     await collectionDoc.set(collectionData, { merge: true});
@@ -42,9 +44,20 @@ export async function main(): Promise<void> {
             currentBatch = newBatch();
             console.log(`Created new batch. Batches: ${batches.length}`);
         }
-        const tokenDoc = collectionDoc.collection('tokens').doc(token.tokenId)
-        currentBatch.batch.set(tokenDoc, token, {merge: true});
+        const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId)
+        currentBatch.batch.set(tokenDoc, token); // overwrite the token
 
+        currentBatch.size += 1;
+    }
+
+    for(const token of tokensWithErrors) {
+        if(currentBatch.size >= 500) {
+            batches.push(currentBatch);
+            currentBatch = newBatch();
+            console.log(`Created new batch. Batches: ${batches.length}`);
+        }
+        const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId)
+        currentBatch.batch.set(tokenDoc, token, {merge: true}); // only update the error field
         currentBatch.size += 1;
     }
 

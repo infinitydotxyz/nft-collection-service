@@ -58,6 +58,11 @@ interface TraitValueMetadata {
    * number of tokens with this trait
    */
   count: number;
+
+  /**
+   * percent of tokens with this trait
+   */
+  percent: number;
 }
 
 
@@ -98,6 +103,11 @@ export interface CollectionAttributes {
      * number of nfts with this trait type
      */
     count: number;
+
+    /**
+     * percent of nfts with this trait type
+     */
+    percent: number;
 
     values: {[traitValue: string | number]: TraitValueMetadata } 
   }

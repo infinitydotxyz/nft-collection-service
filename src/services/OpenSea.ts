@@ -41,6 +41,28 @@ function isGotError(error: GotError | unknown): boolean {
   );
 }
 
+
+/**
+ * formatName takes a name from opensea and adds spaces before capital letters
+ * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
+ */
+function formatName(name: string): string {
+  let formattedName = '';
+
+  for(const char of name) {
+    const isUpperCase = /^[A-Z]$/.test(char);
+    const prevCharIsSpace = formattedName[formattedName.length - 1] === ' ';
+    const isFirstChar = formattedName.length === 0;
+
+    if (isUpperCase && !prevCharIsSpace && !isFirstChar ) {
+      formattedName = `${formattedName} ${char}`;
+    } else {
+      formattedName = `${formattedName}${char}`;
+    }
+  }
+  return formattedName;
+} 
+
 /**
  * we try not to use OpenSea more than we have to 
  * prefer other methods of getting data if possible
@@ -104,9 +126,14 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
         const data = response.body as OpenSeaContractResponse;
         const collection = data.collection;
 
+        /**
+         * not sure why opensea formats names like (BoredApeYachtClub)
+         */
+        const name = formatName(data.name ?? "");
+
         const dataInInfinityFormat: CollectionMetadata = {
-            name: data.name ?? "",
-            description: data.description ?? "",
+            name,
+            description: data.description,
             symbol: data.symbol ?? "",
             profileImage: collection.image_url,
             bannerImage: collection.banner_image_url,

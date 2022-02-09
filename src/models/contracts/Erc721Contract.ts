@@ -56,6 +56,7 @@ export default class Erc721Contract extends AbstractContract {
         collectionTraits[traitType] = {
           ...displayTypeField,
           count: 0,
+          percent: 0,
           values: {}
         };
       }
@@ -67,7 +68,7 @@ export default class Erc721Contract extends AbstractContract {
         const prevValues = collectionTraits[traitType].values ?? {};
         collectionTraits[traitType].values = {
           ...prevValues,
-          [value]: { count: 0 }
+          [value]: { count: 0, percent: 0 }
         };
       }
 
@@ -75,7 +76,10 @@ export default class Erc721Contract extends AbstractContract {
        * increment counts 
        */
       collectionTraits[traitType].count += 1;
+      collectionTraits[traitType].percent = Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
       collectionTraits[traitType].values[value].count += 1;
+      
+      collectionTraits[traitType].values[value].percent = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100) / 100;
     };
 
     for (const metadata of tokenMetadata) {

@@ -59,6 +59,14 @@ interface BaseToken {
      */
     updatedAt: number;
   };
+
+  /**
+   * indicates if we failed to update this token 
+   */
+  error?: {
+    reason: string;
+    timestamp: number;
+  }
 }
 
 export interface Erc721Token extends BaseToken {
