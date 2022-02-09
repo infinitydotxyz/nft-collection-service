@@ -23,57 +23,57 @@ enum JsonRpcError {
 
 type EthersJsonRpcRequest<Response> = () => Promise<Response>;
 
-export async function ethersErrorHandler<Response>(request: EthersJsonRpcRequest<Response>): Promise<Response> {
-  const MAX_ATTEMPTS = 5;
-
-  const attempt = async (attempts = 0): Promise<Response> => {
-    attempts += 1;
-    try {
-      const res = await request();
-      return res;
-    } catch (err: any) {
-      if (attempts > MAX_ATTEMPTS) {
-        throw err;
-      }
-
-      if ('code' in err) {
-        switch (err.code) {
-          case JsonRpcError.RateLimit:
-            await sleep(1000);
-            return await attempt(attempts);
-
-          case JsonRpcError.ParseError:
-            return await attempt(attempts);
-
-          case JsonRpcError.InvalidRequest:
-            throw err;
-
-          case JsonRpcError.MethodNotFound:
-            throw err;
-
-          case JsonRpcError.InvalidParams:
-            throw err;
-
-          case JsonRpcError.InternalError:
-            return await attempt(attempts);
-
-          case JsonRpcError.ServerError:
-            await sleep(1000);
-            return await attempt(attempts);
-
-          case 'ETIMEDOUT':
-            await sleep(1000);
-            return await attempt(attempts);
-
-          default:
-            throw err;
+export function ethersErrorHandler<Response>(maxAttempts = 5, retryDelay = 1000): (request: EthersJsonRpcRequest<Response>) => Promise<Response> {
+  return async (request: EthersJsonRpcRequest<Response>): Promise<Response> => {
+    const attempt = async (attempts = 0): Promise<Response> => {
+      attempts += 1;
+      try {
+        const res = await request();
+        return res;
+      } catch (err: any) {
+        if (attempts > maxAttempts) {
+          throw err;
         }
+
+        if ('code' in err) {
+          switch (err.code) {
+            case JsonRpcError.RateLimit:
+              await sleep(retryDelay);
+              return await attempt(attempts);
+
+            case JsonRpcError.ParseError:
+              return await attempt(attempts);
+
+            case JsonRpcError.InvalidRequest:
+              throw err;
+
+            case JsonRpcError.MethodNotFound:
+              throw err;
+
+            case JsonRpcError.InvalidParams:
+              throw err;
+
+            case JsonRpcError.InternalError:
+              return await attempt(attempts);
+
+            case JsonRpcError.ServerError:
+              await sleep(retryDelay);
+              return await attempt(attempts);
+
+            case 'ETIMEDOUT':
+              await sleep(retryDelay);
+              return await attempt(attempts);
+
+            default:
+              throw err;
+          }
+        }
+
+        return await attempt(attempts);
       }
+    };
 
-      return await attempt(attempts);
-    }
+    const response = await attempt();
+    return response;
   };
-
-  const response = await attempt();
-  return response;
 }

@@ -19,8 +19,15 @@ export const INFURA_API_KEY = `Basic ${infuraApiKey}`;
 
 export const NULL_ADDR = "0x0000000000000000000000000000000000000000";
 
-/**
- * I think the actual number is 6
- */
-export const MAX_UNCLE_ABLE_BLOCKS = 8;
 
+/**
+ * in most cases we should not pay attention to blocks until 
+ * we are sure they won't be uncle'd
+ */
+export const MAX_UNCLE_ABLE_BLOCKS = 6;
+
+/**
+ * times
+ */
+export const ONE_MIN = 60_000;
+export const ONE_HOUR = 60 * ONE_MIN;

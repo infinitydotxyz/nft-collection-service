@@ -34,7 +34,7 @@ export async function main(): Promise<void> {
     const newBatch = (): Batch => {
         return { batch: firebase.db.batch(), size: 0 };
     }
-
+    
     let currentBatch = newBatch();
     for(const token of tokens) {
         if(currentBatch.size >= 500) {
@@ -44,11 +44,12 @@ export async function main(): Promise<void> {
         }
         const tokenDoc = collectionDoc.collection('tokens').doc(token.tokenId)
         currentBatch.batch.set(tokenDoc, token, {merge: true});
-        
+
         currentBatch.size += 1;
     }
 
     try{
+
         const batchPromises = batches.map(async (item) => await item.batch.commit());
         await Promise.all(batchPromises);
         console.log('wrote all batches');
@@ -57,7 +58,4 @@ export async function main(): Promise<void> {
         console.error(err);
     }
 
-    // const agg = new Aggregator(bayc, metadataClient, openseaClient);
-
-    // await agg.getInitalData();
 }

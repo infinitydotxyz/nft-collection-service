@@ -3,12 +3,12 @@ import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
 import { Token, TokenMetadata } from '../types/Token.interface';
 import { Readable } from 'stream';
-import { writeFile } from 'fs/promises';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { firebase } from '../container';
 import crypto from 'crypto';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import { Optional } from '../types/Utility';
+import PQueue from 'p-queue';
 
 export default class Collection {
   private readonly contract: Contract;
@@ -40,9 +40,6 @@ export default class Collection {
     };
   }
 
-  /**
-   * gets the metadata for a token
-   */
   async getTokenMetadata(tokenId: string): Promise<{ metadata: TokenMetadata; tokenUri: string }> {
     const tokenUri = await this.contract.getTokenUri(tokenId);
     const response = await this.tokenMetadataClient.get(tokenUri);
@@ -87,40 +84,29 @@ export default class Collection {
   }
 
   async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'owner'>> {
-    const maxAttempts = 5;
-    let attempt = 0;
-    while (attempt < maxAttempts) {
-      attempt += 1;
-      try {
-        const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
+    const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
 
-        const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
-        const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
+    const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
+    const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
 
-        const token: Optional<Token, 'mintedAt' | 'owner'> = {
-          tokenId,
-          ...mintedAtProperty,
-          metadata,
-          numTraitTypes: metadata.attributes.length,
-          updatedAt,
-          tokenUri,
-          image: {
-            url,
-            contentType,
-            updatedAt
-          }
-        };
-        return token;
-      } catch (err) {
-        console.log(`Failed to get token: ${tokenId}`);
-        console.error(err);
+    const token: Optional<Token, 'mintedAt' | 'owner'> = {
+      tokenId,
+      ...mintedAtProperty,
+      metadata,
+      numTraitTypes: metadata.attributes.length,
+      updatedAt,
+      tokenUri,
+      image: {
+        url,
+        contentType,
+        updatedAt
       }
-    }
-    throw new Error(`Failed to get contract: ${this.contract.address} token: ${tokenId}`);
+    };
+    return token;
   }
 
   async getTokensFromMints(fromBlock?: number, toBlock?: number): Promise<{ tokens: Token[]; numTokens: number }> {
-    let tokenPromises: Array<Promise<{ token: Token } | { error: unknown; event: ethers.Event }>> = [];
+    let tokenPromises: Array<Promise<Token | { error: any; event: ethers.Event }>> = [];
     const mintsStream = (await this.contract.getMints({
       fromBlock,
       toBlock,
@@ -153,23 +139,44 @@ export default class Collection {
     /**
      * attempts to get a token from a transfer event
      */
-    const getTokenFromTransfer = async (
-      event: ethers.Event
-    ): Promise<{ token: Token } | { error: unknown; event: ethers.Event }> => {
-      let tokenId;
+    const getTokenFromTransfer = async (event: ethers.Event): Promise<Optional<Token, 'mintedAt' | 'owner'>> => {
       let blockMinedAt = 0;
+      const blockTimestampResult = await getBlockTimestamp(event); // doesn't throw
+      if ('value' in blockTimestampResult) {
+        blockMinedAt = blockTimestampResult.value;
+      }
+      const transfer = this.contract.decodeTransfer(event);
+      const tokenId = transfer.tokenId;
+      const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, blockMinedAt);
+      token.owner = transfer.to;
+      return token;
+    };
+
+    const queue = new PQueue({
+      concurrency: Infinity // requests will be limited in the client
+    });
+
+    const enqueue = async (event: ethers.Event, attempts = 0): Promise<Token | { error: any; event: ethers.Event }> => {
+      attempts += 1;
       try {
-        const blockTimestampResult = await getBlockTimestamp(event); // doesn't throw
-        if ('value' in blockTimestampResult) {
-          blockMinedAt = blockTimestampResult.value;
-        }
-        const transfer = this.contract.decodeTransfer(event);
-        tokenId = transfer.tokenId;
-        const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, blockMinedAt);
-        token.owner = transfer.to;
-        return { token: token as Token };
+        const token = await new Promise<Token>(
+          async (resolve, reject) =>
+            await queue.add(() => {
+              getTokenFromTransfer(event)
+                .then((token) => {
+                  resolve(token as Token);
+                })
+                .catch((err) => {
+                  reject(err);
+                });
+            })
+        );
+        return token;
       } catch (err) {
-        return { error: err, event: event };
+        if (attempts > 3) {
+          return { error: err, event };
+        }
+        return await enqueue(event, attempts);
       }
     };
 
@@ -178,78 +185,61 @@ export default class Collection {
      */
     for await (const chunk of mintsStream) {
       const mintEvents: ethers.Event[] = chunk;
+
       const chunkPromises = mintEvents.map(async (event) => {
-        return await getTokenFromTransfer(event);
+        const token = await enqueue(event);
+
+        return token;
       });
       tokenPromises = [...tokenPromises, ...chunkPromises];
     }
 
-    const tokenPromiseResults = await Promise.allSettled(tokenPromises);
+    const results = await Promise.allSettled(tokenPromises);
 
     const tokens: Token[] = [];
-    const failedTokenIds: string[] = [];
-    const unknownErrors = [];
-
-    for (const item of tokenPromiseResults) {
-      if (item.status === 'fulfilled' && 'token' in item.value) {
-        tokens.push(item.value.token);
-
-      } else if (item.status === 'fulfilled' && 'event' in item.value) { // failed to get these tokens
-        try {
-          // retry to get the token
-          const result = await getTokenFromTransfer(item.value.event);
-
-          if('token' in result) {
-            tokens.push(result.token);
-          } else {
-            throw result.error ?? new Error('Failed to get token');
-          }
-
-        } catch (err) {
-          const {tokenId} = this.contract.decodeTransfer(item.value.event);
-          failedTokenIds.push(tokenId); // save these to make that they failed
+    const failed: Array<{ error: any; tokenId: string }> = [];
+    let unknownErrors = 0;
+    for (const result of results) {
+      if (result.status === 'fulfilled' && !('error' in result.value)) {
+        tokens.push(result.value);
+      } else if (result.status === 'fulfilled' && 'error' in result.value) {
+        const { tokenId } = this.contract.decodeTransfer(result.value.event);
+        failed.push({ error: result.value.error, tokenId });
+      } else {
+        unknownErrors += 1;
+        console.error('unknown error occurred while getting token');
+        if (result.status === 'rejected') {
+          console.error(result.reason);
         }
-
-      } else if (item.status === 'fulfilled') {  // unknown error  
-        unknownErrors.push(new Error("Unknown error"));
-
-      } else { // unknown error  
-        unknownErrors.push(item.reason);
-
       }
     }
 
-    console.log(`Failed to get token metadata for: ${failedTokenIds.length} tokens`);
+    console.log(`Failed to get token metadata for: ${failed.length + unknownErrors} tokens`);
     console.log(`Successfully got token metadata for: ${tokens.length} tokens`);
-    
-    const totalNumTokens =  tokens.length + failedTokenIds.length + unknownErrors.length;
+
+    const totalNumTokens = tokens.length + failed.length + unknownErrors;
 
     return { tokens, numTokens: totalNumTokens };
   }
 
   async getInitialData(): Promise<{ collection: CollectionType; tokens: Token[] }> {
-    try {
-      const deployer = await this.getDeployer();
-      const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-      const { tokens, numTokens } = await this.getTokensFromMints(deployer.block);
-      const attributes = this.contract.aggregateTraits(tokens) ?? {};
-      const collection: CollectionType = {
-        chainId: this.contract.chainId,
-        address: this.contract.address,
-        tokenStandard: this.contract.standard,
-        deployer: deployer.address,
-        deployedAt: deployer.createdAt,
-        owner: deployer.address, // note - this is may not be the current owner
-        metadata: collectionMetadata,
-        numNfts: numTokens, // note - this may not be the current number of nfts
-        attributes: attributes,
-        numTraitTypes: Object.keys(attributes).length
-      };
+    const deployer = await this.getDeployer();
+    const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+    const { tokens, numTokens } = await this.getTokensFromMints(deployer.block);
+    const attributes = this.contract.aggregateTraits(tokens) ?? {};
+    const collection: CollectionType = {
+      chainId: this.contract.chainId,
+      address: this.contract.address,
+      tokenStandard: this.contract.standard,
+      deployer: deployer.address,
+      deployedAt: deployer.createdAt,
+      owner: deployer.address, // note - this is may not be the current owner
+      metadata: collectionMetadata,
+      numNfts: numTokens, // note - this may not be the current number of nfts
+      attributes: attributes,
+      numTraitTypes: Object.keys(attributes).length
+    };
 
-      return { collection, tokens };
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
+    return { collection, tokens };
   }
 }

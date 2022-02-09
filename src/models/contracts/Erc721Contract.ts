@@ -178,7 +178,6 @@ export default class Erc721Contract extends AbstractContract {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      console.log('getting token uri')
       const response: string[] = await this.contract.functions.tokenURI(tokenId);
       const tokenUri = response[0];
       if (typeof tokenUri === 'string' && tokenUri) {
@@ -200,7 +199,6 @@ export default class Erc721Contract extends AbstractContract {
     }
 
     try {
-      console.log('getting base uri')
       const response: string[] = await this.contract.functions.baseURI();
 
       if (typeof response[0] === 'string' && response[0]) {

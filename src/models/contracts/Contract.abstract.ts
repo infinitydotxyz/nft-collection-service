@@ -130,7 +130,8 @@ export default abstract class Contract implements IContract {
   ): Generator<Promise<ethers.Event[]>, void, unknown> {
     let from = minBlock;
 
-    // let attempts = 0;
+    const errorHandler = ethersErrorHandler<ethers.Event[]>(maxAttempts, 1000);
+
     while (from < maxBlock) {
       // we can get a max of 2k blocks at once
       let to = from + 2000;
@@ -138,33 +139,13 @@ export default abstract class Contract implements IContract {
       if (to > maxBlock) {
         to = maxBlock;
       }
+        yield errorHandler(async () => await thunkedLogRequest(from, to));
 
-      // try {
-        yield ethersErrorHandler(async () => await thunkedLogRequest(from, to));
-
-        const size = maxBlock - minBlock;
+        const size = maxBlock - minBlock; // TODO
         const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
         console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
 
-        // attempts = 0;
         from = to + 1;
-
-      // } catch (err: any) {
-      //   console.error(err); // TODO 
-      //   if (err.code === 'ETIMEDOUT') {
-      //     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      //     yield new Promise<any[]>(async (resolve) => {
-      //       await sleep(2000);
-      //       resolve([]);
-      //     });
-      //   }
-      //   attempts += 1;
-      //   if (attempts > maxAttempts) {
-      //     throw err;
-      //   }
-      // }
-
-
     }
   }
 }
