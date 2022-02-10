@@ -27,6 +27,7 @@ export async function main(): Promise<void> {
   const newBatch = (): Batch => {
     return { batch: firebase.db.batch(), size: 0 };
   };
+  
   let currentBatch = newBatch();
   const addToBatch = (doc: FirebaseFirestore.DocumentReference, object: Partial<FirebaseFirestore.DocumentData>, merge: boolean): void => {
     if (currentBatch.size >= 500) {
@@ -45,19 +46,30 @@ export async function main(): Promise<void> {
     currentBatch.size += 1;
   }
 
-
   const { promise, emitter: tokenEmitter } = collection.getInitialData();
   tokenEmitter.on('token', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    addToBatch(tokenDoc, token, false);
+    addToBatch(tokenDoc, token, false); 
   });
 
   const { collection: collectionData, tokens, tokensWithErrors } = await promise;
 
+  if(currentBatch.size > 0) {
+    await currentBatch.batch.commit();
+  }
 
   await collectionDoc.set(collectionData, { merge: true });
-
   console.log('Updated collection doc');
+
+  /**
+   * update tokens with data that cannot be calculate
+   * until all we have metadata for all tokens 
+   * (i.e. rarity, may be more in the future)
+   */
+  for(const token of tokens) {
+    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    addToBatch(tokenDoc, token, true);
+  }
 
   for (const token of tokensWithErrors) {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);

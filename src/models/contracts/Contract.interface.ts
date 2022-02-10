@@ -23,6 +23,8 @@ export default interface Contract {
 
     standard: TokenStandard;
 
+    calculateRarity: (tokens: Token[], collectionAttributes?: CollectionAttributes) => Token[];
+
     aggregateTraits: (tokens: Token[]) => CollectionAttributes;
 
     /**

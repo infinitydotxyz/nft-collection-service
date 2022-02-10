@@ -10,6 +10,7 @@ import { Collection as CollectionType } from '../types/Collection.interface';
 import { Optional } from '../types/Utility';
 import PQueue from 'p-queue';
 import Emittery from 'emittery';
+import { NULL_ADDR } from '../constants';
 
 export default class Collection {
   private readonly contract: Contract;
@@ -118,7 +119,7 @@ export default class Collection {
          * cache of block timestamps
          */
         const blockTimestamps = new Map<number, Promise<{ error: any } | { value: number }>>();
-        const getBlockTimestamp = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
+        const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
           const result = blockTimestamps.get(item.blockNumber);
           if (!result) {
             const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
@@ -140,27 +141,30 @@ export default class Collection {
         /**
          * attempts to get a token from a transfer event
          */
-        const getTokenFromTransfer = async (event: ethers.Event): Promise<Optional<Token, 'mintedAt' | 'owner'>> => {
-          let blockMinedAt = 0;
-          const blockTimestampResult = await getBlockTimestamp(event); // doesn't throw
-          if ('value' in blockTimestampResult) {
-            blockMinedAt = blockTimestampResult.value;
-          }
+        const getTokenFromTransfer = async (event: ethers.Event): Promise<Optional<Token, 'mintedAt'>> => {
+          let mintedAt = 0;
           const transfer = this.contract.decodeTransfer(event);
+          const isMint = transfer.from === NULL_ADDR;
+          if (isMint) {
+            const blockTimestampResult = await getBlockTimestampInMS(event); // doesn't throw
+            if('value' in blockTimestampResult) {
+              mintedAt = blockTimestampResult.value;
+            }
+          }
           const tokenId = transfer.tokenId;
-          const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, blockMinedAt);
+          const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, mintedAt);
           token.owner = transfer.to.toLowerCase();
-          return token;
+          return token as Optional<Token, 'mintedAt'>;
         };
     
         const queue = new PQueue({
           concurrency: Infinity // requests will be limited in the client
         });
     
-        const enqueue = async (event: ethers.Event, attempts = 0): Promise<Token | { error: any; event: ethers.Event }> => {
+        const enqueue = async (event: ethers.Event, attempts = 0): Promise<Optional<Token, 'mintedAt'> | { error: any; event: ethers.Event }> => {
           attempts += 1;
           try {
-            const token = await new Promise<Token>(
+            const token = await new Promise<Optional<Token, 'mintedAt'>>(
               async (resolve, reject) =>
                 await queue.add(() => {
                   getTokenFromTransfer(event)
@@ -173,7 +177,7 @@ export default class Collection {
                 })
             );
             if(emitter) {
-              emitter.emit('token', token).catch((err) => {
+              emitter.emit('token', token as Token).catch((err) => {
                 console.log(`failed to emit token: ${token.tokenId}`);
                 console.error(err);
               })
@@ -196,7 +200,7 @@ export default class Collection {
           const chunkPromises = mintEvents.map(async (event) => {
             const token = await enqueue(event);
     
-            return token;
+            return token as Token;
           });
           tokenPromises = [...tokenPromises, ...chunkPromises];
         }
@@ -229,6 +233,13 @@ export default class Collection {
         return { tokens, numTokens: totalNumTokens, tokensWithErrors: failed }
   }
 
+  /**
+   * getInitialData gets all necessary data to create the collection + nfts
+   * 
+   * Note token rarity cannot be calculate until we have metadata for every token. Therefore
+   * the emitter will not emit tokens with rarityScore/rarityRankings. This data is added
+   * to tokens returned in the promise
+   */
   getInitialData(): { emitter: Emittery<{'token': Token}>,  promise:  Promise<{ collection: CollectionType; tokens: Token[], tokensWithErrors: Array<{ error: any, tokenId: string}> }> } {
     const emitter: Emittery<{'token': Token}> = new Emittery();
     const promise = new Promise<{ collection: CollectionType; tokens: Token[], tokensWithErrors: Array<{ error: any, tokenId: string}> }>(async (resolve, reject) => {
@@ -238,6 +249,7 @@ export default class Collection {
         const { tokens, numTokens, tokensWithErrors } = await this.getTokensFromMints(deployer.block, undefined, emitter);
         const attributes = this.contract.aggregateTraits(tokens) ?? {};
         const collection: CollectionType = {
+          hasBlueCheck: false,
           chainId: this.contract.chainId,
           address: this.contract.address.toLowerCase(),
           tokenStandard: this.contract.standard,
@@ -249,8 +261,10 @@ export default class Collection {
           attributes: attributes,
           numTraitTypes: Object.keys(attributes).length
         };
+
+        const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
   
-        resolve({ collection, tokens, tokensWithErrors});
+        resolve({ collection, tokens: tokensWithRarity, tokensWithErrors});
       }catch(err) {
         reject(err);
       }

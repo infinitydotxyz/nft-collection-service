@@ -39,6 +39,17 @@ interface BaseToken {
 
   tokenUri: string;
 
+  /**
+   * sum of the token's rarity scores
+   * 
+   * should not be changed until all tokens are ready to be updated
+   */
+  rarityScore?: number;
+
+  /**
+   * rank relative to other items in the collection
+   */
+  rarityRank?: number;
 
   /**
    * cached token image

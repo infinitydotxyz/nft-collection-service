@@ -7,6 +7,7 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
+import { Concrete } from 'types/Utility';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -40,6 +41,39 @@ export default class Erc721Contract extends AbstractContract {
     };
   }
 
+  calculateRarity(tokens: Erc721Token[], collectionAttributes?: CollectionAttributes): Erc721Token[] {
+    const attributes = collectionAttributes ?? this.aggregateTraits(tokens);
+
+    const getRarityScore = (traitType: string | number, traitValue: string | number): number => {
+      const rarityScore = attributes[traitType].values[traitValue].rarityScore ?? 0;
+      return rarityScore;
+    }
+
+    const updatedTokens: Erc721Token[] = [];
+
+    for(const token of tokens) {
+      const tokenRarityScore = token.metadata.attributes.reduce((raritySum, attribute) => {
+        const traitType = attribute.trait_type ?? attribute.value;
+        const attributeRarityScore = getRarityScore(traitType, attribute.value);
+        return raritySum + attributeRarityScore;
+      }, 0);
+      updatedTokens.push({
+        ...token, 
+        rarityScore: tokenRarityScore
+      });
+    }
+
+
+    const tokensSortedByRarity = updatedTokens.sort((itemA, itemB) => (itemA.rarityScore ?? 0) - (itemB.rarityScore ?? 0));
+
+    return tokensSortedByRarity.map((token, index) => {
+      return {
+        ...token,
+        rarityRank: index + 1
+      }
+    });
+  }
+
   aggregateTraits(tokens: Erc721Token[]): CollectionAttributes {
     const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
@@ -69,7 +103,7 @@ export default class Erc721Contract extends AbstractContract {
         const prevValues = collectionTraits[traitType].values ?? {};
         collectionTraits[traitType].values = {
           ...prevValues,
-          [value]: { count: 0, percent: 0 }
+          [value]: { count: 0, percent: 0, rarityScore: 0 }
         };
       }
 
@@ -80,7 +114,9 @@ export default class Erc721Contract extends AbstractContract {
       collectionTraits[traitType].percent = Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
       collectionTraits[traitType].values[value].count += 1;
       
-      collectionTraits[traitType].values[value].percent = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100) / 100;
+      const proportion = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100);
+      collectionTraits[traitType].values[value].percent = proportion / 100; 
+      collectionTraits[traitType].values[value].rarityScore = 1 / proportion;
     };
 
     for (const metadata of tokenMetadata) {

@@ -1,3 +1,3 @@
 export function main(): void {
-    console.log('production')
+    console.log('production');
 }

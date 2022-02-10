@@ -19,6 +19,11 @@ interface BaseCollection {
   tokenStandard: TokenStandard;
 
   /**
+   * whether the collection is verified
+   */
+  hasBlueCheck: boolean;
+
+  /**
    * deployer of the contract
    * (i.e the address that created the contract)
    */
@@ -63,6 +68,11 @@ interface TraitValueMetadata {
    * percent of tokens with this trait
    */
   percent: number;
+
+  /**
+   * 1 / (percent / 100) 
+   */
+  rarityScore: number;
 }
 
 

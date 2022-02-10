@@ -42,6 +42,8 @@ export default abstract class Contract implements IContract {
 
   protected provider: ethers.providers.JsonRpcProvider;
 
+  abstract calculateRarity(tokens: Token[], collectionAttributes?: CollectionAttributes): Token[];
+
   abstract aggregateTraits(tokens: Token[]): CollectionAttributes;
 
   abstract decodeDeployer(event: ethers.Event): string;
