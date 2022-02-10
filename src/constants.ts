@@ -8,7 +8,9 @@ function getEnvironmentVariable(name: string, required = true): string {
 
 export const JSON_RPC_MAINNET = getEnvironmentVariable("JSON_RPC_MAINNET");
 export const OPENSEA_API_KEY = getEnvironmentVariable("OPENSEA_API_KEY");
-export const FB_STORAGE_BUCKET = getEnvironmentVariable("FB_STORAGE_BUCKET");
+
+export const FB_STORAGE_BUCKET='nftc-dev.appspot.com'; // TODO adi change for prod
+export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json'; // TODO adi change for prod
 
 const INFURA_IPFS_PROJECT_ID = getEnvironmentVariable("INFURA_IPFS_PROJECT_ID");
 const INFURA_IPFS_PROJECT_SECRET = getEnvironmentVariable("INFURA_IPFS_PROJECT_SECRET");

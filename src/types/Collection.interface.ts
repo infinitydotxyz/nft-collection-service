@@ -25,7 +25,7 @@ interface BaseCollection {
   deployer: string;
 
   /**
-   * unix timestamp that the contract was deployed at
+   * unix timestamp that the contract was deployed at (in ms)
    */
   deployedAt: number;
 

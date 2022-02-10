@@ -1,9 +1,7 @@
-
-
 import { singleton } from 'tsyringe';
 import firebaseAdmin, { ServiceAccount } from 'firebase-admin';
 import { Bucket, File } from '@google-cloud/storage';
-import { FB_STORAGE_BUCKET } from '../constants';
+import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -17,11 +15,9 @@ export default class Firebase {
   bucket: Bucket;
 
   constructor() {
-    const serviceAccountFile = resolve('./creds/firebase.json');
+    const serviceAccountFile = resolve(`./creds/${FIREBASE_SERVICE_ACCOUNT}`);
 
-    const serviceAccount = JSON.parse(readFileSync(
-      serviceAccountFile, 'utf-8'
-    ));
+    const serviceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8'));
     const app = firebaseAdmin.initializeApp({
       credential: firebaseAdmin.credential.cert(serviceAccount as ServiceAccount),
       storageBucket: FB_STORAGE_BUCKET
@@ -33,32 +29,40 @@ export default class Firebase {
   }
 
   async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {
-    const remoteFile = this.bucket.file(path);
-    // no idea why exists() returns an array [boolean]
-    const existsArray = await remoteFile.exists();
-    if (existsArray && existsArray.length > 0 && !existsArray[0]) {
-      return await new Promise<File>((resolve, reject) => {
-        Readable.from(buffer).pipe(
-          remoteFile
-            .createWriteStream({
-              metadata: {
-                contentType
-              }
-            })
-            .on('error', (err) => {
-              console.error(err);
+    let attempts = 0;
+    while (true) {
+      attempts += 1;
+      try {
+        const remoteFile = this.bucket.file(path);
+        const existsArray = await remoteFile.exists();
+        if (existsArray && existsArray.length > 0 && !existsArray[0]) {
+          return await new Promise<File>((resolve, reject) => {
+            Readable.from(buffer).pipe(
+              remoteFile
+                .createWriteStream({
+                  metadata: {
+                    contentType
+                  }
+                })
+                .on('error', (err) => {
+                  console.error(err);
 
-              reject(err);
-            })
-            .on('finish', () => {
-              console.log(`uploaded: ${remoteFile.name}`);
+                  reject(err);
+                })
+                .on('finish', () => {
+                  console.log(`uploaded: ${remoteFile.name}`);
 
-              resolve(remoteFile);
-            })
-        );
-      });
+                  resolve(remoteFile);
+                })
+            );
+          });
+        }
+        return remoteFile;
+      } catch (err) {
+        if (attempts > 3) {
+          throw err;
+        }
+      }
     }
-
-    return remoteFile;
   }
 }

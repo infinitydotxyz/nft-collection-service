@@ -64,19 +64,8 @@ export default class Collection {
     let publicUrl;
 
     if (imageBuffer && contentType) {
-      let attempts = 0;
-      while(true) {
-        attempts +=1;
-        try {
-          const remoteFile = await firebase.uploadBuffer(imageBuffer, path, contentType);
-          publicUrl = remoteFile.publicUrl();
-          break;
-        }catch(err) {
-          if(attempts > 3) {
-            throw err;
-          }
-        }
-      }
+      const remoteFile = await firebase.uploadBuffer(imageBuffer, path, contentType);
+      publicUrl = remoteFile.publicUrl();
     } else if (!imageBuffer) {
       throw new Error(`Failed to get image for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
     } else if (!contentType) {

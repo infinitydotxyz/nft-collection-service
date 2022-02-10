@@ -6,6 +6,7 @@ import AbstractContract from './Contract.abstract';
 import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
+import { normalize } from 'path';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -169,8 +170,11 @@ export default class Erc721Contract extends AbstractContract {
     let baseUri;
     try {
       baseUri = await this.getBaseUri();
+      const url = new URL(baseUri);
       if (baseUri) {
-        tokenUri = `${baseUri}${tokenId}`;
+        const tokenPath = normalize(`${url.pathname}/${tokenId}`);
+        url.pathname = tokenPath;
+        tokenUri = url.toString();
         return tokenUri;
       }
     } catch {

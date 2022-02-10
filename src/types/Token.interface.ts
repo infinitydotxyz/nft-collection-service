@@ -33,7 +33,7 @@ interface BaseToken {
   numTraitTypes: number;
 
   /**
-   * unix timestamp that the token metadata was updated at
+   * unix timestamp (in ms) that the token metadata was updated at 
    */
   updatedAt: number;
 
@@ -55,7 +55,7 @@ interface BaseToken {
     contentType: string;
 
     /**
-     * unix timestamp of when the image was updated
+     * unix timestamp (in ms) of when the image was updated 
      */
     updatedAt: number;
   };
