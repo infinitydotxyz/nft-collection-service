@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-import { ethersErrorHandler } from 'utils/ethers';
 import Contract, {TokenStandard} from './Contract.interface'
 import Erc721Contract from './Erc721Contract';
 

@@ -33,6 +33,12 @@ export default interface Contract {
      */
     decodeDeployer: (event: ethers.Event) => string;
 
+    /**
+     * attempts to get the current owner of the contract
+     *  
+     */
+    getOwner: () => Promise<string>;
+
     
     decodeTransfer: (event: ethers.Event) => {to: string, from: string, tokenId: string};
 

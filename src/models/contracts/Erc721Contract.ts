@@ -7,7 +7,6 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
-import { Concrete } from 'types/Utility';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -64,7 +63,7 @@ export default class Erc721Contract extends AbstractContract {
     }
 
 
-    const tokensSortedByRarity = updatedTokens.sort((itemA, itemB) => (itemA.rarityScore ?? 0) - (itemB.rarityScore ?? 0));
+    const tokensSortedByRarity = updatedTokens.sort((itemA, itemB) => (itemB.rarityScore ?? 0) - (itemA.rarityScore ?? 0)); 
 
     return tokensSortedByRarity.map((token, index) => {
       return {
@@ -114,8 +113,9 @@ export default class Erc721Contract extends AbstractContract {
       collectionTraits[traitType].percent = Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
       collectionTraits[traitType].values[value].count += 1;
       
-      const proportion = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100);
-      collectionTraits[traitType].values[value].percent = proportion / 100; 
+      const percent = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100) / 100;
+      const proportion = percent / 100;
+      collectionTraits[traitType].values[value].percent = percent;
       collectionTraits[traitType].values[value].rarityScore = 1 / proportion;
     };
 

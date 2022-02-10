@@ -1,8 +1,8 @@
 import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { CollectionAttributes } from 'types/Collection.interface';
-import { Token } from 'types/Token.interface';
+import { CollectionAttributes } from '../../types/Collection.interface';
+import { Token } from '../../types/Token.interface';
 import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
@@ -68,6 +68,28 @@ export default abstract class Contract implements IContract {
     this.chainId = chainId;
     this.provider = getProviderByChainId(this.chainId);
     this.contract = new ethers.Contract(this.address, abi, this.provider);
+  }
+
+  public async getOwner(): Promise<string> {
+    const maxAttempts = 3;
+    let attempts = 0;
+    while (true) {
+      attempts += 1;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        const owner: string = (await this.contract.owner()) ?? '';
+        return owner?.toLowerCase() ?? '';
+      } catch (err: any) {
+        if('code' in err) {
+          if(err.code === 'CALL_EXCEPTION') {
+            return ''; // contract is not ownable, consider the deployer as the owner 
+          }
+        }
+        if (attempts > maxAttempts) {
+          throw err;
+        }
+      }
+    }
   }
 
   /**
@@ -143,9 +165,9 @@ export default abstract class Contract implements IContract {
 
       yield errorHandler(async () => await thunkedLogRequest(from, to));
 
-      const size = maxBlock - minBlock; // TODO
+      const size = maxBlock - minBlock;
       const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
-      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO
+      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO delete this
 
       from = to + 1;
     }
