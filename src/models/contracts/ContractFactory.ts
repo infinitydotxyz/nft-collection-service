@@ -1,8 +1,11 @@
+import { ethers } from 'ethers';
+import { ethersErrorHandler } from 'utils/ethers';
 import Contract, {TokenStandard} from './Contract.interface'
 import Erc721Contract from './Erc721Contract';
 
 export default class ContractFactory {
-    create(address: string, chainId: string, standard: TokenStandard): Contract {
+    async create(address: string, chainId: string): Promise<Contract> {
+        const standard = await this.getTokenStandard(address, chainId);
         switch(standard) {
             case TokenStandard.ERC721:
                 return new Erc721Contract(address, chainId);
@@ -10,5 +13,20 @@ export default class ContractFactory {
             default: 
                 throw new Error(`Token Standard: ${standard} not yet implemented`);
         }
+    }
+
+    private async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
+        // TODO sniff or request token standard
+        if(!ethers.utils.isAddress(address)) {
+            throw new Error(`invalid token address: ${address}`);
+        }
+
+        if(!chainId) {
+            throw new Error(`invalid chainId: ${chainId}`);
+        }
+
+        return await new Promise((resolve, reject) => {
+            resolve(TokenStandard.ERC721);
+        })
     }
 }

@@ -7,8 +7,9 @@
     "lint": "eslint .",
     "fix": "eslint --fix .",
     "start": "ts-node -r dotenv/config ./src/bootstrap.ts",
-    "dev": "cross-env NODE_ENV=development ts-node -r dotenv/config ./src/bootstrap.ts",
-    "watch": "cross-env NODE_ENV=development ts-node-dev -r dotenv/config ./src/bootstrap.ts"
+    "dev": "cross-env NODE_ENV=script ts-node -r dotenv/config ./src/bootstrap.ts",
+    "watch": "cross-env NODE_ENV=script ts-node-dev -r dotenv/config ./src/bootstrap.ts",
+    "cli": "cross-env NODE_ENV=cli ts-node -r dotenv/config ./src/bootstrap.ts"
   },
   "repository": {
     "type": "git",
