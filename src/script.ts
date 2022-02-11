@@ -1,4 +1,3 @@
-import ContractFactory from './models/contracts/ContractFactory';
 import CollectionService from './models/CollectionService';
 
 export async function main(): Promise<void> {
@@ -7,9 +6,4 @@ export async function main(): Promise<void> {
 
   const collectionService = new CollectionService();
   await collectionService.createCollection(address, chainId);
-
-  // const factory = new ContractFactory();
-  // const contract = await factory.create(address, chainId);
-  // const owner = await contract.getOwner();
-  // console.log(owner);
 }

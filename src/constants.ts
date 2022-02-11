@@ -6,6 +6,7 @@ function getEnvironmentVariable(name: string, required = true): string {
     return variable;
 }
 
+
 export const JSON_RPC_MAINNET = getEnvironmentVariable("JSON_RPC_MAINNET");
 export const OPENSEA_API_KEY = getEnvironmentVariable("OPENSEA_API_KEY");
 
