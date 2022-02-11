@@ -13,16 +13,16 @@ interface Batch {
 
 export default class CollectionService {
   private readonly contractFactory: ContractFactory;
-  private readonly collectionMetadatProvider: CollectionMetadataProvider;
+  private readonly collectionMetadataProvider: CollectionMetadataProvider;
 
   constructor() {
     this.contractFactory = new ContractFactory();
-    this.collectionMetadatProvider = new CollectionMetadataProvider();
+    this.collectionMetadataProvider = new CollectionMetadataProvider();
   }
 
   async createCollection(address: string, chainId: string, hasBlueCheck?: boolean): Promise<void> {
     const contract = await this.contractFactory.create(address, chainId);
-    const collection = new Collection(contract, metadataClient, this.collectionMetadatProvider);
+    const collection = new Collection(contract, metadataClient, this.collectionMetadataProvider);
     const collectionDoc = firebase.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
 
     const newBatch = (): Batch => {
@@ -85,18 +85,20 @@ export default class CollectionService {
     let done = false;
     let valueToInject: Token[] | null = null;
     while (!done) {
-      console.log('starting')
-      if (valueToInject !== null) {
-        next = await createCollectionGenerator.next(valueToInject);
-        valueToInject = null;
-      } else {
-        next = await createCollectionGenerator.next();
-      }
-      done = next.done ?? false;
-
-      const { collection: collectionData, action } = next.value;
-      console.log(`Updating: ${collectionData.state?.create.step} ERror: ${collectionData.state?.create.error} `)
       try {
+        if (valueToInject !== null) {
+          next = await createCollectionGenerator.next(valueToInject);
+          valueToInject = null;
+        } else {
+          next = await createCollectionGenerator.next();
+        }
+        done = next.done ?? false;
+        if(done) {
+          console.log(`Collection Completed: ${address}`)
+          return;
+        }
+  
+        const { collection: collectionData, action } = next.value;
         await collectionDoc.set(collectionData, { merge: false });
         if (action) {
           switch (action) {
@@ -113,8 +115,13 @@ export default class CollectionService {
               throw new Error(`Requested an invalid action: ${action}`);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        done = true;
+        const message = typeof err?.message === 'string' ? err?.message as string : 'Unknown';
+        const errorMessage = `Collection ${chainId}:${address} failed to complete due to unknown error: ${message}`;
+        console.log(errorMessage);
         console.error(err);
+        await collectionDoc.set({ state: { create: {step: '', error: { message: errorMessage } } } }, { merge: true }); // force collection to restart next time it is run
       }
     }
   }

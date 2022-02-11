@@ -74,7 +74,6 @@ export default class Collection {
     tokenEmitter: Emittery<{token: Token, tokenError: { error: { reason: string, timestamp: number }, tokenId: string}}>,
     hasBlueCheck?: boolean
   ): AsyncGenerator<{ collection: Partial<CollectionType>, action?: 'tokenRequest' }, any, Token[] | undefined> {
-    // const step = initialCollection?.state?.create?.step ?? CreationFlow.CollectionCreator;
     type CollectionCreatorType = Pick<
       CollectionType,
       | 'chainId'
@@ -92,6 +91,7 @@ export default class Collection {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
     let allTokens: Token[] = [];
+
     let step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
     try {
@@ -156,7 +156,7 @@ export default class Collection {
             try {
               const error = collection.state?.create?.error as unknown as CollectionTokenMetadataErrorType | undefined;
               switch (error?.type) {
-                case TokenMetadataError.KnownTokenErrors: // update tokens with errors
+                case TokenMetadataError.KnownTokenErrors: // only update tokens with errors
                     const savedTokensWithErrors = await tokenDao.getTokensWithErrors(this.contract.chainId, this.contract.address);
                     let numErrors = 0;
                     for(const token of savedTokensWithErrors) {
@@ -255,8 +255,6 @@ export default class Collection {
                   throw new CollectionAggregateMetadataError('Client failed to inject tokens');
                 }
                 tokens = injectedTokens
-                console.log(`received ${tokens.length} injected tokens`)
-                // TODO validate tokens ? 
               }
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
               const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
