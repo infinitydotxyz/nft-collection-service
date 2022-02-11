@@ -377,7 +377,7 @@ export default class Collection {
     const contentType = imageResponse.headers['content-type'];
     const imageBuffer = imageResponse.rawBody;
     const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
-    const path = `collections/${this.contract.chainId}:${this.contract.address}/${hash}`;
+    const path = `images/${this.contract.chainId}/collections/${this.contract.address}/${hash}`;
     let publicUrl;
 
     if (imageBuffer && contentType) {
