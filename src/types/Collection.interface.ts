@@ -72,7 +72,7 @@ interface BaseCollection {
   state: {
     create: {
       step: CreationFlow;
-      error?: CreationFlowError;
+      error?: Record<string, any>;
     };
   };
 }

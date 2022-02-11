@@ -5,14 +5,14 @@ import { ethers } from 'ethers';
 import { Token, TokenMetadata } from '../types/Token.interface';
 import { Readable } from 'stream';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { firebase } from '../container';
+import { firebase, tokenDao } from '../container';
 import crypto from 'crypto';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import { Optional } from '../types/Utility';
 import PQueue from 'p-queue';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
-import { getSearchFriendlyString } from 'utils';
+import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
@@ -69,26 +69,12 @@ export default class Collection {
     this.collectionMetadataProvider = collectionMetadataProvider;
   }
 
-  // async createCollection(collection?: Partial<CollectionType>) {
-  //   if (!collection) {
-  //     // default collection state
-  //     collection = {
-  //       state: {
-  //         create: {
-  //           step: CreationFlow.CollectionCreator,
-  //           errors: []
-  //         }
-  //       }
-  //     };
-  //   }
-
-  //   // try {
-  //   //   await this.createCollectionFlow(collection);
-  //   // }
-  // }
-
-  async *createCollectionFlow(initialCollection: Partial<CollectionType>, tokenEmitter: Emittery<{'token': Token}>, hasBlueCheck?: boolean): AsyncGenerator<Partial<CollectionType>> {
-    const step = initialCollection?.state?.create?.step ?? CreationFlow.CollectionCreator;
+  async *createCollection(
+    initialCollection: Partial<CollectionType>,
+    tokenEmitter: Emittery<{token: Token, tokenError: { error: { reason: string, timestamp: number }, tokenId: string}}>,
+    hasBlueCheck?: boolean
+  ): AsyncGenerator<{ collection: Partial<CollectionType>, action?: 'tokenRequest' }, any, Token[] | undefined> {
+    // const step = initialCollection?.state?.create?.step ?? CreationFlow.CollectionCreator;
     type CollectionCreatorType = Pick<
       CollectionType,
       | 'chainId'
@@ -105,9 +91,12 @@ export default class Collection {
     type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
+    let allTokens: Token[] = [];
+    let step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
     try {
       while (true) {
+        step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
         switch (step) {
           case CreationFlow.CollectionCreator: // resets the collection
             try {
@@ -126,7 +115,7 @@ export default class Collection {
                 }
               };
               collection = initialCollection; // update collection
-              yield collection;
+              yield { collection };
             } catch (err: any) {
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection creator';
@@ -154,7 +143,7 @@ export default class Collection {
                 }
               };
               collection = collectionMetadataCollection; // update collection
-              yield collection;
+              yield { collection };
             } catch (err: any) {
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection metadata';
@@ -163,24 +152,80 @@ export default class Collection {
             break;
 
           case CreationFlow.TokenMetadata:
+            // update any failed tokens if there were errors. Otherwise create all tokens
             try {
-              // we would like to pass control to another flow for each token
-              // update any failed tokens if there were errors. Otherwise create all tokens
               const error = collection.state?.create?.error as unknown as CollectionTokenMetadataErrorType | undefined;
-              const numNfts = 10000; // TODO
-
               switch (error?.type) {
                 case TokenMetadataError.KnownTokenErrors: // update tokens with errors
-                // todo
+                    const savedTokensWithErrors = await tokenDao.getTokensWithErrors(this.contract.chainId, this.contract.address);
+                    let numErrors = 0;
+                    for(const token of savedTokensWithErrors) {
+                      if(!token.tokenId) {
+                        throw new CollectionTokenMetadataError(
+                          TokenMetadataError.UnknownTokenErrors,
+                          `Found invalid tokens, must restart`
+                        );
+                      }
+                      try{
+                        const updatedToken = await this.getToken(token.tokenId);
+                        void tokenEmitter.emit('token', updatedToken as Token).catch(() => {
+                          // safely ignore
+                        })
+                      }catch(err) {
+                        const reason = error?.message;
+                        numErrors += 1;
+                        const tokenError = {
+                          error: {
+                            reason,
+                            timestamp: Date.now()
+                          },
+                          tokenId: token.tokenId
+                        }
+                        void tokenEmitter.emit('tokenError', tokenError).catch(() => {
+                          // safely ignore
+                        })
+                      }
+                    }
+                    if(numErrors > 0) {
+                        throw new CollectionTokenMetadataError(TokenMetadataError.KnownTokenErrors, `Failed to update: ${numErrors} tokens`);
+                    }
 
+                  break;
                 // eslint-disable-next-line no-fallthrough
                 case TokenMetadataError.UnknownTokenErrors: // update all tokens
                 default:
-                // todo
+                  const {
+                    tokens: mints,
+                    tokensWithErrors,
+                    unknownErrors
+                  } = await this.getTokensFromMints(collection.deployedAtBlock, undefined, tokenEmitter);
+                  if (unknownErrors) {
+                    throw new CollectionTokenMetadataError(
+                      TokenMetadataError.UnknownTokenErrors,
+                      `Failed to get: ${unknownErrors} tokens with unknown errors`
+                    );
+                  } else if (tokensWithErrors.length > 0) {
+                    // emit tokens we failed to get
+                    for (const token of tokensWithErrors) {
+                      const errorMessage =
+                        typeof token?.error?.message === 'string' ? (token?.error?.message as string) : '';
+                      void tokenEmitter
+                        .emit('tokenError', { error: { reason:  errorMessage , timestamp: Date.now() } , tokenId: token.tokenId })
+                        .catch(() => {
+                          // safe to ignore
+                        });
+                    }
+                    throw new CollectionTokenMetadataError(
+                      TokenMetadataError.KnownTokenErrors,
+                      `Failed to get: ${tokensWithErrors.length} tokens`
+                    );
+                  }
+                  // successfully got all tokens
+                  allTokens = mints;
               }
               const tokenMetadataCollection: CollectionTokenMetadataType = {
                 ...(collection as CollectionMetadataType),
-                numNfts: numNfts,
+                numNfts: allTokens.length,
                 state: {
                   ...collection.state,
                   create: {
@@ -189,9 +234,8 @@ export default class Collection {
                 }
               };
               collection = tokenMetadataCollection; // update collection
-              // TODO throw specific type errors
+              yield { collection };
 
-              yield collection;
             } catch (err: any) {
               if (err instanceof CollectionTokenMetadataError) {
                 throw err;
@@ -203,15 +247,28 @@ export default class Collection {
             break;
 
           case CreationFlow.AggregateMetadata:
-            // TODO get tokens
             try {
-              const tokens: Token[] = [];
+              let tokens: Token[] = allTokens;
+              if(tokens.length === 0) {
+                const injectedTokens = (yield { collection: collection, action: 'tokenRequest' });
+                if(!injectedTokens) {
+                  throw new CollectionAggregateMetadataError('Client failed to inject tokens');
+                }
+                tokens = injectedTokens
+                console.log(`received ${tokens.length} injected tokens`)
+                // TODO validate tokens ? 
+              }
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
-              const tokensWithRarity = this.contract.calculateRarity(tokens, attributes); // TODO update tokens
+              const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
+              for(const token of tokensWithRarity) {
+                void tokenEmitter.emit('token', token).catch(() => {
+                  // safely ignore
+                })
+              }
               const aggregatedCollection: CollectionType = {
                 ...(collection as CollectionTokenMetadataType),
                 attributes,
-                numTraitTypes: 2, // TODO
+                numTraitTypes: Object.keys(attributes).length,
                 state: {
                   ...collection.state,
                   create: {
@@ -221,7 +278,7 @@ export default class Collection {
               };
               collection = aggregatedCollection;
 
-              yield collection;
+              yield { collection };
             } catch (err: any) {
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
@@ -248,7 +305,7 @@ export default class Collection {
         state: {
           create: {
             step: step,
-            error
+            error: error.toJSON()
           }
         }
       };
@@ -366,10 +423,10 @@ export default class Collection {
     return token;
   }
 
-  async getTokensFromMints(
+  async getTokensFromMints<T extends { token: Token }>(
     fromBlock?: number,
     toBlock?: number,
-    emitter?: Emittery<{ token: Token }>
+    emitter?: Emittery<T>
   ): Promise<{
     tokens: Token[];
     numTokens: number;
@@ -502,78 +559,4 @@ export default class Collection {
 
     return { tokens, numTokens: totalNumTokens, tokensWithErrors: failed, unknownErrors };
   }
-
-  // /**
-  //  * getInitialData gets all necessary data to create the collection + nfts
-  //  *
-  //  * Note token rarity cannot be calculate until we have metadata for every token. Therefore
-  //  * the emitter will not emit tokens with rarityScore/rarityRankings. This data is added
-  //  * to tokens returned in the promise
-  //  */
-  // getInitialData(hasBlueCheck = false): {
-  //   emitter: Emittery<{ token: Token }>;
-  //   promise: Promise<{
-  //     collection: CollectionType;
-  //     tokens: Token[];
-  //     tokensWithErrors: Array<{ error: any; tokenId: string }>;
-  //     error?: any;
-  //   }>;
-  // } {
-  //   const emitter: Emittery<{ token: Token }> = new Emittery();
-  //   const promise = new Promise<{
-  //     collection: CollectionType;
-  //     tokens: Token[];
-  //     tokensWithErrors: Array<{ error: any; tokenId: string }>;
-  //   }>(async (resolve, reject) => {
-  //     let deployer: {
-  //       createdAt: number;
-  //       address: string;
-  //       block: number;
-  //     };
-
-  //     let collection: Partial<CollectionType>;
-  //     let tokens: Token[] = [];
-
-  //     try {
-  //       const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-
-  //       const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
-  //       if (!slug) {
-  //         throw new Error('Failed to find collection slug');
-  //       }
-
-  //       const {
-  //         tokens: mints,
-  //         numTokens,
-  //         tokensWithErrors
-  //       } = await this.getTokensFromMints(deployer.block, undefined, emitter);
-  //       tokens = mints;
-
-  //       const attributes = this.contract.aggregateTraits(tokens) ?? {};
-
-  //       const collection: CollectionType = {
-  //         slug: slug,
-  //         hasBlueCheck: hasBlueCheck,
-  //         chainId: this.contract.chainId,
-  //         address: this.contract.address.toLowerCase(),
-  //         tokenStandard: this.contract.standard,
-  //         deployer: deployer.address.toLowerCase(),
-  //         deployedAt: deployer.createdAt,
-  //         owner: owner.toLowerCase(),
-  //         metadata: collectionMetadata,
-  //         numNfts: numTokens, // note - this may not be the current number of nfts
-  //         attributes: attributes,
-  //         numTraitTypes: Object.keys(attributes).length
-  //       };
-
-  //       const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
-
-  //       resolve({ collection, tokens: tokensWithRarity, tokensWithErrors });
-  //     } catch (err) {
-  //       reject(err);
-  //     }
-  //   });
-
-  //   return { promise, emitter };
-  // }
 }

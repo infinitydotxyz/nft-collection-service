@@ -1,14 +1,20 @@
-import ContractFactory from './models/contracts/ContractFactory';
+
 import CollectionService from './models/CollectionService';
 
 export async function main(): Promise<void> {
 
-    const address = '0xdac17f958d2ee523a2206206994597c13d831ec7';
+    const address = '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d';
     const chainId = '1';
 
     const collectionService = new CollectionService();
     await collectionService.createCollection(address, chainId);
-
+    // try{
+    //     const tokens = await tokenDao.getTokensWithErrors(chainId, address);
+    //     console.log(tokens);
+    // }catch(err) {
+    //     console.error(err);
+    // }
+    
     // const factory = new ContractFactory();
     // const contract = await factory.create(address, chainId);
     // const owner = await contract.getOwner();
