@@ -1,0 +1,68 @@
+import { singleton } from 'tsyringe';
+import firebaseAdmin, { ServiceAccount } from 'firebase-admin';
+import { Bucket, File } from '@google-cloud/storage';
+import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
+import { Readable } from 'stream';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+@singleton()
+export default class Firebase {
+  db: FirebaseFirestore.Firestore;
+
+  firebaseAdmin: firebaseAdmin.app.App;
+
+  bucket: Bucket;
+
+  constructor() {
+    const serviceAccountFile = resolve(`./creds/${FIREBASE_SERVICE_ACCOUNT}`);
+
+    const serviceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8'));
+    const app = firebaseAdmin.initializeApp({
+      credential: firebaseAdmin.credential.cert(serviceAccount as ServiceAccount),
+      storageBucket: FB_STORAGE_BUCKET
+    });
+    this.firebaseAdmin = app;
+    this.db = firebaseAdmin.firestore();
+    this.db.settings({ ignoreUndefinedProperties: true });
+    this.bucket = firebaseAdmin.storage().bucket();
+  }
+
+  async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {
+    let attempts = 0;
+    while (true) {
+      attempts += 1;
+      try {
+        const remoteFile = this.bucket.file(path);
+        const existsArray = await remoteFile.exists();
+        if (existsArray && existsArray.length > 0 && !existsArray[0]) {
+          return await new Promise<File>((resolve, reject) => {
+            Readable.from(buffer).pipe(
+              remoteFile
+                .createWriteStream({
+                  metadata: {
+                    contentType
+                  }
+                })
+                .on('error', (err) => {
+                  console.error(err);
+
+                  reject(err);
+                })
+                .on('finish', () => {
+                  console.log(`uploaded: ${remoteFile.name}`);
+
+                  resolve(remoteFile);
+                })
+            );
+          });
+        }
+        return remoteFile;
+      } catch (err) {
+        if (attempts > 3) {
+          throw err;
+        }
+      }
+    }
+  }
+}

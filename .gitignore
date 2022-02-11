@@ -1,6 +1,7 @@
 
 # Sensitive
 .env
+creds/*
 
 
 # Logs

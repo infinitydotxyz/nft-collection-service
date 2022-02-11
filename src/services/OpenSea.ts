@@ -13,7 +13,8 @@ import got, {
 } from 'got';
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import {CollectionMetadata} from '../types/collection' 
+import {CollectionMetadata} from '../types/Collection.interface' 
+import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 
 type GotError =
   | RequestError
@@ -40,11 +41,33 @@ function isGotError(error: GotError | unknown): boolean {
   );
 }
 
+
+/**
+ * formatName takes a name from opensea and adds spaces before capital letters
+ * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
+ */
+function formatName(name: string): string {
+  let formattedName = '';
+
+  for(const char of name) {
+    const isUpperCase = /^[A-Z]$/.test(char);
+    const prevCharIsSpace = formattedName[formattedName.length - 1] === ' ';
+    const isFirstChar = formattedName.length === 0;
+
+    if (isUpperCase && !prevCharIsSpace && !isFirstChar ) {
+      formattedName = `${formattedName} ${char}`;
+    } else {
+      formattedName = `${formattedName}${char}`;
+    }
+  }
+  return formattedName;
+} 
+
 /**
  * we try not to use OpenSea more than we have to 
  * prefer other methods of getting data if possible
  */
-export default class OpenSeaClient {
+export default class OpenSeaClient implements CollectionMetadataProvider {
   private readonly client: Got;
   private readonly maxAttempts: number;
   constructor(maxAttempts?: number) {
@@ -103,9 +126,14 @@ export default class OpenSeaClient {
         const data = response.body as OpenSeaContractResponse;
         const collection = data.collection;
 
+        /**
+         * not sure why opensea formats names like (BoredApeYachtClub)
+         */
+        const name = formatName(data.name ?? "");
+
         const dataInInfinityFormat: CollectionMetadata = {
-            name: data.name ?? "",
-            description: data.description ?? "",
+            name,
+            description: data.description,
             symbol: data.symbol ?? "",
             profileImage: collection.image_url,
             bannerImage: collection.banner_image_url,
@@ -129,7 +157,6 @@ export default class OpenSeaClient {
       case 429: 
         await sleep(5000);
         return await this.getCollectionMetadata(address, attempt)
-
 
       case 500: 
         return await this.getCollectionMetadata(address, attempt);

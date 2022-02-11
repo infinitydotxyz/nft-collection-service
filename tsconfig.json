@@ -6,14 +6,16 @@
         "esModuleInterop": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
+        "allowJs": true,
+        "experimentalDecorators": true,
         
         "noImplicitAny": true,
         "strict": true,
         "strictNullChecks": true,
         
         "declaration": true,
-
         "sourceMap": true,
+        "emitDecoratorMetadata": true,
 
         "outDir": "dist",
         "baseUrl": "./src",

@@ -6,16 +6,21 @@
     "build": "npm install",
     "lint": "eslint .",
     "fix": "eslint --fix .",
-    "start": "ts-node -r dotenv/config ./src/index.ts",
-    "dev": "ts-node -r dotenv/config ./src/index.ts"
+    "start": "ts-node -r dotenv/config ./src/bootstrap.ts",
+    "dev": "cross-env NODE_ENV=script ts-node -r dotenv/config ./src/bootstrap.ts",
+    "watch": "cross-env NODE_ENV=script ts-node-dev -r dotenv/config ./src/bootstrap.ts",
+    "cli": "cross-env NODE_ENV=cli ts-node -r dotenv/config ./src/bootstrap.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mavriklabs/nft-collection-service.git"
   },
   "devDependencies": {
+    "@types/bl": "^5.0.2",
+    "@types/mime-types": "^2.1.1",
     "@types/node": "^17.0.14",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
+    "cross-env": "^7.0.3",
     "eslint": "^8.8.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-standard": "^16.0.3",
@@ -26,12 +31,22 @@
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.4.0",
+    "ts-node-dev": "^1.1.8",
     "typescript": "^4.5.5"
   },
   "dependencies": {
+    "bl": "^5.0.0",
     "dotenv": "^16.0.0",
+    "emittery": "^0.10.1",
     "ethers": "^5.5.4",
-    "got": "^11.8.3"
+    "file-type": "^16.5.3",
+    "firebase-admin": "^10.0.2",
+    "got": "^11.8.3",
+    "it-reader": "^3.0.0",
+    "mime-types": "^2.1.30",
+    "p-queue": "^6.6.2",
+    "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.6.0"
   },
   "prettier": {
     "tabWidth": 2,
