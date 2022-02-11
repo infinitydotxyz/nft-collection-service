@@ -46,3 +46,13 @@ export function getEnv(): Env {
       return Env.Production
   }
 }
+
+
+export function getSearchFriendlyString(input: string): string {
+  if (!input) {
+    return '';
+  }
+  // remove spaces, dashes and underscores only
+  const output = input.replace(/[\s-_]/g, '');
+  return output.toLowerCase();
+}

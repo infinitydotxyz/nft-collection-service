@@ -2,6 +2,8 @@ import ContractFactory from './contracts/ContractFactory';
 import CollectionMetadataProvider from './CollectionMetadataProvider';
 import Collection from './Collection';
 import { firebase, metadataClient } from '../container';
+import Emittery from 'emittery';
+import { Token } from '../types/Token.interface';
 
 interface Batch {
   batch: FirebaseFirestore.WriteBatch;
@@ -11,13 +13,13 @@ interface Batch {
 export default class CollectionService {
   private readonly contractFactory: ContractFactory;
   private readonly collectionMetadatProvider: CollectionMetadataProvider;
-  
+
   constructor() {
     this.contractFactory = new ContractFactory();
     this.collectionMetadatProvider = new CollectionMetadataProvider();
   }
 
-  async createCollection(address: string, chainId: string): Promise<void> {
+  async createCollection(address: string, chainId: string, hasBlueCheck?: boolean): Promise<void> {
     const contract = await this.contractFactory.create(address, chainId);
     const collection = new Collection(contract, metadataClient, this.collectionMetadatProvider);
     const collectionDoc = firebase.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
@@ -51,38 +53,52 @@ export default class CollectionService {
       currentBatch.size += 1;
     };
 
-    const { promise, emitter: tokenEmitter } = collection.getInitialData();
-    tokenEmitter.on('token', (token) => {
-      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      addToBatch(tokenDoc, token, false);
-    });
+    const data = await collectionDoc.get();
+    const currentCollection = data.data() ?? {};
 
-    const { collection: collectionData, tokens, tokensWithErrors } = await promise;
+    const tokenEmitter = new Emittery<{'token': Token}>();
 
-    if (currentBatch.size > 0) {
-      await currentBatch.batch.commit();
+    const createCollectionGenerator = collection.createCollectionFlow(currentCollection, tokenEmitter);
+    for await (const collectionData of createCollectionGenerator) {
+        try{
+            await collectionDoc.set(collectionData, {merge: false});
+        }catch(err) {
+            console.error(err);
+        }
     }
 
-    await collectionDoc.set(collectionData, { merge: true });
-    console.log('Updated collection doc');
+    // const { promise, emitter: tokenEmitter } = collection.getInitialData(hasBlueCheck);
+    // tokenEmitter.on('token', (token) => {
+    //   const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    //   addToBatch(tokenDoc, token, false);
+    // });
 
-    /**
-     * update tokens with data that cannot be calculate
-     * until all we have metadata for all tokens
-     * (i.e. rarity, may be more in the future)
-     */
-    for (const token of tokens) {
-      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      addToBatch(tokenDoc, token, true);
-    }
+    // const { collection: collectionData, tokens, tokensWithErrors } = await promise;
 
-    for (const token of tokensWithErrors) {
-      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      addToBatch(tokenDoc, token, true); // only updates the error field
-    }
+    // if (currentBatch.size > 0) {
+    //   await currentBatch.batch.commit();
+    // }
 
-    if (currentBatch.size > 0) {
-      await currentBatch.batch.commit();
-    }
+    // await collectionDoc.set(collectionData, { merge: true });
+    // console.log('Updated collection doc');
+
+    // /**
+    //  * update tokens with data that cannot be calculate
+    //  * until all we have metadata for all tokens
+    //  * (i.e. rarity, may be more in the future)
+    //  */
+    // for (const token of tokens) {
+    //   const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    //   addToBatch(tokenDoc, token, true);
+    // }
+
+    // for (const token of tokensWithErrors) {
+    //   const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    //   addToBatch(tokenDoc, token, true); // only updates the error field
+    // }
+
+    // if (currentBatch.size > 0) {
+    //   await currentBatch.batch.commit();
+    // }
   }
 }
