@@ -1,9 +1,10 @@
-import { INFURA_API_KEY } from '../constants';
+import { INFURA_API_KEYS } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
 import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
+import { randomItem } from '../utils';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -39,8 +40,9 @@ export const config: MetadataClientOptions = {
         const id = url.pathname;
         const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
         options.url = new URL(`${domain}${cid}${id}`);
+        const apiKey = randomItem(INFURA_API_KEYS);
         options.headers = {
-          Authorization: INFURA_API_KEY
+          Authorization: apiKey
         };
       },
       ipfsPathFromUrl: defaultIpfsPathFromUrl
