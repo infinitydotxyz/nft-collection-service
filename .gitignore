@@ -1,3 +1,5 @@
+# input files
+results.json
 
 # Sensitive
 .env
