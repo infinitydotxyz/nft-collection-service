@@ -100,8 +100,6 @@ async function fileMode(fileArg: string): Promise<void> {
         hasBlueCheck = parseArg(hasBlueCheckArg) === 'true';
     }
 
-    console.log(data, hasBlueCheck);
-
     console.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`)
 
     const promises: Array<Promise<void>> = [];

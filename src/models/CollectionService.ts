@@ -85,7 +85,7 @@ export default class CollectionService {
         addToBatch(tokenDoc, error, true);
       });
   
-      const createCollectionGenerator = collection.createCollection(currentCollection, tokenEmitter);
+      const createCollectionGenerator = collection.createCollection(currentCollection, tokenEmitter, hasBlueCheck);
   
       let next: IteratorResult<
         { collection: Partial<CollectionType>; action?: 'tokenRequest' },
