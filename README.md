@@ -5,8 +5,23 @@
 * `npm run dev` - runs `script.ts` for developing/testing flows
 * `npm run watch` - same as `npm run dev` but will restart on changes
 * `npm run cli` - start in cli mode. Example: `npm run cli -- address=0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D chain=1 task=create`
-    * Options 
-        * `address` (required) - the address to run the task for 
-        * `chain` (optional) - Base 10 chain id. Defaults to 1
-        * `task` (optional) - the type of task to run. Valid tasks include 
-            * `create` (default) - creates a collection
+    * Modes 
+        * Address Mode 
+            * `address` (required) - the address to run the task for 
+            * `chain` (optional) - Base 10 chain id. Defaults to 1
+            * `hasBlueCheck` (optional) - whether the collection is verified (defaults to false)
+            * `task` (optional) - the type of task to run. Valid tasks include 
+                * `create` (default) - creates a collection
+        * File Mode
+            * `file` (required) - path the a file structured as    
+            * `hasBlueCheck` (optional) - overrides hasBlueCheck for every item in the file
+            ```ts
+            [
+                { 
+                    address: string, // (required)
+                    chainId: string, // (optional) defaults to 1
+                    hasBlueCheck: boolean // (optional) defaults to false
+                },
+                ...
+            ]
+            ```
