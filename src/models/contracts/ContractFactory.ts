@@ -17,7 +17,7 @@ export default class ContractFactory {
     private async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
         // TODO sniff or request token standard
         if(!ethers.utils.isAddress(address)) {
-            throw new Error(`invalid token address: ${address}`);
+            throw new Error(`invaplid token address: ${address}`);
         }
 
         if(!chainId) {

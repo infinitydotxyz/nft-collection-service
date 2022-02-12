@@ -1,7 +1,8 @@
+import { CreationFlow } from '../models/Collection';
 import { TokenStandard } from '../models/contracts/Contract.interface';
 import { DisplayType } from './Metadata.interface';
 
-export type Collection = Erc721Collection | Erc1155Collection ;
+export type Collection = Erc721Collection | Erc1155Collection;
 export interface Erc721Collection extends BaseCollection {
   tokenStandard: TokenStandard.ERC721;
 }
@@ -35,6 +36,11 @@ interface BaseCollection {
   deployedAt: number;
 
   /**
+   * block the collection was deployed at
+   */
+  deployedAtBlock: number;
+
+  /**
    * current owner of the contract
    */
   owner: string;
@@ -43,6 +49,8 @@ interface BaseCollection {
    * editable collection metadata
    */
   metadata: CollectionMetadata;
+
+  slug: string;
 
   /**
    * number of available tokens in the collection
@@ -56,6 +64,16 @@ interface BaseCollection {
    * total number of trait_types in the collection
    */
   numTraitTypes: number;
+
+  /**
+   *
+   */
+  state: {
+    create: {
+      step: CreationFlow;
+      error?: Record<string, any>;
+    };
+  };
 }
 
 interface TraitValueMetadata {
@@ -70,11 +88,10 @@ interface TraitValueMetadata {
   percent: number;
 
   /**
-   * 1 / (percent / 100) 
+   * 1 / (percent / 100)
    */
   rarityScore: number;
 }
-
 
 /**
  * Collection metadata that can be edited by the owner
@@ -104,9 +121,8 @@ export interface Links {
   facebook?: string;
 }
 
-export interface CollectionAttributes { 
-  [traitType: string]: { 
-
+export interface CollectionAttributes {
+  [traitType: string]: {
     displayType?: DisplayType;
 
     /**
@@ -119,7 +135,6 @@ export interface CollectionAttributes {
      */
     percent: number;
 
-    values: {[traitValue: string | number]: TraitValueMetadata } 
-  }
+    values: { [traitValue: string | number]: TraitValueMetadata };
+  };
 }
-

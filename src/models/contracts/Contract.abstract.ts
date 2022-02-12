@@ -70,25 +70,24 @@ export default abstract class Contract implements IContract {
     this.contract = new ethers.Contract(this.address, abi, this.provider);
   }
 
-  public async getOwner(): Promise<string> {
+  public async getOwner(attempt = 0): Promise<string> {
     const maxAttempts = 3;
-    let attempts = 0;
-    while (true) {
-      attempts += 1;
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        const owner: string = (await this.contract.owner()) ?? '';
-        return owner?.toLowerCase() ?? '';
-      } catch (err: any) {
-        if('code' in err) {
-          if(err.code === 'CALL_EXCEPTION') {
-            return ''; // contract is not ownable, consider the deployer as the owner 
-          }
-        }
-        if (attempts > maxAttempts) {
-          throw err;
+    attempt += 1;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      const owner: string = (await this.contract.owner()) ?? '';
+      return owner?.toLowerCase() ?? '';
+    } catch (err: any) {
+      if ('code' in err) {
+        if (err.code === 'CALL_EXCEPTION') {
+          return ''; // contract is not ownable, consider the deployer as the owner
         }
       }
+      if (attempt > maxAttempts) {
+        throw err;
+      }
+
+      return await this.getOwner(attempt);
     }
   }
 
