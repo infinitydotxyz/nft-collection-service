@@ -1,11 +1,13 @@
 import { ethers } from 'ethers';
-import { sleep } from './';
-import { JSON_RPC_MAINNET } from '../constants';
+import { randomItem, sleep } from './';
+import { JSON_RPC_MAINNET_KEYS } from '../constants';
 
 export function getProviderByChainId(chainId: string): ethers.providers.JsonRpcProvider {
   switch (chainId) {
     case '1':
-      return new ethers.providers.JsonRpcProvider(JSON_RPC_MAINNET);
+      const JSON_RPC_MAINNET = randomItem(JSON_RPC_MAINNET_KEYS);
+      const provider = new ethers.providers.JsonRpcProvider(JSON_RPC_MAINNET);
+      return provider;
     default:
       throw new Error(`Provider not available for chain id: ${chainId}`);
   }
