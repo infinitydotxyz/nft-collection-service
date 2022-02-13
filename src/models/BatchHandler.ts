@@ -40,6 +40,7 @@ export default class BatchHandler {
         attempt += 1;
         try {
           await batch.commit();
+          return;
         } catch (err) {
           if (attempt > maxAttempts) {
               
