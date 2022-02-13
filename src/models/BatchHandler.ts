@@ -1,3 +1,4 @@
+import { sleep } from 'utils';
 import { firebase } from '../container';
 
 const MAX_SIZE = 500;
@@ -41,9 +42,11 @@ export default class BatchHandler {
           await batch.commit();
         } catch (err) {
           if (attempt > maxAttempts) {
+              
             console.log(`Failed to commit batch`);
             throw err;
           }
+          await sleep(1000); // firebase has a limit of 1 write per doc per second
         }
       }
     }
