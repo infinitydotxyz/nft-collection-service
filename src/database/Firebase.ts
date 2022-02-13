@@ -62,13 +62,10 @@ export default class Firebase {
                   }
                 })
                 .on('error', (err) => {
-                  console.error(err);
-
                   reject(err);
                 })
                 .on('finish', () => {
                   console.log(`uploaded: ${remoteFile.name}`);
-
                   resolve(remoteFile);
                 })
             );
