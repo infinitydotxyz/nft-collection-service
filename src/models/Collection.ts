@@ -440,13 +440,13 @@ export default class Collection {
     };
   }
 
-  async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'owner'>> {
+  async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'minter'>> {
     const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
 
     const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
     const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
 
-    const token: Optional<Token, 'mintedAt' | 'owner'> = {
+    const token: Optional<Token, 'mintedAt' | 'minter'> = {
       tokenId,
       ...mintedAtProperty,
       metadata,
@@ -516,8 +516,8 @@ export default class Collection {
         }
       }
       const tokenId = transfer.tokenId;
-      const token: Optional<Token, 'mintedAt' | 'owner'> = await this.getToken(tokenId, mintedAt);
-      token.owner = transfer.to.toLowerCase();
+      const token: Optional<Token, 'mintedAt' | 'minter'> = await this.getToken(tokenId, mintedAt);
+      token.minter = transfer.to.toLowerCase();
       return token as Optional<Token, 'mintedAt'>;
     };
 
