@@ -73,6 +73,10 @@ export function ethersErrorHandler<Response>(
               await sleep(retryDelay);
               return await attempt(attempts);
 
+            case 'TIMEOUT': 
+              await sleep(retryDelay);
+              return await attempt(attempts);
+
             default:
               console.log(`Encountered unknown error code ${err.code}`);
               throw err;
