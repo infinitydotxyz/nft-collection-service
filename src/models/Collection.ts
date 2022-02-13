@@ -71,9 +71,12 @@ export default class Collection {
 
   async *createCollection(
     initialCollection: Partial<CollectionType>,
-    tokenEmitter: Emittery<{token: Token, tokenError: { error: { reason: string, timestamp: number }, tokenId: string}}>,
+    tokenEmitter: Emittery<{
+      token: Token;
+      tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
+    }>,
     hasBlueCheck?: boolean
-  ): AsyncGenerator<{ collection: Partial<CollectionType>, action?: 'tokenRequest' }, any, Token[] | undefined> {
+  ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Token[] | undefined> {
     type CollectionCreatorType = Pick<
       CollectionType,
       | 'chainId'
@@ -157,38 +160,48 @@ export default class Collection {
               const error = collection.state?.create?.error as unknown as CollectionTokenMetadataErrorType | undefined;
               switch (error?.type) {
                 case TokenMetadataError.KnownTokenErrors: // only update tokens with errors
-                    const savedTokensWithErrors = await tokenDao.getTokensWithErrors(this.contract.chainId, this.contract.address);
-                    let numErrors = 0;
-                    for(const token of savedTokensWithErrors) {
-                      if(!token.tokenId) {
-                        throw new CollectionTokenMetadataError(
-                          TokenMetadataError.UnknownTokenErrors,
-                          `Found invalid tokens, must restart`
-                        );
-                      }
-                      try{
-                        const updatedToken = await this.getToken(token.tokenId);
-                        void tokenEmitter.emit('token', updatedToken as Token).catch(() => {
-                          // safely ignore
-                        })
-                      }catch(err) {
-                        const reason = error?.message;
-                        numErrors += 1;
-                        const tokenError = {
-                          error: {
-                            reason,
-                            timestamp: Date.now()
-                          },
-                          tokenId: token.tokenId
-                        }
-                        void tokenEmitter.emit('tokenError', tokenError).catch(() => {
-                          // safely ignore
-                        })
-                      }
+                  const savedTokensWithErrors = await tokenDao.getTokensWithErrors(
+                    this.contract.chainId,
+                    this.contract.address
+                  );
+                  let numErrors = 0;
+                  for (const token of savedTokensWithErrors) {
+                    if (!token.tokenId) {
+                      throw new CollectionTokenMetadataError(
+                        TokenMetadataError.UnknownTokenErrors,
+                        `Found invalid tokens, must restart`
+                      );
                     }
-                    if(numErrors > 0) {
-                        throw new CollectionTokenMetadataError(TokenMetadataError.KnownTokenErrors, `Failed to update: ${numErrors} tokens`);
+                    try {
+                      const updatedToken = await this.getToken(token.tokenId);
+                      void tokenEmitter.emit('token', updatedToken as Token).catch((err) => {
+                        console.log('error while emitting token');
+                        console.error(err);
+                        // safely ignore
+                      });
+                    } catch (err) {
+                      const reason = error?.message;
+                      numErrors += 1;
+                      const tokenError = {
+                        error: {
+                          reason,
+                          timestamp: Date.now()
+                        },
+                        tokenId: token.tokenId
+                      };
+                      void tokenEmitter.emit('tokenError', tokenError).catch(() => {
+                        console.log('error while emitting token error');
+                        console.error(err);
+                        // safely ignore
+                      });
                     }
+                  }
+                  if (numErrors > 0) {
+                    throw new CollectionTokenMetadataError(
+                      TokenMetadataError.KnownTokenErrors,
+                      `Failed to update: ${numErrors} tokens`
+                    );
+                  }
 
                   break;
                 // eslint-disable-next-line no-fallthrough
@@ -210,8 +223,13 @@ export default class Collection {
                       const errorMessage =
                         typeof token?.error?.message === 'string' ? (token?.error?.message as string) : '';
                       void tokenEmitter
-                        .emit('tokenError', { error: { reason:  errorMessage , timestamp: Date.now() } , tokenId: token.tokenId })
-                        .catch(() => {
+                        .emit('tokenError', {
+                          error: { reason: errorMessage, timestamp: Date.now() },
+                          tokenId: token.tokenId
+                        })
+                        .catch((err) => {
+                          console.log('error while emitting token error');
+                          console.error(err);
                           // safe to ignore
                         });
                     }
@@ -235,7 +253,6 @@ export default class Collection {
               };
               collection = tokenMetadataCollection; // update collection
               yield { collection };
-
             } catch (err: any) {
               if (err instanceof CollectionTokenMetadataError) {
                 throw err;
@@ -249,19 +266,21 @@ export default class Collection {
           case CreationFlow.AggregateMetadata:
             try {
               let tokens: Token[] = allTokens;
-              if(tokens.length === 0) {
-                const injectedTokens = (yield { collection: collection, action: 'tokenRequest' });
-                if(!injectedTokens) {
+              if (tokens.length === 0) {
+                const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+                if (!injectedTokens) {
                   throw new CollectionAggregateMetadataError('Client failed to inject tokens');
                 }
-                tokens = injectedTokens
+                tokens = injectedTokens;
               }
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
               const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
-              for(const token of tokensWithRarity) {
-                void tokenEmitter.emit('token', token).catch(() => {
+              for (const token of tokensWithRarity) {
+                void tokenEmitter.emit('token', token).catch((err) => {
+                  console.log('error while emitting token');
+                  console.error(err);
                   // safely ignore
-                })
+                });
               }
               const aggregatedCollection: CollectionType = {
                 ...(collection as CollectionTokenMetadataType),
@@ -503,7 +522,9 @@ export default class Collection {
             })
         );
         if (emitter) {
-          emitter.emit('token', token as Token).catch(() => {
+          emitter.emit('token', token as Token).catch((err) => {
+            console.log(`Collection failed to emit token`);
+            console.error(err);
             // safe to ignore
           });
         }

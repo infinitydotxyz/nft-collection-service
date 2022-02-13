@@ -62,17 +62,14 @@ function isIpfs(requestUrl: string | URL): boolean {
  * basic error handling of responses, and controls concurrency to prevent
  * flooding
  *
- *  TODO optimization: ipfs api supports multiple args, we can use this to get 
- *       metadata for multiple items at once. Alternative is to get an entire 
+ *  TODO optimization: ipfs api supports multiple args, we can use this to get
+ *       metadata for multiple items at once. Alternative is to get an entire
  *       directory at once
  */
 @singleton()
 export default class MetadataClient {
   private readonly client: Got;
 
-  /**
-   * we only use one
-   */
   private readonly queue: PQueue;
 
   constructor() {
