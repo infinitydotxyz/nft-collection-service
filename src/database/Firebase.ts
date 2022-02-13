@@ -28,22 +28,31 @@ export default class Firebase {
     this.bucket = firebaseAdmin.storage().bucket();
   }
 
-  getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
+  getCollectionDocRef(
+    chainId: string,
+    address: string
+  ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
     const collectionDoc = this.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
     return collectionDoc;
   }
 
-  getTokensCollectionRef(chainId: string, address: string): FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData> {
+  getTokensCollectionRef(
+    chainId: string,
+    address: string
+  ): FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData> {
     const collectionDoc = this.getCollectionDocRef(chainId, address);
     const nftsCollection = collectionDoc.collection('nfts');
     return nftsCollection;
   }
 
-  getTokenDocRef(chainId: string, address: string, tokenId: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
+  getTokenDocRef(
+    chainId: string,
+    address: string,
+    tokenId: string
+  ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
     const tokensCollectionRef = this.getTokensCollectionRef(chainId, address);
     return tokensCollectionRef.doc(tokenId);
   }
-  
 
   async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {
     let attempts = 0;

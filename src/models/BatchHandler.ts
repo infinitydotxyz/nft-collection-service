@@ -43,7 +43,6 @@ export default class BatchHandler {
           return;
         } catch (err) {
           if (attempt > maxAttempts) {
-              
             console.log(`Failed to commit batch`);
             throw err;
           }

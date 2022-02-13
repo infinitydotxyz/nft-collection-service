@@ -26,14 +26,14 @@ interface BaseToken {
    * cached raw metadata
    */
   metadata: TokenMetadata;
-  
+
   /**
    * number of trait_types that this token has
    */
   numTraitTypes: number;
 
   /**
-   * unix timestamp (in ms) that the token metadata was updated at 
+   * unix timestamp (in ms) that the token metadata was updated at
    */
   updatedAt: number;
 
@@ -41,7 +41,7 @@ interface BaseToken {
 
   /**
    * sum of the token's rarity scores
-   * 
+   *
    * should not be changed until all tokens are ready to be updated
    */
   rarityScore?: number;
@@ -66,18 +66,18 @@ interface BaseToken {
     contentType: string;
 
     /**
-     * unix timestamp (in ms) of when the image was updated 
+     * unix timestamp (in ms) of when the image was updated
      */
     updatedAt: number;
   };
 
   /**
-   * indicates if we failed to update this token 
+   * indicates if we failed to update this token
    */
   error?: {
     reason: string;
     timestamp: number;
-  }
+  };
 }
 
 export interface Erc721Token extends BaseToken {

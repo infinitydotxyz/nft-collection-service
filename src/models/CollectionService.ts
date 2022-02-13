@@ -79,7 +79,7 @@ export default class CollectionService {
 
           const { collection: collectionData, action } = next.value;
 
-          batch.add(collectionDoc, collectionData, {merge: false});
+          batch.add(collectionDoc, collectionData, { merge: false });
           await batch.flush();
 
           if (action) {
@@ -100,8 +100,12 @@ export default class CollectionService {
           const errorMessage = `Collection ${chainId}:${address} failed to complete due to unknown error: ${message}`;
           console.log(errorMessage);
           console.error(err);
-          batch.add(collectionDoc,  { state: { create: { step: '', error: { message: errorMessage } } } },   { merge: true });
-          await batch.flush(); 
+          batch.add(
+            collectionDoc,
+            { state: { create: { step: '', error: { message: errorMessage } } } },
+            { merge: true }
+          );
+          await batch.flush();
         }
       }
     });

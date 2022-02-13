@@ -46,30 +46,31 @@ export default class Erc721Contract extends AbstractContract {
     const getRarityScore = (traitType: string | number, traitValue: string | number): number => {
       const rarityScore = attributes[traitType].values[traitValue].rarityScore ?? 0;
       return rarityScore;
-    }
+    };
 
     const updatedTokens: Erc721Token[] = [];
 
-    for(const token of tokens) {
+    for (const token of tokens) {
       const tokenRarityScore = token.metadata.attributes.reduce((raritySum, attribute) => {
         const traitType = attribute.trait_type ?? attribute.value;
         const attributeRarityScore = getRarityScore(traitType, attribute.value);
         return raritySum + attributeRarityScore;
       }, 0);
       updatedTokens.push({
-        ...token, 
+        ...token,
         rarityScore: tokenRarityScore
       });
     }
 
-
-    const tokensSortedByRarity = updatedTokens.sort((itemA, itemB) => (itemB.rarityScore ?? 0) - (itemA.rarityScore ?? 0)); 
+    const tokensSortedByRarity = updatedTokens.sort(
+      (itemA, itemB) => (itemB.rarityScore ?? 0) - (itemA.rarityScore ?? 0)
+    );
 
     return tokensSortedByRarity.map((token, index) => {
       return {
         ...token,
         rarityRank: index + 1
-      }
+      };
     });
   }
 
@@ -107,12 +108,13 @@ export default class Erc721Contract extends AbstractContract {
       }
 
       /**
-       * increment counts 
+       * increment counts
        */
       collectionTraits[traitType].count += 1;
-      collectionTraits[traitType].percent = Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
+      collectionTraits[traitType].percent =
+        Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
       collectionTraits[traitType].values[value].count += 1;
-      
+
       const percent = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100) / 100;
       const proportion = percent / 100;
       collectionTraits[traitType].values[value].percent = percent;
@@ -163,28 +165,28 @@ export default class Erc721Contract extends AbstractContract {
    */
   async getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs> {
     const mintsFilter = this.contract.filters.Transfer(NULL_ADDR);
-      const queryFilter = this.contract.queryFilter.bind(this.contract);
-      
-      async function thunkedLogRequest(fromBlock: number, toBlock: number | 'latest'): Promise<ethers.Event[]> {
-        return await queryFilter(mintsFilter, fromBlock, toBlock)
-      }
+    const queryFilter = this.contract.queryFilter.bind(this.contract);
 
-      let fromBlock = options?.fromBlock;
-      if (typeof fromBlock !== 'number') {
-        /**
-         * the first transaction for this contract
-         */
-        const firstTransaction = await this.getContractCreationTx();
-        fromBlock = firstTransaction.blockNumber;
-      }
+    async function thunkedLogRequest(fromBlock: number, toBlock: number | 'latest'): Promise<ethers.Event[]> {
+      return await queryFilter(mintsFilter, fromBlock, toBlock);
+    }
 
-      const mintsReadable = await this.paginateLogs(thunkedLogRequest, this.provider, {
-        fromBlock,
-        toBlock: options?.toBlock,
-        returnType: options?.returnType
-      });
+    let fromBlock = options?.fromBlock;
+    if (typeof fromBlock !== 'number') {
+      /**
+       * the first transaction for this contract
+       */
+      const firstTransaction = await this.getContractCreationTx();
+      fromBlock = firstTransaction.blockNumber;
+    }
 
-      return mintsReadable;
+    const mintsReadable = await this.paginateLogs(thunkedLogRequest, this.provider, {
+      fromBlock,
+      toBlock: options?.toBlock,
+      returnType: options?.returnType
+    });
+
+    return mintsReadable;
   }
 
   async getTokenIds(): Promise<string[]> {

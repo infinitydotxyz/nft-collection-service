@@ -73,7 +73,7 @@ export function ethersErrorHandler<Response>(
               await sleep(retryDelay);
               return await attempt(attempts);
 
-            case 'TIMEOUT': 
+            case 'TIMEOUT':
               await sleep(retryDelay);
               return await attempt(attempts);
 

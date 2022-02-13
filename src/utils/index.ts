@@ -1,31 +1,26 @@
-
-
-
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
-    const hashes = new Set();
-    return items.filter((item: T) => {
-        const property = propertySelector(item);
-        if(!hashes.has(property)) {
-          hashes.add(property);
-          return true;
-        }
-        return false;
-    })
+  const hashes = new Set();
+  return items.filter((item: T) => {
+    const property = propertySelector(item);
+    if (!hashes.has(property)) {
+      hashes.add(property);
+      return true;
+    }
+    return false;
+  });
 }
-
 
 export async function sleep(duration: number): Promise<void> {
   return await new Promise<void>((resolve) => {
-    setTimeout(()=> {
+    setTimeout(() => {
       resolve();
-    }, duration)
-  })
+    }, duration);
+  });
 }
 
 export function isDev(): boolean {
   return !!process.env.NODE_ENV;
 }
-
 
 export enum Env {
   Cli = 'cli',
@@ -34,19 +29,18 @@ export enum Env {
 }
 
 export function getEnv(): Env {
-  switch(process.env.NODE_ENV) {
-    case Env.Cli: 
+  switch (process.env.NODE_ENV) {
+    case Env.Cli:
       return Env.Cli;
-    case Env.Script: 
+    case Env.Script:
       return Env.Script;
     default:
-      if(process.env.NODE_ENV) {
+      if (process.env.NODE_ENV) {
         throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
-      } 
-      return Env.Production
+      }
+      return Env.Production;
   }
 }
-
 
 export function getSearchFriendlyString(input: string): string {
   if (!input) {

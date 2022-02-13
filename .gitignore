@@ -1,6 +1,9 @@
 # input files
 results*.json
 
+# exported data files
+*exported.csv
+
 # Sensitive
 .env
 creds/*

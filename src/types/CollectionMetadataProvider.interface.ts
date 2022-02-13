@@ -1,5 +1,5 @@
-import {CollectionMetadata} from './Collection.interface';
+import { CollectionMetadata } from './Collection.interface';
 
 export interface CollectionMetadataProvider {
-    getCollectionMetadata: (address: string) => Promise<CollectionMetadata>
+  getCollectionMetadata: (address: string) => Promise<CollectionMetadata>;
 }
