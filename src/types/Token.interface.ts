@@ -4,9 +4,9 @@ export type TokenMetadata = Erc721Metadata;
 
 interface BaseToken {
   /**
-   * current owner of the token
+   * original minter of the token
    */
-  owner: string;
+  minter: string;
 
   tokenId: string;
 
