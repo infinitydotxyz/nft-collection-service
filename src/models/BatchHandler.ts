@@ -1,4 +1,4 @@
-import { sleep } from 'utils';
+import { sleep } from '../utils';
 import { firebase } from '../container';
 
 const MAX_SIZE = 500;

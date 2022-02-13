@@ -24,6 +24,7 @@ import {
   UnknownError
 } from './errors/CreationFlowError';
 
+
 export enum CreationFlow {
   /**
    * get collection deployer info and owner
@@ -273,6 +274,18 @@ export default class Collection {
                 }
                 tokens = injectedTokens;
               }
+
+              const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
+              const numNfts = tokens.length;
+              const tokensWithErrors = tokens.filter((item) => item.error?.timestamp !== undefined);
+
+              if(expectedNumNfts !== numNfts || tokensWithErrors.length > 0) {
+                throw new CollectionTokenMetadataError(
+                  TokenMetadataError.UnknownTokenErrors,
+                  `Token verification failed. Expected: ${expectedNumNfts} Received: ${numNfts}. Tokens with errors: ${tokensWithErrors.length}`
+                );
+              }
+
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
               const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
               for (const token of tokensWithRarity) {
@@ -297,6 +310,9 @@ export default class Collection {
 
               yield { collection };
             } catch (err: any) {
+              if(err instanceof CollectionTokenMetadataError) {
+                throw err;
+              }
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
               throw new CollectionAggregateMetadataError(message);
@@ -308,8 +324,14 @@ export default class Collection {
       }
     } catch (err: CreationFlowError | any) {
       let error;
+      let stepToSave: CreationFlow = step;
       if (err instanceof CreationFlowError) {
         error = err;
+        if(err.discriminator === 'unknown') {
+          stepToSave = CreationFlow.CollectionCreator;
+        } else {
+          stepToSave = err.discriminator;
+        }
       } else {
         const message =
           typeof err?.message === 'string'
@@ -321,7 +343,7 @@ export default class Collection {
         ...collection,
         state: {
           create: {
-            step: step,
+            step: stepToSave,
             error: error.toJSON()
           }
         }
