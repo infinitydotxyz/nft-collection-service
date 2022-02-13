@@ -24,7 +24,6 @@ import {
   UnknownError
 } from './errors/CreationFlowError';
 
-
 export enum CreationFlow {
   /**
    * get collection deployer info and owner
@@ -279,7 +278,7 @@ export default class Collection {
               const numNfts = tokens.length;
               const tokensWithErrors = tokens.filter((item) => item.error?.timestamp !== undefined);
 
-              if(expectedNumNfts !== numNfts || tokensWithErrors.length > 0) {
+              if (expectedNumNfts !== numNfts || tokensWithErrors.length > 0) {
                 throw new CollectionTokenMetadataError(
                   TokenMetadataError.UnknownTokenErrors,
                   `Token verification failed. Expected: ${expectedNumNfts} Received: ${numNfts}. Tokens with errors: ${tokensWithErrors.length}`
@@ -310,7 +309,7 @@ export default class Collection {
 
               yield { collection };
             } catch (err: any) {
-              if(err instanceof CollectionTokenMetadataError) {
+              if (err instanceof CollectionTokenMetadataError) {
                 throw err;
               }
               const message =
@@ -327,7 +326,7 @@ export default class Collection {
       let stepToSave: CreationFlow = step;
       if (err instanceof CreationFlowError) {
         error = err;
-        if(err.discriminator === 'unknown') {
+        if (err.discriminator === 'unknown') {
           stepToSave = CreationFlow.CollectionCreator;
         } else {
           stepToSave = err.discriminator;

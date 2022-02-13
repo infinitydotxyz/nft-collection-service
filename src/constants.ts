@@ -1,49 +1,47 @@
 function getEnvironmentVariable(name: string, required = true): string {
-    const variable = process.env[name] ?? "";
-    if (required && !variable) {
-      throw new Error(`Missing environment variable ${name}`);
-    }
-    return variable;
+  const variable = process.env[name] ?? '';
+  if (required && !variable) {
+    throw new Error(`Missing environment variable ${name}`);
+  }
+  return variable;
 }
 
+export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 
-export const OPENSEA_API_KEY = getEnvironmentVariable("OPENSEA_API_KEY");
-
-export const FB_STORAGE_BUCKET='nftc-dev.appspot.com';
+export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
-
 
 const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
-  
+
   let i = 0;
-  while(true) {
+  while (true) {
     try {
       const projectId = getEnvironmentVariable(`INFURA_IPFS_PROJECT_ID${i}`);
       const projectSecret = getEnvironmentVariable(`INFURA_IPFS_PROJECT_SECRET${i}`);
       const apiKey = Buffer.from(`${projectId}:${projectSecret}`).toString('base64');
       const header = `Basic ${apiKey}`;
       apiKeys.push(header);
-      i+= 1;
-    }catch(err) {
+      i += 1;
+    } catch (err) {
       break;
     }
   }
 
   return apiKeys;
-}
+};
 
 export const INFURA_API_KEYS = getInfuraIPFSAuthKeys();
 
 export const JSON_RPC_MAINNET_KEYS = (() => {
   const apiKeys = [];
   let i = 0;
-  while(true) {
+  while (true) {
     try {
       const apiKey = getEnvironmentVariable(`JSON_RPC_MAINNET${i}`);
       apiKeys.push(apiKey);
-      i+= 1;
-    }catch(err) {
+      i += 1;
+    } catch (err) {
       break;
     }
   }
@@ -51,12 +49,10 @@ export const JSON_RPC_MAINNET_KEYS = (() => {
   return apiKeys;
 })();
 
-
-export const NULL_ADDR = "0x0000000000000000000000000000000000000000";
-
+export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
 
 /**
- * in most cases we should not pay attention to blocks until 
+ * in most cases we should not pay attention to blocks until
  * we are sure they won't be uncle'd
  */
 export const MAX_UNCLE_ABLE_BLOCKS = 6;
