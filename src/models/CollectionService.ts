@@ -20,7 +20,7 @@ export default class CollectionService {
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
     this.taskQueue = new PQueue({
-      concurrency: 8 // number of collections to run at once
+      concurrency: 4 // number of collections to run at once
     });
   }
 
