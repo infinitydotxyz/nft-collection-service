@@ -21,8 +21,9 @@ const getInfuraIPFSAuthKeys = (): string[] => {
     try {
       const projectId = getEnvironmentVariable(`INFURA_IPFS_PROJECT_ID${i}`);
       const projectSecret = getEnvironmentVariable(`INFURA_IPFS_PROJECT_SECRET${i}`);
-      const infuraApiKey = Buffer.from(`${projectId}:${projectSecret}`).toString('base64');
-      apiKeys.push(infuraApiKey);
+      const apiKey = Buffer.from(`${projectId}:${projectSecret}`).toString('base64');
+      const header = `Basic ${apiKey}`;
+      apiKeys.push(header);
       i+= 1;
     }catch(err) {
       break;
