@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { CollectionAttributes } from '../../types/Collection.interface';
 import { Token } from '../../types/Token.interface';
 import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
-import IContract, { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
+import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 
 export interface LogRequestOptions {
   fromBlock?: number;
@@ -149,10 +149,13 @@ export default abstract class Contract implements IContract {
     minBlock: number,
     maxBlock: number,
     maxAttempts: number
-  ): Generator<Promise<ethers.Event[]>, void, unknown> {
+  ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
     let from = minBlock;
 
-    const errorHandler = ethersErrorHandler<ethers.Event[]>(maxAttempts, 1000);
+    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(
+      maxAttempts,
+      1000
+    );
 
     while (from < maxBlock) {
       // we can get a max of 2k blocks at once
@@ -162,11 +165,21 @@ export default abstract class Contract implements IContract {
         to = maxBlock;
       }
 
-      yield errorHandler(async () => await thunkedLogRequest(from, to));
 
       const size = maxBlock - minBlock;
       const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
-      console.log(`[${progress}%] Got blocks: ${from} - ${to}`); // TODO delete this
+
+      yield errorHandler(async () => {
+        const events = await thunkedLogRequest(from, to);
+        const fromBlock = minBlock;
+        const toBlock = to;
+        return {
+          progress,
+          fromBlock,
+          toBlock,
+          events
+        };
+      });
 
       from = to + 1;
     }

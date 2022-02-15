@@ -1,15 +1,13 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import Contract, { HistoricalLogsOptions } from './contracts/Contract.interface';
+import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
-import { Token, TokenMetadata } from '../types/Token.interface';
-import { Readable } from 'stream';
+import { MintToken, Token, TokenMetadata } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { firebase, tokenDao } from '../container';
+import { firebase } from '../container';
 import crypto from 'crypto';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import { Optional } from '../types/Utility';
-import PQueue from 'p-queue';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
 import { getSearchFriendlyString } from '../utils';
@@ -18,13 +16,10 @@ import {
   CollectionCreatorError,
   CollectionMetadataError,
   CollectionMintsError,
-  CollectionTokenMetadataError,
-  CollectionTokenMetadataErrorType,
   CreationFlowError,
-  TokenMetadataError,
   UnknownError
-} from './errors/CreationFlowError';
-import { resolve } from 'path/posix';
+} from './errors/CreationFlow';
+import Nft from './Nft';
 
 export enum CreationFlow {
   /**
@@ -65,7 +60,6 @@ export enum CreationFlow {
   Complete = 'complete'
 }
 
-type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId'>;
 
 export default class Collection {
   private readonly contract: Contract;
@@ -86,13 +80,14 @@ export default class Collection {
 
   async *createCollection(
     initialCollection: Partial<CollectionType>,
-    tokenEmitter: Emittery<{
+    emitter: Emittery<{
       token: Token;
-      mints: MintToken[];
+      mint: MintToken;
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
+      progress: { step: string; progress: number };
     }>,
     hasBlueCheck?: boolean
-  ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Token[] | undefined> {
+  ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined> {
     type CollectionCreatorType = Pick<
       CollectionType,
       | 'chainId'
@@ -106,17 +101,19 @@ export default class Collection {
       | 'state'
     >;
     type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
-    type CollectionMintsType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
+    type CollectionMintsType = CollectionMetadataType;
     type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
-    let allTokens: Token[] = [];
+    const allTokens: Token[] = [];
 
     let step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
     try {
+      // todo add progress
       while (true) {
         step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
+        void emitter.emit('progress', { step, progress: 0 });
         switch (step) {
           case CreationFlow.CollectionCreator: // resets the collection
             try {
@@ -158,7 +155,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.TokenMetadata // update step
+                    step: CreationFlow.CollectionMints // update step
                   }
                 }
               };
@@ -173,24 +170,45 @@ export default class Collection {
 
           case CreationFlow.CollectionMints:
             try {
-              const { tokens, failed } = await this.getMints();
-              if (failed > 0) {
-                throw new CollectionMintsError(`Failed to get mints for ${failed} tokens`);
+              let resumeFromBlock: number | undefined;
+              if (collection.state.create.error?.discriminator === CreationFlow.CollectionMints) {
+                resumeFromBlock = collection.state.create.error?.lastSuccessfulBlock;
               }
-              const numNfts = tokens.length + failed;
+
+              const mintEmitter = new Emittery<{'mint': MintToken, 'progress': { progress: number} }>();
+
+
+              mintEmitter.on('mint', (mintToken) => {
+                void emitter.emit('mint', mintToken);
+              })
+
+              mintEmitter.on('progress', ({ progress} ) => {
+                void emitter.emit('progress', {progress, step});
+              })
+
+              const { tokens, failed, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(
+                mintEmitter,
+                resumeFromBlock ?? collection.deployedAtBlock
+              );
+
+              if (failed > 0) {
+                throw new CollectionMintsError(`Failed to get mints for ${failed} tokens`); // get all blocks again
+              } else if (!gotAllBlocks) {
+                throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock); // resume from last successful
+              }
 
               const collectionMintsCollection: CollectionMintsType = {
                 ...(collection as CollectionMetadataType),
-                numNfts
+                state: {
+                  ...collection.state,
+                  create: {
+                    step: CreationFlow.TokenMetadata
+                  }
+                }
               };
 
-              tokenEmitter.emit('mints', tokens).catch((err) => {
-                console.error(err);
-                // ignore
-              });
-
               collection = collectionMintsCollection;
-              yield { collection };
+              yield { collection }; // update collection
             } catch (err: any) {
               if (err instanceof CollectionMintsError) {
                 throw err;
@@ -200,112 +218,24 @@ export default class Collection {
               throw new CollectionMintsError(message);
             }
             break;
-          case CreationFlow.TokenMetadata:
-            // update any failed tokens if there were errors. Otherwise create all tokens
-            try {
-              const error = collection.state?.create?.error as unknown as CollectionTokenMetadataErrorType | undefined;
-              switch (error?.type) {
-                case TokenMetadataError.KnownTokenErrors: // only update tokens with errors
-                  const savedTokensWithErrors = await tokenDao.getTokensWithErrors(
-                    this.contract.chainId,
-                    this.contract.address
-                  );
-                  let numErrors = 0;
-                  for (const token of savedTokensWithErrors) {
-                    if (!token.tokenId) {
-                      throw new CollectionTokenMetadataError(
-                        TokenMetadataError.UnknownTokenErrors,
-                        `Found invalid tokens, must restart`
-                      );
-                    }
-                    try {
-                      const updatedToken = await this.getToken(token.tokenId);
-                      void tokenEmitter.emit('token', updatedToken as Token).catch((err) => {
-                        console.log('error while emitting token');
-                        console.error(err);
-                        // safely ignore
-                      });
-                    } catch (err) {
-                      const reason = error?.message;
-                      numErrors += 1;
-                      const tokenError = {
-                        error: {
-                          reason,
-                          timestamp: Date.now()
-                        },
-                        tokenId: token.tokenId
-                      };
-                      void tokenEmitter.emit('tokenError', tokenError).catch(() => {
-                        console.log('error while emitting token error');
-                        console.error(err);
-                        // safely ignore
-                      });
-                    }
-                  }
-                  if (numErrors > 0) {
-                    throw new CollectionTokenMetadataError(
-                      TokenMetadataError.KnownTokenErrors,
-                      `Failed to update: ${numErrors} tokens`
-                    );
-                  }
 
-                  break;
-                // eslint-disable-next-line no-fallthrough
-                case TokenMetadataError.UnknownTokenErrors: // update all tokens
-                default:
-                  const {
-                    tokens: mints,
-                    tokensWithErrors,
-                    unknownErrors
-                  } = await this.getTokensFromMints(collection.deployedAtBlock, undefined, tokenEmitter);
-                  if (unknownErrors) {
-                    throw new CollectionTokenMetadataError(
-                      TokenMetadataError.UnknownTokenErrors,
-                      `Failed to get: ${unknownErrors} tokens with unknown errors`
-                    );
-                  } else if (tokensWithErrors.length > 0) {
-                    // emit tokens we failed to get
-                    for (const token of tokensWithErrors) {
-                      const errorMessage =
-                        typeof token?.error?.message === 'string' ? (token?.error?.message as string) : '';
-                      void tokenEmitter
-                        .emit('tokenError', {
-                          error: { reason: errorMessage, timestamp: Date.now() },
-                          tokenId: token.tokenId
-                        })
-                        .catch((err) => {
-                          console.log('error while emitting token error');
-                          console.error(err);
-                          // safe to ignore
-                        });
-                    }
-                    throw new CollectionTokenMetadataError(
-                      TokenMetadataError.KnownTokenErrors,
-                      `Failed to get: ${tokensWithErrors.length} tokens`
-                    );
-                  }
-                  // successfully got all tokens
-                  allTokens = mints;
+          case CreationFlow.TokenMetadata:
+            try {
+
+              const tokens: Array<Partial<Token>> | undefined = yield { collection: collection, action: 'tokenRequest' };
+              if(!tokens) {
+                throw new CollectionMintsError("Token metadata received undefined tokens");
               }
-              const tokenMetadataCollection: CollectionTokenMetadataType = {
-                ...(collection as CollectionMetadataType),
-                numNfts: allTokens.length,
-                state: {
-                  ...collection.state,
-                  create: {
-                    step: CreationFlow.AggregateMetadata // update step
-                  }
-                }
-              };
-              collection = tokenMetadataCollection; // update collection
-              yield { collection };
-            } catch (err: any) {
-              if (err instanceof CollectionTokenMetadataError) {
-                throw err;
-              } else {
-                const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get tokens';
-                throw new CollectionTokenMetadataError(TokenMetadataError.UnknownTokenErrors, message);
+
+
+              for(const token of tokens) {
+                const nft = new Nft(token as MintToken & Partial<Token>, this.contract);
+                
               }
+
+
+            } catch (err) {
+              // if any token fails we should throw an error
             }
             break;
 
@@ -317,7 +247,7 @@ export default class Collection {
                 if (!injectedTokens) {
                   throw new CollectionAggregateMetadataError('Client failed to inject tokens');
                 }
-                tokens = injectedTokens;
+                tokens = injectedTokens as Token[];
               }
 
               const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
@@ -325,21 +255,22 @@ export default class Collection {
               const tokensWithErrors = tokens.filter((item) => item.error?.timestamp !== undefined);
 
               if (expectedNumNfts !== numNfts || tokensWithErrors.length > 0) {
-                throw new CollectionTokenMetadataError(
-                  TokenMetadataError.UnknownTokenErrors,
-                  `Token verification failed. Expected: ${expectedNumNfts} Received: ${numNfts}. Tokens with errors: ${tokensWithErrors.length}`
-                );
+                // throw new CollectionTokenMetadataError(
+                //   TokenMetadataError.UnknownTokenErrors,
+                //   `Token verification failed. Expected: ${expectedNumNfts} Received: ${numNfts}. Tokens with errors: ${tokensWithErrors.length}`
+                // ); // TODO throw error to retry
               }
 
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
               const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
               for (const token of tokensWithRarity) {
-                void tokenEmitter.emit('token', token).catch((err) => {
+                void emitter.emit('token', token).catch((err) => {
                   console.log('error while emitting token');
                   console.error(err);
                   // safely ignore
                 });
               }
+
               const aggregatedCollection: CollectionType = {
                 ...(collection as CollectionTokenMetadataType),
                 attributes,
@@ -351,13 +282,14 @@ export default class Collection {
                   }
                 }
               };
+
               collection = aggregatedCollection;
 
               yield { collection };
             } catch (err: any) {
-              if (err instanceof CollectionTokenMetadataError) {
-                throw err;
-              }
+              // if (err instanceof CollectionTokenMetadataError) {
+              //   throw err;
+              // }
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
               throw new CollectionAggregateMetadataError(message);
@@ -366,6 +298,7 @@ export default class Collection {
           case CreationFlow.Complete:
             return;
         }
+        void emitter.emit('progress', { step, progress: 100 });
       }
     } catch (err: CreationFlowError | any) {
       let error;
@@ -393,14 +326,9 @@ export default class Collection {
           }
         }
       };
+      yield { collection };
     }
   }
-
-  /**
-   * get token ids (include block)
-   * get metadata
-   * get/upload images
-   */
 
   private async getCreator(): Promise<{
     deployedAt: number;
@@ -513,7 +441,16 @@ export default class Collection {
     return token;
   }
 
-  async getMints(): Promise<{ tokens: MintToken[]; failed: number }> {
+  async getMints<T extends { mint: MintToken; progress: { progress: number } }>(
+    emitter: Emittery<T>,
+    resumeFromBlock?: number
+  ): Promise<{
+    tokens: MintToken[];
+    failed: number;
+    gotAllBlocks: boolean;
+    startBlock?: number;
+    lastSuccessfulBlock?: number;
+  }> {
     /**
      * cache of block timestamps
      */
@@ -555,29 +492,40 @@ export default class Collection {
       const token = {
         tokenId,
         mintedAt,
-        minter: transfer.to.toLowerCase()
+        minter: transfer.to.toLowerCase(),
       };
       token.minter = transfer.to.toLowerCase();
 
       return token;
     };
 
-    const mintsStream = await this.contract.getMints({ returnType: 'stream' });
+    const mintsStream = await this.contract.getMints({ fromBlock: resumeFromBlock, returnType: 'stream' });
 
     let tokenPromises: Array<Promise<MintToken>> = [];
 
-    /**
-     * as we receive mints (transfer events) get the token's metadata
-     */
-    for await (const chunk of mintsStream) {
-      const mintEvents: ethers.Event[] = chunk;
-
-      const chunkPromises = mintEvents.map(async (event) => {
-        const token = await getTokenFromTransfer(event);
-
-        return token;
-      });
-      tokenPromises = [...tokenPromises, ...chunkPromises];
+    let gotAllBlocks = true;
+    let startBlock: number | undefined;
+    let lastSuccessfulBlock: number | undefined;
+    try {
+      /**
+       * as we receive mints (transfer events) get the token's metadata
+       */
+      for await (const chunk of mintsStream) {
+        const { events: mintEvents, fromBlock, toBlock, progress }: HistoricalLogsChunk = chunk;
+        startBlock = fromBlock;
+        lastSuccessfulBlock = toBlock;
+        void emitter.emit('progress', { progress })
+        const chunkPromises = mintEvents.map(async (event) => {
+          const token = await getTokenFromTransfer(event);
+          void emitter.emit('mint', token);
+          return token;
+        });
+        tokenPromises = [...tokenPromises, ...chunkPromises];
+      }
+    } catch (err) {
+      console.log('failed to get all mints for a collection');
+      console.error(err);
+      gotAllBlocks = false; // failed to get all mints
     }
 
     const results = await Promise.allSettled(tokenPromises);
@@ -598,146 +546,149 @@ export default class Collection {
 
     return {
       tokens,
-      failed: unknownErrors
+      failed: unknownErrors,
+      gotAllBlocks,
+      startBlock: startBlock,
+      lastSuccessfulBlock
     };
   }
 
-  async getTokensFromMints<T extends { token: Token }>(
-    fromBlock?: number,
-    toBlock?: number,
-    emitter?: Emittery<T>
-  ): Promise<{
-    tokens: Token[];
-    numTokens: number;
-    tokensWithErrors: Array<{ error: any; tokenId: string }>;
-    unknownErrors: number;
-  }> {
-    let tokenPromises: Array<Promise<Token | { error: any; event: ethers.Event }>> = [];
-    const mintsStream = (await this.contract.getMints({
-      fromBlock,
-      toBlock,
-      returnType: 'stream'
-    })) as Readable;
+  // async getTokensFromMints<T extends { token: Token }>(
+  //   fromBlock?: number,
+  //   toBlock?: number,
+  //   emitter?: Emittery<T>
+  // ): Promise<{
+  //   tokens: Token[];
+  //   numTokens: number;
+  //   tokensWithErrors: Array<{ error: any; tokenId: string }>;
+  //   unknownErrors: number;
+  // }> {
+  //   let tokenPromises: Array<Promise<Token | { error: any; event: ethers.Event }>> = [];
+  //   const mintsStream = (await this.contract.getMints({
+  //     fromBlock,
+  //     toBlock,
+  //     returnType: 'stream'
+  //   })) as Readable;
 
-    /**
-     * cache of block timestamps
-     */
-    const blockTimestamps = new Map<number, Promise<{ error: any } | { value: number }>>();
-    const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
-      const result = blockTimestamps.get(item.blockNumber);
-      if (!result) {
-        const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
-          item
-            .getBlock()
-            .then((block) => {
-              resolve({ value: block.timestamp * 1000 });
-            })
-            .catch((err) => {
-              resolve({ error: err });
-            });
-        });
-        blockTimestamps.set(item.blockNumber, promise);
-        return await promise;
-      }
-      return await result;
-    };
+  //   /**
+  //    * cache of block timestamps
+  //    */
+  //   const blockTimestamps = new Map<number, Promise<{ error: any } | { value: number }>>();
+  //   const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
+  //     const result = blockTimestamps.get(item.blockNumber);
+  //     if (!result) {
+  //       const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
+  //         item
+  //           .getBlock()
+  //           .then((block) => {
+  //             resolve({ value: block.timestamp * 1000 });
+  //           })
+  //           .catch((err) => {
+  //             resolve({ error: err });
+  //           });
+  //       });
+  //       blockTimestamps.set(item.blockNumber, promise);
+  //       return await promise;
+  //     }
+  //     return await result;
+  //   };
 
-    /**
-     * attempts to get a token from a transfer event
-     */
-    const getTokenFromTransfer = async (event: ethers.Event): Promise<Optional<Token, 'mintedAt'>> => {
-      let mintedAt = 0;
-      const transfer = this.contract.decodeTransfer(event);
-      const isMint = transfer.from === NULL_ADDR;
-      if (isMint) {
-        const blockTimestampResult = await getBlockTimestampInMS(event); // doesn't throw
-        if ('value' in blockTimestampResult) {
-          mintedAt = blockTimestampResult.value;
-        }
-      }
-      const tokenId = transfer.tokenId;
-      const token: Optional<Token, 'mintedAt' | 'minter'> = await this.getToken(tokenId, mintedAt);
-      token.minter = transfer.to.toLowerCase();
-      return token as Optional<Token, 'mintedAt'>;
-    };
+  //   /**
+  //    * attempts to get a token from a transfer event
+  //    */
+  //   const getTokenFromTransfer = async (event: ethers.Event): Promise<Optional<Token, 'mintedAt'>> => {
+  //     let mintedAt = 0;
+  //     const transfer = this.contract.decodeTransfer(event);
+  //     const isMint = transfer.from === NULL_ADDR;
+  //     if (isMint) {
+  //       const blockTimestampResult = await getBlockTimestampInMS(event); // doesn't throw
+  //       if ('value' in blockTimestampResult) {
+  //         mintedAt = blockTimestampResult.value;
+  //       }
+  //     }
+  //     const tokenId = transfer.tokenId;
+  //     const token: Optional<Token, 'mintedAt' | 'minter'> = await this.getToken(tokenId, mintedAt);
+  //     token.minter = transfer.to.toLowerCase();
+  //     return token as Optional<Token, 'mintedAt'>;
+  //   };
 
-    const queue = new PQueue({
-      concurrency: Infinity // requests will be limited in the client
-    });
+  //   const queue = new PQueue({
+  //     concurrency: Infinity // requests will be limited in the client
+  //   });
 
-    const enqueue = async (
-      event: ethers.Event,
-      attempts = 0
-    ): Promise<Optional<Token, 'mintedAt'> | { error: any; event: ethers.Event }> => {
-      attempts += 1;
-      try {
-        const token = await new Promise<Optional<Token, 'mintedAt'>>(
-          async (resolve, reject) =>
-            await queue.add(() => {
-              getTokenFromTransfer(event)
-                .then((token) => {
-                  resolve(token as Token);
-                })
-                .catch((err) => {
-                  reject(err);
-                });
-            })
-        );
-        if (emitter) {
-          emitter.emit('token', token as Token).catch((err) => {
-            console.log(`Collection failed to emit token`);
-            console.error(err);
-            // safe to ignore
-          });
-        }
-        return token;
-      } catch (err) {
-        if (attempts > 3) {
-          return { error: err, event };
-        }
-        return await enqueue(event, attempts);
-      }
-    };
+  //   const enqueue = async (
+  //     event: ethers.Event,
+  //     attempts = 0
+  //   ): Promise<Optional<Token, 'mintedAt'> | { error: any; event: ethers.Event }> => {
+  //     attempts += 1;
+  //     try {
+  //       const token = await new Promise<Optional<Token, 'mintedAt'>>(
+  //         async (resolve, reject) =>
+  //           await queue.add(() => {
+  //             getTokenFromTransfer(event)
+  //               .then((token) => {
+  //                 resolve(token as Token);
+  //               })
+  //               .catch((err) => {
+  //                 reject(err);
+  //               });
+  //           })
+  //       );
+  //       if (emitter) {
+  //         emitter.emit('token', token as Token).catch((err) => {
+  //           console.log(`Collection failed to emit token`);
+  //           console.error(err);
+  //           // safe to ignore
+  //         });
+  //       }
+  //       return token;
+  //     } catch (err) {
+  //       if (attempts > 3) {
+  //         return { error: err, event };
+  //       }
+  //       return await enqueue(event, attempts);
+  //     }
+  //   };
 
-    /**
-     * as we receive mints (transfer events) get the token's metadata
-     */
-    for await (const chunk of mintsStream) {
-      const mintEvents: ethers.Event[] = chunk;
+  //   /**
+  //    * as we receive mints (transfer events) get the token's metadata
+  //    */
+  //   for await (const chunk of mintsStream) {
+  //     const mintEvents: ethers.Event[] = chunk;
 
-      const chunkPromises = mintEvents.map(async (event) => {
-        const token = await enqueue(event);
+  //     const chunkPromises = mintEvents.map(async (event) => {
+  //       const token = await enqueue(event);
 
-        return token as Token;
-      });
-      tokenPromises = [...tokenPromises, ...chunkPromises];
-    }
+  //       return token as Token;
+  //     });
+  //     tokenPromises = [...tokenPromises, ...chunkPromises];
+  //   }
 
-    const results = await Promise.allSettled(tokenPromises);
+  //   const results = await Promise.allSettled(tokenPromises);
 
-    const tokens: Token[] = [];
-    const failed: Array<{ error: any; tokenId: string }> = [];
-    let unknownErrors = 0;
-    for (const result of results) {
-      if (result.status === 'fulfilled' && !('error' in result.value)) {
-        tokens.push(result.value);
-      } else if (result.status === 'fulfilled' && 'event' in result.value) {
-        const { tokenId } = this.contract.decodeTransfer(result.value.event);
-        failed.push({ error: result.value.error, tokenId });
-      } else {
-        unknownErrors += 1;
-        console.error('unknown error occurred while getting token');
-        if (result.status === 'rejected') {
-          console.error(result.reason);
-        }
-      }
-    }
+  //   const tokens: Token[] = [];
+  //   const failed: Array<{ error: any; tokenId: string }> = [];
+  //   let unknownErrors = 0;
+  //   for (const result of results) {
+  //     if (result.status === 'fulfilled' && !('error' in result.value)) {
+  //       tokens.push(result.value);
+  //     } else if (result.status === 'fulfilled' && 'event' in result.value) {
+  //       const { tokenId } = this.contract.decodeTransfer(result.value.event);
+  //       failed.push({ error: result.value.error, tokenId });
+  //     } else {
+  //       unknownErrors += 1;
+  //       console.error('unknown error occurred while getting token');
+  //       if (result.status === 'rejected') {
+  //         console.error(result.reason);
+  //       }
+  //     }
+  //   }
 
-    console.log(`Failed to get token metadata for: ${failed.length + unknownErrors} tokens`);
-    console.log(`Successfully got token metadata for: ${tokens.length} tokens`);
+  //   console.log(`Failed to get token metadata for: ${failed.length + unknownErrors} tokens`);
+  //   console.log(`Successfully got token metadata for: ${tokens.length} tokens`);
 
-    const totalNumTokens = tokens.length + failed.length + unknownErrors;
+  //   const totalNumTokens = tokens.length + failed.length + unknownErrors;
 
-    return { tokens, numTokens: totalNumTokens, tokensWithErrors: failed, unknownErrors };
-  }
+  //   return { tokens, numTokens: totalNumTokens, tokensWithErrors: failed, unknownErrors };
+  // }
 }

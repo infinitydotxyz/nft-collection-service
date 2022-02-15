@@ -1,5 +1,12 @@
 import { CreationFlow } from '../Collection';
 
+
+export interface CreationFlowErrorJson {
+  message: string,
+  discriminator: CreationFlow | 'unknown'
+}
+
+
 export class CreationFlowError extends Error {
   discriminator: CreationFlow | 'unknown';
 
@@ -8,7 +15,7 @@ export class CreationFlowError extends Error {
     this.discriminator = discriminator;
   }
 
-  toJSON(): { message: string; discriminator: string } {
+  toJSON(): CreationFlowErrorJson {
     return {
       message: this.message,
       discriminator: this.discriminator
@@ -28,37 +35,32 @@ export class CollectionMetadataError extends CreationFlowError {
   }
 }
 
-export enum TokenMetadataError {
-  KnownTokenErrors = 'knownTokenErrors',
-  UnknownTokenErrors = 'unknownTokenErrors'
-}
-
-export interface CollectionTokenMetadataErrorType {
-  message: string;
-  discriminator: CreationFlow.TokenMetadata;
-  type: TokenMetadataError;
+export interface CollectionMintsErrorJSON extends CreationFlowErrorJson{
+  lastSuccessfulBlock?: number;
 }
 
 export class CollectionMintsError extends CreationFlowError {
-  constructor(message?: string) {
+
+  lastSuccessfulBlock?: number;
+
+  constructor(message?: string, lastSuccessfulBlock?: number) {
     super(CreationFlow.CollectionMints, message);
-  }
-}
-
-export class CollectionTokenMetadataError extends CreationFlowError {
-  type: TokenMetadataError;
-
-  constructor(type: TokenMetadataError, message?: string) {
-    super(CreationFlow.TokenMetadata, message);
-    this.type = type;
+    this.lastSuccessfulBlock = lastSuccessfulBlock
   }
 
-  toJSON(): CollectionTokenMetadataErrorType {
+  toJSON(): CollectionMintsErrorJSON {
+    if(this.lastSuccessfulBlock !== undefined) {
+      return {
+        discriminator: this.discriminator,
+        lastSuccessfulBlock: this.lastSuccessfulBlock,
+        message: this.message
+      }
+    }
     return {
-      message: this.message,
-      discriminator: this.discriminator as CreationFlow.TokenMetadata,
-      type: this.type
-    };
+      discriminator: this.discriminator,
+      message: this.message
+    }
+
   }
 }
 

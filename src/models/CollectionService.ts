@@ -3,7 +3,7 @@ import CollectionMetadataProvider from './CollectionMetadataProvider';
 import Collection from './Collection';
 import { firebase, metadataClient, tokenDao } from '../container';
 import Emittery from 'emittery';
-import { Token } from '../types/Token.interface';
+import { MintToken, Token } from '../types/Token.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
@@ -35,17 +35,45 @@ export default class CollectionService {
       const data = await collectionDoc.get();
       const currentCollection = data.data() ?? {};
 
-      const tokenEmitter = new Emittery<{
+      const formatLog = (step: string, progress: number): string => {
+        const now = new Date();
+        const formatNum = (num: number, padWith: string, minLength: number): string => {
+          let numStr = `${num}`;
+          const len = numStr.length;
+          const padLength = minLength - len;
+          if (padLength > 0) {
+            numStr = `${padWith.repeat(padLength)}${numStr}`;
+          }
+          return numStr;
+        };
+        const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
+        const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
+
+        return `[${dateStr}][${chainId}${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
+      };
+
+      const emitter = new Emittery<{
         token: Token;
+        mint: MintToken;
         tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
+        progress: { step: string; progress: number };
       }>();
 
-      tokenEmitter.on('token', (token) => {
+      emitter.on('progress', ({ step, progress }) => {
+        console.log(formatLog(step, progress));
+      });
+
+      emitter.on('token', (token) => {
         const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
         batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); // overwrite any errors
       });
 
-      tokenEmitter.on('tokenError', (data) => {
+      emitter.on('mint', (token) => {
+        const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+        batch.add(tokenDoc, { ...token, error: {} }, { merge: false });
+      });
+
+      emitter.on('tokenError', (data) => {
         const error = {
           reason: data.error,
           timestamp: Date.now()
@@ -54,7 +82,7 @@ export default class CollectionService {
         batch.add(tokenDoc, error, { merge: true });
       });
 
-      const createCollectionGenerator = collection.createCollection(currentCollection, tokenEmitter, hasBlueCheck);
+      const createCollectionGenerator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
 
       let next: IteratorResult<
         { collection: Partial<CollectionType>; action?: 'tokenRequest' },
