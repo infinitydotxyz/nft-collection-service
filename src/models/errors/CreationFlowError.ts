@@ -39,6 +39,12 @@ export interface CollectionTokenMetadataErrorType {
   type: TokenMetadataError;
 }
 
+export class CollectionMintsError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.CollectionMints, message);
+  }
+}
+
 export class CollectionTokenMetadataError extends CreationFlowError {
   type: TokenMetadataError;
 

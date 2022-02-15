@@ -142,6 +142,9 @@ export default class Erc721Contract extends AbstractContract {
     return deployer;
   }
 
+  /**
+   * note, this only works if the contract is ownable
+   */
   async getContractCreationTx(): Promise<ethers.Event> {
     const filter = this.contract.filters.OwnershipTransferred(NULL_ADDR);
     // eslint-disable-next-line no-useless-catch

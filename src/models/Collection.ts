@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import Contract from './contracts/Contract.interface';
+import Contract, { HistoricalLogsOptions } from './contracts/Contract.interface';
 import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
 import { Token, TokenMetadata } from '../types/Token.interface';
@@ -17,12 +17,14 @@ import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
   CollectionMetadataError,
+  CollectionMintsError,
   CollectionTokenMetadataError,
   CollectionTokenMetadataErrorType,
   CreationFlowError,
   TokenMetadataError,
   UnknownError
 } from './errors/CreationFlowError';
+import { resolve } from 'path/posix';
 
 export enum CreationFlow {
   /**
@@ -37,9 +39,20 @@ export enum CreationFlow {
   CollectionMetadata = 'collection-metadata',
 
   /**
-   * get tokens for the collection
+   * get all token ids, timestamp and block minted
+   * and minter
+   */
+  CollectionMints = 'collection-mints',
+
+  /**
+   * get metadata for every token
    */
   TokenMetadata = 'token-metadata',
+
+  /**
+   * get images and upload to gcs
+   */
+  TokenImages = 'token-images',
 
   /**
    * requires that we have every token
@@ -51,6 +64,8 @@ export enum CreationFlow {
    */
   Complete = 'complete'
 }
+
+type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId'>;
 
 export default class Collection {
   private readonly contract: Contract;
@@ -73,6 +88,7 @@ export default class Collection {
     initialCollection: Partial<CollectionType>,
     tokenEmitter: Emittery<{
       token: Token;
+      mints: MintToken[];
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
     }>,
     hasBlueCheck?: boolean
@@ -90,6 +106,7 @@ export default class Collection {
       | 'state'
     >;
     type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
+    type CollectionMintsType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
     type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
@@ -154,6 +171,35 @@ export default class Collection {
             }
             break;
 
+          case CreationFlow.CollectionMints:
+            try {
+              const { tokens, failed } = await this.getMints();
+              if (failed > 0) {
+                throw new CollectionMintsError(`Failed to get mints for ${failed} tokens`);
+              }
+              const numNfts = tokens.length + failed;
+
+              const collectionMintsCollection: CollectionMintsType = {
+                ...(collection as CollectionMetadataType),
+                numNfts
+              };
+
+              tokenEmitter.emit('mints', tokens).catch((err) => {
+                console.error(err);
+                // ignore
+              });
+
+              collection = collectionMintsCollection;
+              yield { collection };
+            } catch (err: any) {
+              if (err instanceof CollectionMintsError) {
+                throw err;
+              }
+              const message =
+                typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection mints';
+              throw new CollectionMintsError(message);
+            }
+            break;
           case CreationFlow.TokenMetadata:
             // update any failed tokens if there were errors. Otherwise create all tokens
             try {
@@ -350,6 +396,12 @@ export default class Collection {
     }
   }
 
+  /**
+   * get token ids (include block)
+   * get metadata
+   * get/upload images
+   */
+
   private async getCreator(): Promise<{
     deployedAt: number;
     deployer: string;
@@ -459,6 +511,95 @@ export default class Collection {
       }
     };
     return token;
+  }
+
+  async getMints(): Promise<{ tokens: MintToken[]; failed: number }> {
+    /**
+     * cache of block timestamps
+     */
+    const blockTimestamps = new Map<number, Promise<{ error: any } | { value: number }>>();
+    const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
+      const result = blockTimestamps.get(item.blockNumber);
+      if (!result) {
+        const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
+          item
+            .getBlock()
+            .then((block) => {
+              resolve({ value: block.timestamp * 1000 });
+            })
+            .catch((err) => {
+              resolve({ error: err });
+            });
+        });
+        blockTimestamps.set(item.blockNumber, promise);
+        return await promise;
+      }
+      return await result;
+    };
+
+    /**
+     * attempts to get a token from a transfer event
+     */
+    const getTokenFromTransfer = async (event: ethers.Event): Promise<MintToken> => {
+      let mintedAt = 0;
+      const transfer = this.contract.decodeTransfer(event);
+      const isMint = transfer.from === NULL_ADDR;
+      if (isMint) {
+        const blockTimestampResult = await getBlockTimestampInMS(event); // doesn't throw
+        if ('value' in blockTimestampResult) {
+          mintedAt = blockTimestampResult.value;
+        }
+      }
+
+      const tokenId = transfer.tokenId;
+      const token = {
+        tokenId,
+        mintedAt,
+        minter: transfer.to.toLowerCase()
+      };
+      token.minter = transfer.to.toLowerCase();
+
+      return token;
+    };
+
+    const mintsStream = await this.contract.getMints({ returnType: 'stream' });
+
+    let tokenPromises: Array<Promise<MintToken>> = [];
+
+    /**
+     * as we receive mints (transfer events) get the token's metadata
+     */
+    for await (const chunk of mintsStream) {
+      const mintEvents: ethers.Event[] = chunk;
+
+      const chunkPromises = mintEvents.map(async (event) => {
+        const token = await getTokenFromTransfer(event);
+
+        return token;
+      });
+      tokenPromises = [...tokenPromises, ...chunkPromises];
+    }
+
+    const results = await Promise.allSettled(tokenPromises);
+
+    const tokens: MintToken[] = [];
+    let unknownErrors = 0;
+    for (const result of results) {
+      if (result.status === 'fulfilled' && !('error' in result.value)) {
+        tokens.push(result.value);
+      } else {
+        unknownErrors += 1;
+        console.error('unknown error occurred while getting token');
+        if (result.status === 'rejected') {
+          console.error(result.reason);
+        }
+      }
+    }
+
+    return {
+      tokens,
+      failed: unknownErrors
+    };
   }
 
   async getTokensFromMints<T extends { token: Token }>(
