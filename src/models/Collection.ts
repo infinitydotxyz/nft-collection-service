@@ -256,7 +256,8 @@ export default class Collection {
                     if (!tokenWithMetadata) {
                       throw new Error('Failed to get token');
                     }
-                    // tokensComplete += 1;
+
+                    progress = progress - prevProgress + 1;
                     void emitter.emit('progress', {
                       step: step,
                       progress: Math.floor((progress / numTokens) * 100 * 100) / 100
