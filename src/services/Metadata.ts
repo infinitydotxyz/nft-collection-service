@@ -116,7 +116,7 @@ export default class MetadataClient {
    * returns a promise for a successful response (i.e. status code 200)
    *
    */
-  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response> {
+  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response<string>> {
     attempt += 1;
 
     let url = new URL(u.toString());
@@ -128,7 +128,7 @@ export default class MetadataClient {
     }
 
     try {
-      const response: Response = await this.queue.add(
+      const response: Response<string> = await this.queue.add(
         async () => {
           /**
            * you have to set the url in options for it to be defined in the init hook
@@ -136,7 +136,8 @@ export default class MetadataClient {
           return await this.client({ url });
         },
         { priority }
-      );
+      ) ;
+
 
       switch (response.statusCode) {
         case 200:
@@ -148,7 +149,7 @@ export default class MetadataClient {
             response.headers['content-type'] = contentType;
           }
 
-          return response;
+          return response ;
 
         case 429:
           throw new Error('Rate limited');

@@ -2,12 +2,9 @@
 import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
-import { ImageToken, MintToken, RefreshTokenFlow, Token, TokenMetadata } from '../types/Token.interface';
+import { ImageToken, MintToken, RefreshTokenFlow, Token } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { firebase } from '../container';
-import crypto from 'crypto';
 import { Collection as CollectionType } from '../types/Collection.interface';
-import { Optional } from '../types/Utility';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
 import { getSearchFriendlyString } from '../utils';
@@ -431,70 +428,70 @@ export default class Collection {
     }
   }
 
-  private async getTokenMetadata(tokenId: string): Promise<{ metadata: TokenMetadata; tokenUri: string }> {
-    const tokenUri = await this.contract.getTokenUri(tokenId);
-    const response = await this.tokenMetadataClient.get(tokenUri);
-    const metadata = JSON.parse(response.body as string) as TokenMetadata;
-    return {
-      metadata,
-      tokenUri
-    };
-  }
+  // private async getTokenMetadata(tokenId: string): Promise<{ metadata: TokenMetadata; tokenUri: string }> {
+  //   const tokenUri = await this.contract.getTokenUri(tokenId);
+  //   const { response, readable } = await this.tokenMetadataClient.get(tokenUri);
+  //   const metadata = JSON.parse(response.body as string) as TokenMetadata;
+  //   return {
+  //     metadata,
+  //     tokenUri
+  //   };
+  // }
 
-  async uploadTokenImage(imageUrl: string): Promise<{ url: string; contentType: string; updatedAt: number }> {
-    if (!imageUrl) {
-      throw new Error('invalid image url');
-    }
+  // async uploadTokenImage(imageUrl: string): Promise<{ url: string; contentType: string; updatedAt: number }> {
+  //   if (!imageUrl) {
+  //     throw new Error('invalid image url');
+  //   }
 
-    const imageResponse = await this.tokenMetadataClient.get(imageUrl);
-    const contentType = imageResponse.headers['content-type'];
-    const imageBuffer = imageResponse.rawBody;
-    const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
-    const path = `images/${this.contract.chainId}/collections/${this.contract.address}/${hash}`;
-    let publicUrl;
+  //   const { response: imageResponse, readable: imageReadable} = await this.tokenMetadataClient.get(imageUrl);
+  //   const contentType = imageResponse.headers['content-type'];
+  //   const imageBuffer = imageResponse.rawBody;
+  //   const hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
+  //   const path = `images/${this.contract.chainId}/collections/${this.contract.address}/${hash}`;
+  //   let publicUrl;
 
-    if (imageBuffer && contentType) {
-      const remoteFile = await firebase.uploadBuffer(imageBuffer, path, contentType);
-      publicUrl = remoteFile.publicUrl();
-    } else if (!imageBuffer) {
-      throw new Error(`Failed to get image for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
-    } else if (!contentType) {
-      throw new Error(
-        `Failed to get content type for image. Collection: ${this.contract.address} imageUrl: ${imageUrl}`
-      );
-    } else if (!publicUrl) {
-      throw new Error(`Failed to get image public url for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
-    }
+  //   if (imageBuffer && contentType) {
+  //     const remoteFile = await firebase.uploadBuffer(imageBuffer, path, contentType);
+  //     publicUrl = remoteFile.publicUrl();
+  //   } else if (!imageBuffer) {
+  //     throw new Error(`Failed to get image for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
+  //   } else if (!contentType) {
+  //     throw new Error(
+  //       `Failed to get content type for image. Collection: ${this.contract.address} imageUrl: ${imageUrl}`
+  //     );
+  //   } else if (!publicUrl) {
+  //     throw new Error(`Failed to get image public url for collection: ${this.contract.address} imageUrl: ${imageUrl}`);
+  //   }
 
-    const now = Date.now();
-    return {
-      url: publicUrl,
-      contentType,
-      updatedAt: now
-    };
-  }
+  //   const now = Date.now();
+  //   return {
+  //     url: publicUrl,
+  //     contentType,
+  //     updatedAt: now
+  //   };
+  // }
 
-  async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'minter'>> {
-    const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
+  // async getToken(tokenId: string, mintedAt?: number): Promise<Optional<Token, 'mintedAt' | 'minter'>> {
+  //   const { metadata, tokenUri } = await this.getTokenMetadata(tokenId);
 
-    const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
-    const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
+  //   const { url, contentType, updatedAt } = await this.uploadTokenImage(metadata.image);
+  //   const mintedAtProperty = typeof mintedAt === 'number' ? { mintedAt } : {};
 
-    const token: Optional<Token, 'mintedAt' | 'minter'> = {
-      tokenId,
-      ...mintedAtProperty,
-      metadata,
-      numTraitTypes: metadata.attributes.length,
-      updatedAt,
-      tokenUri,
-      image: {
-        url,
-        contentType,
-        updatedAt
-      }
-    };
-    return token;
-  }
+  //   const token: Optional<Token, 'mintedAt' | 'minter'> = {
+  //     tokenId,
+  //     ...mintedAtProperty,
+  //     metadata,
+  //     numTraitTypes: metadata.attributes.length,
+  //     updatedAt,
+  //     tokenUri,
+  //     image: {
+  //       url,
+  //       contentType,
+  //       updatedAt
+  //     }
+  //   };
+  //   return token;
+  // }
 
   async getMints<T extends { mint: MintToken; progress: { progress: number } }>(
     emitter: Emittery<T>,

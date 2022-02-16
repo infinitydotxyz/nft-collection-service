@@ -27,6 +27,11 @@ export default class CollectionService {
 
   async createCollection(address: string, chainId: string, hasBlueCheck?: boolean): Promise<void> {
     return await this.taskQueue.add(async () => {
+      const hex = address.split('0x')[1].substring(0, 6);
+      const color = chalk.hex(`#${hex}`);
+      const log = (args: any | any[]): void => console.log(color(args));
+      log(`Starting Collection: ${chainId}:${address}`)
+
       const contract = await this.contractFactory.create(address, chainId);
       const collection = new Collection(contract, metadataClient, this.collectionMetadataProvider);
       const collectionDoc = firebase.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
@@ -50,10 +55,9 @@ export default class CollectionService {
         const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
         const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-        const hex = address.split('0x')[1].substring(0, 6);
-        const color = chalk.hex(`#${hex}`);
 
-        return color(`[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`);
+
+        return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
       };
 
       const emitter = new Emittery<{
@@ -68,7 +72,7 @@ export default class CollectionService {
         const now = Date.now();
         if(progress === 100 || progress === 0 || now > lastLogAt + 1000) {
           lastLogAt = now;
-          console.log(formatLog(step, progress));
+          log(formatLog(step, progress));
         }
       });
 
@@ -110,7 +114,7 @@ export default class CollectionService {
           done = next.done ?? false;
 
           if (done) {
-            console.log(`Collection Completed: ${address}`);
+            log(`Collection Completed: ${chainId}:${address}`);
             return;
           }
 
@@ -135,7 +139,7 @@ export default class CollectionService {
           done = true;
           const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
           const errorMessage = `Collection ${chainId}:${address} failed to complete due to unknown error: ${message}`;
-          console.log(errorMessage);
+          log(errorMessage);
           console.error(err);
           batch.add(
             collectionDoc,

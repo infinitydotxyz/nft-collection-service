@@ -15,7 +15,6 @@ import {
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 import { firebase, metadataClient } from '../container';
-import { Response } from 'got';
 import { createHash } from 'crypto';
 
 export default class Nft {
@@ -67,7 +66,7 @@ export default class Nft {
               };
               this.token = uriToken;
 
-              yield { token: this.token, progress: 0.2 };
+              yield { token: this.token, progress: 0.1 };
             } catch (err: any) {
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token uri';
               throw new RefreshTokenUriError(message);
@@ -80,10 +79,10 @@ export default class Nft {
 
             try {
               const tokenUri = uriToken.tokenUri;
-              const tokenMetadataResponse: Response<string> = (await metadataClient.get(
+              const tokenMetadataResponse = (await metadataClient.get(
                 tokenUri,
                 0
-              )) as Response<string>;
+              ));
               if (tokenMetadataResponse.statusCode !== 200) {
                 throw new RefreshTokenMetadataError(`Bad response. Status Code: ${tokenMetadataResponse.statusCode}`);
               }
@@ -102,7 +101,7 @@ export default class Nft {
               };
               this.token = metadataToken;
 
-              yield { token: this.token, progress: 0.6 };
+              yield { token: this.token, progress: 0.3 };
             } catch (err: any) {
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
