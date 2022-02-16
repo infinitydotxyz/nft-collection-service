@@ -54,7 +54,6 @@ export default class Nft {
             const mintToken = this.token as MintToken;
             try {
               const tokenUri = await this.contract.getTokenUri(mintToken.tokenId);
-
               const uriToken: UriToken = {
                 ...mintToken,
                 tokenUri: tokenUri,
