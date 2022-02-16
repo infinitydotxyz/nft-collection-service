@@ -5,12 +5,10 @@ import {
   Token as TokenType,
   TokenMetadata,
   RefreshTokenFlow,
-  UriToken,
-  AggregatedToken
+  UriToken
 } from '../types/Token.interface';
 import Contract from './contracts/Contract.interface';
 import {
-    RefreshTokenAggregateError,
   RefreshTokenError,
   RefreshTokenImageError,
   RefreshTokenMetadataError,
@@ -30,22 +28,27 @@ export default class Nft {
     this.contract = contract;
   }
 
-  public async *refreshToken(reset = false):  AsyncGenerator<{ token: Partial<TokenType>, action?: 'aggregateRequest' }, any, { rarityScore: number, rarityRank: number } | undefined> {
-      if(!this.token.state?.metadata?.step) {
-          this.token.state = {
-              ...(this.token.state ?? {}),
-              metadata: {
-                  step: RefreshTokenFlow.Uri
-              }
-          }
-      }
+  public async *refreshToken(
+    reset = false
+  ): AsyncGenerator<
+    { token: Partial<TokenType>; failed?: boolean, progress: number},
+    any,
+    { rarityScore: number; rarityRank: number } | undefined
+  > {
+    if (!this.token.state?.metadata?.step) {
+      this.token.state = {
+        ...(this.token.state ?? {}),
+        metadata: {
+          step: RefreshTokenFlow.Uri
+        }
+      };
+    }
     if (reset) {
       this.token.state.metadata.step = RefreshTokenFlow.Uri;
     }
 
     try {
       while (true) {
-          console.log(`Starting step: ${this.token.state?.metadata.step}`)
         switch (this.token.state?.metadata.step) {
           case RefreshTokenFlow.Uri:
             const mintToken = this.token as MintToken;
@@ -63,7 +66,7 @@ export default class Nft {
               };
               this.token = uriToken;
 
-              yield { token: this.token };
+              yield { token: this.token, progress: 0.2 };
             } catch (err: any) {
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token uri';
               throw new RefreshTokenUriError(message);
@@ -76,12 +79,15 @@ export default class Nft {
 
             try {
               const tokenUri = uriToken.tokenUri;
-              const tokenMetadataResponse: Response<string> = (await metadataClient.get(tokenUri)) as Response<string>;
+              const tokenMetadataResponse: Response<string> = (await metadataClient.get(
+                tokenUri,
+                0
+              )) as Response<string>;
               if (tokenMetadataResponse.statusCode !== 200) {
                 throw new RefreshTokenMetadataError(`Bad response. Status Code: ${tokenMetadataResponse.statusCode}`);
               }
               const body = tokenMetadataResponse.body;
-              const metadata = JSON.parse(body ) as TokenMetadata;
+              const metadata = JSON.parse(body) as TokenMetadata;
               const metadataToken: MetadataToken = {
                 ...uriToken,
                 metadata,
@@ -95,7 +101,7 @@ export default class Nft {
               };
               this.token = metadataToken;
 
-              yield { token: this.token };
+              yield { token: this.token, progress: 0.6 };
             } catch (err: any) {
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
@@ -112,7 +118,7 @@ export default class Nft {
                 throw new RefreshTokenMetadataError('Invalid image url');
               }
 
-              const response = await metadataClient.get(imageUrl);
+              const response = await metadataClient.get(imageUrl, 1);
               if (response.statusCode !== 200) {
                 throw new RefreshTokenImageError(`Bad response. Status code: ${response.statusCode}`);
               }
@@ -152,13 +158,13 @@ export default class Nft {
                 image,
                 state: {
                   metadata: {
-                    step: RefreshTokenFlow.Aggregate
+                    step: RefreshTokenFlow.Complete
                   }
                 }
               };
               this.token = imageToken;
 
-              yield { token: this.token };
+              yield { token: this.token, progress: 1 };
             } catch (err: RefreshTokenMetadataError | any) {
               if (err instanceof RefreshTokenMetadataError) {
                 throw err;
@@ -169,34 +175,25 @@ export default class Nft {
             }
 
             break;
-
-          case RefreshTokenFlow.Aggregate:
-            // request aggregated data
-            const response = yield { token: this.token, action: 'aggregateRequest' };
-            if(typeof response?.rarityRank !== 'number' || typeof response.rarityScore !== 'number')  {
-                throw new RefreshTokenAggregateError("Client failed to pass valid aggregate response to nft")
-            }
-            const { rarityRank, rarityScore} = response;
-
-            const imageToken: ImageToken = this.token as ImageToken;
-            const aggregatedToken: AggregatedToken = {
-              ...imageToken,
-              rarityScore,
-              rarityRank,
-              state: {
-                  metadata: {
-                      step: RefreshTokenFlow.Complete
-                  }
-              }
-            };
-            this.token = aggregatedToken;
-
-            yield { token: this.token };
-
-            break;
-        
-          case RefreshTokenFlow.Complete:
+            
+          case RefreshTokenFlow.Complete: 
             return;
+
+          default: 
+            if(!this.token.state) {
+              this.token.state = {
+                metadata: {
+                  step: RefreshTokenFlow.Uri
+                }
+              };
+            } else {
+              this.token.state = {
+                ...this.token.state,
+                metadata: {
+                  step: RefreshTokenFlow.Uri
+                }
+              };
+            }
         }
       }
     } catch (err: RefreshTokenError | any) {
@@ -211,6 +208,7 @@ export default class Nft {
             : "Failed to refresh metadata. It's likely errors are not being handled correctly.";
         stepToSave = RefreshTokenFlow.Uri; // restart
         error = new RefreshTokenError(stepToSave, message);
+        console.error(err);
       }
 
       const token: Partial<TokenType> = {
@@ -225,7 +223,7 @@ export default class Nft {
 
       this.token = token;
 
-      yield { token };
+      yield { token, failed: true, progress: 0 };
     }
   }
 }

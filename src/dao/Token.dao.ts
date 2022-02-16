@@ -1,5 +1,4 @@
 import { singleton } from 'tsyringe';
-import { firebase } from '../container';
 import Firebase from '../database/Firebase';
 import { Token } from '../types/Token.interface';
 

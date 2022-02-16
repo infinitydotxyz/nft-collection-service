@@ -74,7 +74,7 @@ export default class MetadataClient {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 30
+      concurrency: 50
     });
 
     this.client = got.extend({
@@ -105,15 +105,18 @@ export default class MetadataClient {
    * returns a promise for a successful response (i.e. status code 200)
    *
    */
-  async get(url: string | URL, attempt = 0): Promise<Response> {
+  async get(url: string | URL, priority = 0, attempt = 0): Promise<Response> {
     attempt += 1;
     try {
-      const response: Response = await this.queue.add(async () => {
-        /**
-         * you have to set the url in options for it to be defined in the init hook
-         */
-        return await this.client({ url });
-      });
+      const response: Response = await this.queue.add(
+        async () => {
+          /**
+           * you have to set the url in options for it to be defined in the init hook
+           */
+          return await this.client({ url });
+        },
+        { priority }
+      );
 
       switch (response.statusCode) {
         case 200:
@@ -137,7 +140,7 @@ export default class MetadataClient {
       if (attempt > 5) {
         throw err;
       }
-      return await this.get(url, attempt);
+      return await this.get(url, priority, attempt);
     }
   }
 }

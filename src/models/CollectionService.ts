@@ -49,7 +49,7 @@ export default class CollectionService {
         const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
         const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-        return `[${dateStr}][${chainId}${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
+        return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
       };
 
       const emitter = new Emittery<{
@@ -59,8 +59,13 @@ export default class CollectionService {
         progress: { step: string; progress: number };
       }>();
 
+      let lastLogAt = 0;
       emitter.on('progress', ({ step, progress }) => {
-        console.log(formatLog(step, progress));
+        const now = Date.now();
+        if(progress === 100 || progress === 0 || now > lastLogAt + 1000) {
+          lastLogAt = now;
+          console.log(formatLog(step, progress));
+        }
       });
 
       emitter.on('token', (token) => {
