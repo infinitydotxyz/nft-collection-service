@@ -31,7 +31,7 @@ export default class Nft {
   public async *refreshToken(
     reset = false
   ): AsyncGenerator<
-    { token: Partial<TokenType>; failed?: boolean, progress: number},
+    { token: Partial<TokenType>; failed?: boolean; progress: number },
     any,
     { rarityScore: number; rarityRank: number } | undefined
   > {
@@ -43,6 +43,7 @@ export default class Nft {
         }
       };
     }
+
     if (reset) {
       this.token.state.metadata.step = RefreshTokenFlow.Uri;
     }
@@ -175,12 +176,12 @@ export default class Nft {
             }
 
             break;
-            
-          case RefreshTokenFlow.Complete: 
+
+          case RefreshTokenFlow.Complete:
             return;
 
-          default: 
-            if(!this.token.state) {
+          default:
+            if (!this.token.state) {
               this.token.state = {
                 metadata: {
                   step: RefreshTokenFlow.Uri

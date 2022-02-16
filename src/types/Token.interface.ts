@@ -31,11 +31,6 @@ export enum RefreshTokenFlow {
    */
   Image = 'token-image',
 
-  /**
-   * set token rarity
-   */
-  Aggregate = 'token-aggregate',
-
   Complete = 'complete'
 }
 

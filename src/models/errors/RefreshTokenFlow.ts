@@ -41,9 +41,3 @@ export class RefreshTokenImageError extends RefreshTokenError {
         super(RefreshTokenFlow.Image, message);
     }
 }
-
-export class RefreshTokenAggregateError extends RefreshTokenError {
-    constructor(message?: string) {
-        super(RefreshTokenFlow.Aggregate, message);
-    }
-}
