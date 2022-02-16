@@ -19,7 +19,7 @@ interface MetadataClientOptions {
 }
 
 const defaultIpfsPathFromUrl = (url: string | URL): string => {
-  url = new URL(url);
+  url = new URL(url?.toString());
   const cid = url.host;
   const id = url.pathname;
   return `${cid}${id}`;
@@ -34,7 +34,7 @@ export const config: MetadataClientOptions = {
     [Protocol.IPFS]: {
       transform: (options: Options) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const url = new URL(options.url!);
+        const url = new URL(options.url!.toString?.());
         options.method = 'post';
         const cid = url.host;
         const id = url.pathname;
@@ -74,20 +74,31 @@ export default class MetadataClient {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 50
+      concurrency: 250
     });
+    function setTerminalTitle(title: string):void {
+      process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
+    }
+
+    setInterval(() => {
+      const size = this.queue.size + this.queue.pending;
+      setTerminalTitle(`Metadata Queue Size: ${this.queue.size} Pending: ${this.queue.pending}  Total: ${size}`);
+    }, 3000);
 
     this.client = got.extend({
-      timeout: 10_000,
+      timeout: 120_000,
       throwHttpErrors: false,
-      retry: 0,
+      retry: {
+        limit: 0
+      },
+      http2: true,
       hooks: {
         init: [
           (options) => {
             if (!options.url) {
               throw new Error('Url must be set in options object to use this client');
             }
-            const url = new URL(options.url);
+            const url = new URL(options.url?.toString?.());
             const protocol = url.protocol.toLowerCase();
             const protocolConfig = config.protocols[protocol as Protocol];
             if (typeof protocolConfig.transform === 'function') {
@@ -105,8 +116,17 @@ export default class MetadataClient {
    * returns a promise for a successful response (i.e. status code 200)
    *
    */
-  async get(url: string | URL, priority = 0, attempt = 0): Promise<Response> {
+  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response> {
     attempt += 1;
+
+    let url = new URL(u.toString());
+    if (url.href.includes('/ipfs/')) {
+      const pathname = url.pathname.split('/ipfs/')[1];
+      if (pathname) {
+        url = new URL(`ipfs://${pathname}`);
+      }
+    }
+
     try {
       const response: Response = await this.queue.add(
         async () => {
@@ -136,8 +156,9 @@ export default class MetadataClient {
         default:
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       if (attempt > 5) {
+        console.log(`Failed to get metadata URL: ${url.href}`);
         throw err;
       }
       return await this.get(url, priority, attempt);

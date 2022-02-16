@@ -111,7 +111,6 @@ export default class Collection {
     try {
       while (true) {
         step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
-        void emitter.emit('progress', { step, progress: 0 });
         switch (step) {
           case CreationFlow.CollectionCreator: // resets the collection
             try {
@@ -191,7 +190,7 @@ export default class Collection {
               if (failed > 0) {
                 throw new CollectionMintsError(`Failed to get mints for ${failed} tokens`); // get all blocks again
               } else if (!gotAllBlocks) {
-                throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock); // resume from last successful
+                throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock);
               }
 
               const collectionMintsCollection: CollectionMintsType = {
@@ -254,7 +253,7 @@ export default class Collection {
                       }
                     }
                     if (!tokenWithMetadata) {
-                      throw new Error('Failed to get token');
+                      throw new Error('Failed to refresh token');
                     }
 
                     progress = progress - prevProgress + 1;
@@ -594,8 +593,13 @@ export default class Collection {
       if (result.status === 'fulfilled' && !('error' in result.value)) {
         tokens.push(result.value);
       } else {
-        unknownErrors += 1;
+        unknownErrors += 1; 
+
+        if(result.status === 'fulfilled' && ('error' in result.value)) {
+          console.log((result.value as any).error)
+        }
         console.error('unknown error occurred while getting token');
+        console.log(result)
         if (result.status === 'rejected') {
           console.error(result.reason);
         }

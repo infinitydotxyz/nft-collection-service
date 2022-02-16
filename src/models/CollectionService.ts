@@ -8,6 +8,7 @@ import { Collection as CollectionType } from '../types/Collection.interface';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import BatchHandler from './BatchHandler';
+import chalk from 'chalk';
 
 @singleton()
 export default class CollectionService {
@@ -20,7 +21,7 @@ export default class CollectionService {
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
     this.taskQueue = new PQueue({
-      concurrency: 8 // number of collections to run at once
+      concurrency: 2 // number of collections to run at once
     });
   }
 
@@ -49,7 +50,10 @@ export default class CollectionService {
         const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
         const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-        return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
+        const hex = address.split('0x')[1].substring(0, 6);
+        const color = chalk.hex(`#${hex}`);
+
+        return color(`[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`);
       };
 
       const emitter = new Emittery<{

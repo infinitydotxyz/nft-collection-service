@@ -6,6 +6,7 @@ import { main } from './index';
 
 async function bootstrap(): Promise<void> {
   const env = getEnv();
+
   switch (env) {
     case Env.Cli:
       await cli();
