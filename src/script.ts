@@ -11,19 +11,10 @@ export async function main(): Promise<void> {
   const requests = 0;
   try{
 
-    // const promises: Array<Promise<any>> = [];
-    // // const res = await moralis.getAllTokens(address, chainId) ;
-    // for(let x = 0; x < 100; x++) {
-    //   requests += 1;
-    //   promises.push(moralis.getAllTokens(address, chainId));
-    //   console.log(`Requests: ${requests}`);
-    // }
-
-    // await Promise.allSettled(promises);
-
-
-  // await updateCollectionNumOwners();
-
+  /**
+   * must be run to add numOwnersUpdatedAt field to existing collections 
+   * that don't yet have this field
+   */
   await addNumOwnersUpdatedAtField();
 
   }catch(err) {
