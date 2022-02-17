@@ -1,45 +1,13 @@
 import { ethers } from 'ethers';
-import got, {
-  CacheError,
-  CancelError,
-  Got,
-  MaxRedirectsError,
-  ParseError,
-  ReadError,
-  RequestError,
-  TimeoutError,
-  UnsupportedProtocolError,
-  UploadError
-} from 'got';
+
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
 import { CollectionMetadata } from '../types/Collection.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
+import got, { Got } from 'got/dist/source';
+import { GotError, isGotError } from '../utils/got';
 
-type GotError =
-  | RequestError
-  | CacheError
-  | ReadError
-  | ParseError
-  | UploadError
-  | MaxRedirectsError
-  | UnsupportedProtocolError
-  | TimeoutError
-  | CancelError;
 
-function isGotError(error: GotError | unknown): boolean {
-  return (
-    error instanceof CacheError ||
-    error instanceof ReadError ||
-    error instanceof RequestError ||
-    error instanceof ParseError ||
-    error instanceof UploadError ||
-    error instanceof MaxRedirectsError ||
-    error instanceof UnsupportedProtocolError ||
-    error instanceof TimeoutError ||
-    error instanceof CancelError
-  );
-}
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters

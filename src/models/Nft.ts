@@ -14,17 +14,22 @@ import {
   RefreshTokenMetadataError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
-import { firebase, metadataClient } from '../container';
+import { firebase, metadataClient, moralis } from '../container';
 import { createHash } from 'crypto';
+import Moralis from '../services/Moralis';
 
 export default class Nft {
   private token: Partial<TokenType>;
 
   private readonly contract: Contract;
 
+  private readonly moralis: Moralis;
+
   constructor(token: MintToken & Partial<TokenType>, contract: Contract) {
     this.token = token;
     this.contract = contract;
+
+    this.moralis = moralis;
   }
 
   public async *refreshToken(
@@ -75,18 +80,15 @@ export default class Nft {
 
           case RefreshTokenFlow.Metadata:
             const uriToken: UriToken = this.token as UriToken;
+            let metadata: TokenMetadata;
+            try{
+              metadata = await this.getTokenMetadata();
+            }catch(err: any) {
+              const message = typeof err?.message === 'string' ? err.message as string : 'Failed to get token metadata';
+              throw new RefreshTokenMetadataError(message)
+            }
 
             try {
-              const tokenUri = uriToken.tokenUri;
-              const tokenMetadataResponse = (await metadataClient.get(
-                tokenUri,
-                0
-              ));
-              if (tokenMetadataResponse.statusCode !== 200) {
-                throw new RefreshTokenMetadataError(`Bad response. Status Code: ${tokenMetadataResponse.statusCode}`);
-              }
-              const body = tokenMetadataResponse.body;
-              const metadata = JSON.parse(body) as TokenMetadata;
               const metadataToken: MetadataToken = {
                 ...uriToken,
                 metadata,
@@ -224,5 +226,53 @@ export default class Nft {
 
       yield { token, failed: true, progress: 0 };
     }
+  }
+
+  private async getTokenMetadataFromTokenUri(tokenUri: string): Promise<TokenMetadata> {
+    const tokenMetadataResponse = await metadataClient.get(tokenUri, 0);
+    if (tokenMetadataResponse.statusCode !== 200) {
+      throw new RefreshTokenMetadataError(`Bad response. Status Code: ${tokenMetadataResponse.statusCode}`);
+    }
+    const body = tokenMetadataResponse.body;
+    const metadata = JSON.parse(body) as TokenMetadata;
+
+    return metadata;
+  }
+
+  private async getTokenMetadataFromMoralis(tokenId: string): Promise<TokenMetadata> {
+    const tokenMetadata = await this.moralis.getTokenMetadata(this.contract.address, this.contract.chainId, tokenId);
+    return tokenMetadata;
+  }
+
+  /**
+   * attempts to get token metadata from multiple sources
+   */
+  private async getTokenMetadata(): Promise<TokenMetadata> {
+    const tokenUri = this.token.tokenUri;
+    let errorMessage = '';
+
+    if(tokenUri) {
+      try{ 
+        const metadata = this.getTokenMetadataFromTokenUri(tokenUri);
+        return await metadata;
+      }catch(err: any) { 
+        if(typeof err.message === 'string') {
+          errorMessage = `TokenUri Failed: ${err.message}`;
+        }
+      }
+    } 
+
+    if(this.token.tokenId) {
+      try{
+        const metadata = this.getTokenMetadataFromMoralis(this.token.tokenId);
+        return await metadata;
+      }catch(err: any) {
+        if(typeof err.message === 'string') {
+          errorMessage = ` ${errorMessage} Moralis Failed: ${err.message}`;
+        }
+      }
+    }
+
+    throw new Error(errorMessage || 'Failed to get metadata.')
   }
 }

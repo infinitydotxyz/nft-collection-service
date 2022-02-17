@@ -59,10 +59,10 @@ export default class Firebase {
     while (true) {
       attempts += 1;
       try {
-        const remoteFile = this.bucket.file(path);
+        let remoteFile = this.bucket.file(path);
         const existsArray = await remoteFile.exists();
         if (existsArray && existsArray.length > 0 && !existsArray[0]) {
-          return await new Promise<File>((resolve, reject) => {
+          remoteFile = await new Promise<File>((resolve, reject) => {
             readable.pipe(
               remoteFile
                 .createWriteStream({
@@ -79,6 +79,8 @@ export default class Firebase {
                 })
             );
           });
+
+          return remoteFile;
         }
         return remoteFile;
       } catch (err) {

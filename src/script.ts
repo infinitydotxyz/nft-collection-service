@@ -1,17 +1,29 @@
-import { metadataClient } from "./container";
+
 import { sleep } from "./utils";
+import {Token} from './types/Token.interface';
+import { moralis } from "./container";
 
 export async function main(): Promise<void> {
-  // const address = '0x1a92f7381b9f03921564a437210bb9396471050c'.toLowerCase();
-  // const chainId = '1';
+  const address = '0x9e8b85dbb082255bd81c5b25323b694bc799a616'.toLowerCase();
+  const chainId = '1';
+  let requests = 0;
   try{
-    // const res = await metadataClient.get('ipfs://Qmcob1MaPTXUZt5MztHEgsYhrf7R6G7wV8hpcweL8nEfgU/meka/398');
-    console.time('image')
-    const res = await metadataClient.get('ipfs://QmQoz3j64vHNXPADoCaYdXGSA14SiKch7oPpV9jzDe6Dui/red_red_darkbrown_darkbrown_lightgreen_darkbrown_D_4D_2D_3D_1D_1D_2D_0_0_0_0_0_0_0163.png');
-    // console.log(res.body);
-    console.log(res.statusCode);
-    console.timeEnd('image')
+
+    const promises: Array<Promise<any>> = [];
+    // const res = await moralis.getAllTokens(address, chainId) ;
+    for(let x = 0; x < 100; x++) {
+      requests += 1;
+      promises.push(moralis.getAllTokens(address, chainId));
+      console.log(`Requests: ${requests}`);
+    }
+
+    await Promise.allSettled(promises);
+
+
+
+
   }catch(err) {
+    console.log(`Failed at ${requests}`)
     console.error(err);
   }
 
