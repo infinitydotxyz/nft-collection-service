@@ -3,9 +3,12 @@ import { Env, getEnv } from './utils';
 import { main as dev } from './script';
 import { main as cli } from './cli';
 import { main } from './index';
+import {main as background} from './background';
 
 async function bootstrap(): Promise<void> {
   const env = getEnv();
+
+  background();
 
   switch (env) {
     case Env.Cli:

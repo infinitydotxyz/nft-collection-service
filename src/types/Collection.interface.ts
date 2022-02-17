@@ -46,6 +46,13 @@ interface BaseCollection {
   owner: string;
 
   /**
+   * number of unique owners
+   */
+  numOwners?: number;
+
+  numOwnersUpdatedAt: number;
+
+  /**
    * editable collection metadata
    */
   metadata: CollectionMetadata;

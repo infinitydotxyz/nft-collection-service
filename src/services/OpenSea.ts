@@ -4,10 +4,8 @@ import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
 import { CollectionMetadata } from '../types/Collection.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import got, { Got } from 'got/dist/source';
-import { GotError, isGotError } from '../utils/got';
-
-
+import got, { Got, Response } from 'got/dist/source';
+import { gotErrorHandler } from '../utils/got';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -62,85 +60,110 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
    *
    * etherscan has a similar endpoint that seems decent if this begins to fail
    */
-  async getCollectionMetadata(address: string, attempt?: number): Promise<CollectionMetadata> {
-    attempt = (attempt ?? 0) + 1;
-
+  async getCollectionMetadata(address: string): Promise<CollectionMetadata> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
 
-    let response;
-    try {
-      response = await this.client.get(`asset_contract/${address}`, {
+    const response = await this.errorHandler(() => {
+      return this.client.get(`asset_contract/${address}`, {
         responseType: 'json'
       });
-    } catch (error: GotError | unknown) {
-      if (!isGotError(error)) {
-        throw error;
+    });
+    const data = response.body as OpenSeaContractResponse;
+    const collection = data.collection;
+
+    /**
+     * not sure why opensea formats names like (BoredApeYachtClub)
+     */
+    const name = formatName(data.name ?? '');
+
+    const dataInInfinityFormat: CollectionMetadata = {
+      name,
+      description: data.description,
+      symbol: data.symbol ?? '',
+      profileImage: collection.image_url,
+      bannerImage: collection.banner_image_url,
+      links: {
+        timestamp: new Date().getTime(),
+        discord: collection.discord_url ?? '',
+        external: collection.external_url ?? '',
+        medium:
+          typeof collection?.medium_username === 'string' ? `https://medium.com/${collection.medium_username}` : '',
+        slug: collection?.slug ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        telegram: collection?.telegram_url ?? '',
+        twitter:
+          typeof collection?.twitter_username === 'string' ? `https://twitter.com/${collection.twitter_username}` : '',
+        instagram:
+          typeof collection?.instagram_username === 'string'
+            ? `https://instagram.com/${collection.instagram_username}`
+            : '',
+        wiki: collection?.wiki_url ?? ''
       }
+    };
+    return dataInInfinityFormat;
+  }
 
-      if (attempt > this.maxAttempts) {
-        throw new Error(`failed to get contract in ${this.maxAttempts} attempts`);
-      }
+  /**
+   * getCollectionStats using the opensea slug (not the same as the infinity slug)
+   */
+  async getCollectionStats(slug: string):Promise<CollectionStatsResponse> {
+    const res: Response<CollectionStatsResponse> = await this.errorHandler(() => {
+      return this.client.get(`collection/${slug}/stats`, {
+        responseType: 'json'
+      });
+    });
 
-      return await this.getCollectionMetadata(address, attempt);
-    }
+    const stats = res.body;
 
-    const OpenSeaIsShit = 504;
-    switch (response?.statusCode) {
-      case 200:
-        const data = response.body as OpenSeaContractResponse;
-        const collection = data.collection;
+    return stats;
+  }
 
-        /**
-         * not sure why opensea formats names like (BoredApeYachtClub)
-         */
-        const name = formatName(data.name ?? '');
+  private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
+    let attempt = 0;
 
-        const dataInInfinityFormat: CollectionMetadata = {
-          name,
-          description: data.description,
-          symbol: data.symbol ?? '',
-          profileImage: collection.image_url,
-          bannerImage: collection.banner_image_url,
-          links: {
-            timestamp: new Date().getTime(),
-            discord: collection.discord_url ?? '',
-            external: collection.external_url ?? '',
-            medium:
-              typeof collection?.medium_username === 'string' ? `https://medium.com/${collection.medium_username}` : '',
-            slug: collection?.slug ?? '',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            telegram: collection?.telegram_url ?? '',
-            twitter:
-              typeof collection?.twitter_username === 'string'
-                ? `https://twitter.com/${collection.twitter_username}`
-                : '',
-            instagram:
-              typeof collection?.instagram_username === 'string'
-                ? `https://instagram.com/${collection.instagram_username}`
-                : '',
-            wiki: collection?.wiki_url ?? ''
+    while (true) {
+      attempt += 1;
+
+      try {
+        const res: Response<T> = await request();
+
+        switch (res.statusCode) {
+          case 200:
+            return res;
+
+          case 404:
+            throw new Error('Not found');
+
+          case 429:
+            await sleep(5000);
+            throw new Error('Rate limited');
+
+          case 500:
+            throw new Error('Internal server error');
+
+          case 504:
+            await sleep(5000);
+            throw new Error('OpenSea down');
+
+          default:
+            await sleep(2000);
+            throw new Error(`Unknown status code: ${res.statusCode}`);
+        }
+      } catch (err) {
+        const handlerRes = gotErrorHandler(err);
+        if ('retry' in handlerRes) {
+          await sleep(handlerRes.delay);
+        } else if (!handlerRes.fatal) {
+          // unknown error
+          if (attempt >= maxAttempts) {
+            throw err;
           }
-        };
-        return dataInInfinityFormat;
-      case 404:
-        throw new Error('not found');
-
-      case 429:
-        await sleep(5000);
-        return await this.getCollectionMetadata(address, attempt);
-
-      case 500:
-        return await this.getCollectionMetadata(address, attempt);
-
-      case OpenSeaIsShit:
-        await sleep(2000);
-        return await this.getCollectionMetadata(address, attempt);
-
-      default:
-        await sleep(2000);
-        return await this.getCollectionMetadata(address, attempt);
+        } else {
+          throw err;
+        }
+      }
     }
   }
 }
@@ -205,4 +228,30 @@ interface Collection {
 
 interface DisplayData {
   card_display_style: string;
+}
+
+interface CollectionStatsResponse {
+  stats: {
+    one_day_volume: number;
+    one_day_change: number;
+    one_day_sales: number;
+    one_day_average_price: number;
+    seven_day_volume: number;
+    seven_day_change: number;
+    seven_day_sales: number;
+    seven_day_average_price: number;
+    thirty_day_volume: number;
+    thirty_day_change: number;
+    thirty_day_sales: number;
+    thirty_day_average_price: number;
+    total_volume: number;
+    total_sales: number;
+    total_supply: number;
+    count: number;
+    num_owners: number;
+    average_price: number;
+    num_reports: number;
+    market_cap: number;
+    floor_price: number;
+  };
 }

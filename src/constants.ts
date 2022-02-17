@@ -63,3 +63,12 @@ export const MAX_UNCLE_ABLE_BLOCKS = 6;
  */
 export const ONE_MIN = 60_000;
 export const ONE_HOUR = 60 * ONE_MIN;
+
+
+
+/**
+ * 
+ * configs
+ * 
+ */
+export const NUM_OWNERS_TTS = ONE_HOUR * 24;

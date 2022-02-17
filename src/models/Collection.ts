@@ -133,6 +133,7 @@ export default class Collection {
               throw new CollectionCreatorError(message);
             }
             break;
+
           case CreationFlow.CollectionMetadata:
             try {
               const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(
@@ -327,6 +328,7 @@ export default class Collection {
                 ...(collection as CollectionTokenMetadataType),
                 attributes,
                 numTraitTypes: Object.keys(attributes).length,
+                numOwnersUpdatedAt: 0,
                 state: {
                   ...collection.state,
                   create: {
