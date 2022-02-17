@@ -1,10 +1,11 @@
-import { INFURA_API_KEYS } from '../constants';
+import { INFURA_API_KEYS, METADATA_CONCURRENCY } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
 import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
+import v8 from 'v8';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -61,10 +62,6 @@ function isIpfs(requestUrl: string | URL): boolean {
  * Metadata client handles transforming requests for different protocols,
  * basic error handling of responses, and controls concurrency to prevent
  * flooding
- *
- *  TODO optimization: ipfs api supports multiple args, we can use this to get
- *       metadata for multiple items at once. Alternative is to get an entire
- *       directory at once
  */
 @singleton()
 export default class MetadataClient {
@@ -74,7 +71,7 @@ export default class MetadataClient {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 250
+      concurrency: METADATA_CONCURRENCY
     });
     function setTerminalTitle(title: string):void {
       process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));

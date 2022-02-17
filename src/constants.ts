@@ -1,3 +1,6 @@
+import chalk from 'chalk';
+import v8 from 'v8';
+
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
   if (required && !variable) {
@@ -72,3 +75,34 @@ export const ONE_HOUR = 60 * ONE_MIN;
  * 
  */
 export const NUM_OWNERS_TTS = ONE_HOUR * 24;
+
+
+
+const available = v8.getHeapStatistics().total_available_size;
+const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
+const maxExpectedImageSize = 50; // MB
+export const METADATA_CONCURRENCY = (availableInMB / 2 ) / maxExpectedImageSize;
+
+
+
+/**
+ * start up log
+ */
+const bar = '-'.repeat(process.stdout.columns);
+const title = 'NFT Scraper'
+const margin = process.stdout.columns - title.length
+export const START_UP_MESSAGE = `
+${bar}
+\n
+${' '.repeat(Math.abs(margin) / 2)}${chalk.green('NFT Scraper Settings')}
+\n
+${chalk.gray(bar)}
+
+Metadata Client Concurrency: ${METADATA_CONCURRENCY}
+
+System:
+  Heap size: ${availableInMB / 1000} GB
+
+${bar}
+`
+
