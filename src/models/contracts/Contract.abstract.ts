@@ -170,7 +170,7 @@ export default abstract class Contract implements IContract {
       const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
 
       yield errorHandler(async () => {
-        if(pagesWithoutResults > 10) {
+        if(pagesWithoutResults > 5) {
           try {
             const events = await thunkedLogRequest(from, maxBlock);
             const fromBlock = minBlock;

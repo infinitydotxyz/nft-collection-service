@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import v8 from 'v8';
+import os from 'os';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
@@ -76,15 +77,34 @@ export const ONE_HOUR = 60 * ONE_MIN;
  */
 export const NUM_OWNERS_TTS = ONE_HOUR * 24;
 
-
-
 const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
-const maxExpectedImageSize = 50; // MB
-export const METADATA_CONCURRENCY = (availableInMB / 2 ) / maxExpectedImageSize;
-export const COLLECTION_TASK_CONCURRENCY = 1;
-export const TOKEN_URI_CONCURRENCY = Math.floor(METADATA_CONCURRENCY / COLLECTION_TASK_CONCURRENCY) > 0 ? Math.floor(METADATA_CONCURRENCY / COLLECTION_TASK_CONCURRENCY) : 1;
+const maxExpectedImageSize = 10; // MB
 
+export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
+
+const maxConcurrencyPerCollection = Math.floor(((availableInMB / 1.5) / maxExpectedImageSize) / COLLECTION_TASK_CONCURRENCY);
+const maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
+const getMaxConcurrency = (): { limit: number, message: string } => {
+  const systemLimit = (maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY);
+
+  if(maxConcurrencyForIPFS < systemLimit) {
+    const difference =  systemLimit - maxConcurrencyForIPFS;
+    return { 
+      limit: maxConcurrencyForIPFS,
+      message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
+    }
+  }
+
+  return {
+    limit: maxConcurrencyPerCollection,
+    message: 'process heap size'
+  }
+}
+const maxConcurrencyObj = getMaxConcurrency();
+export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
+
+export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY;
 
 
 /**
@@ -100,7 +120,10 @@ ${' '.repeat(Math.abs(margin) / 2)}${chalk.green('NFT Scraper Settings')}
 \n
 ${chalk.gray(bar)}
 
-Metadata Client Concurrency: ${METADATA_CONCURRENCY}
+Collection Concurrency: ${COLLECTION_TASK_CONCURRENCY}
+  Concurrency limited by: ${maxConcurrencyObj.message}
+Metadata Client Concurrency: ${METADATA_CONCURRENCY} per collection
+Token Uri Concurrency: ${TOKEN_URI_CONCURRENCY} per collection
 
 System:
   Heap size: ${availableInMB / 1000} GB
