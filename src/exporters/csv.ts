@@ -13,7 +13,7 @@ export const tokensDataToFile = async (chainId: string, collection: string): Pro
 };
 
 export async function exportCollections():Promise<void> {
-  const snap = await firebase.db.collection('collections').where('state.create.step', '==', 'complete').get();
+  const snap = await firebase.db.collection('collections').where('state.export.done', '==', false).get();
   for (const doc of snap.docs) {
     const data = doc.data();
     const address = data.address as string;

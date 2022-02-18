@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { firebase } from './container';
 import BatchHandler from './models/BatchHandler';
-import { addNumOwnersUpdatedAtField } from './background';
+import { addNumOwnersUpdatedAtAndDataExportedFields } from './background';
 import { createInfuraApiKeys } from './scripts/createInfuraKeys';
 
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -11,10 +11,10 @@ export async function main(): Promise<void> {
   const requests = 0;
   try {
     /**
-     * must be run to add numOwnersUpdatedAt field to existing collections
-     * that don't yet have this field
+     * must be run to add numOwnersUpdatedAtAndDataExported fields to existing collections
+     * that don't yet have these fields
      */
-    await addNumOwnersUpdatedAtField();
+    await addNumOwnersUpdatedAtAndDataExportedFields();
 
     // const numKeys = 45;
     // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';

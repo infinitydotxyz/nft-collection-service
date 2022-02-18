@@ -80,6 +80,9 @@ interface BaseCollection {
       step: CreationFlow;
       error?: Record<string, any>;
     };
+    export: {
+      done: boolean;
+    };
   };
 }
 

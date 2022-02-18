@@ -152,6 +152,9 @@ export default class Collection {
                   ...collection.state,
                   create: {
                     step: CreationFlow.CollectionMints // update step
+                  },
+                  export: {
+                    done: false
                   }
                 }
               };
@@ -187,7 +190,9 @@ export default class Collection {
               );
 
               if (failedWithUnknownErrors > 0) {
-                throw new CollectionMintsError(`Failed to get mints for ${failedWithUnknownErrors} tokens with unknown errors`); // get all blocks again
+                throw new CollectionMintsError(
+                  `Failed to get mints for ${failedWithUnknownErrors} tokens with unknown errors`
+                ); // get all blocks again
               } else if (!gotAllBlocks) {
                 throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock);
               }
@@ -272,9 +277,9 @@ export default class Collection {
               }
 
               const results = await Promise.allSettled(tokenPromises);
-              for(const result of results) {
-                if(result.status === 'rejected') {
-                  const message = typeof result?.reason === 'string' ? result.reason  : 'Failed to refresh token';
+              for (const result of results) {
+                if (result.status === 'rejected') {
+                  const message = typeof result?.reason === 'string' ? result.reason : 'Failed to refresh token';
                   throw new Error(message);
                 }
               }
@@ -538,7 +543,7 @@ export default class Collection {
         unknownErrors += 1;
 
         if (result.status === 'fulfilled' && 'error' in result.value) {
-          console.log((result.value as any).error);
+          console.log(result.value.error);
         }
         console.error('unknown error occurred while getting token');
         console.log(result);

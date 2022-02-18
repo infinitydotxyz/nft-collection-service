@@ -119,7 +119,7 @@ export async function updateCollectionNumOwners(emitter: BackgroundTaskEmitter):
   });
 }
 
-export async function addNumOwnersUpdatedAtField(): Promise<void> {
+export async function addNumOwnersUpdatedAtAndDataExportedFields(): Promise<void> {
   try {
     const batch = new BatchHandler();
 
@@ -130,7 +130,7 @@ export async function addNumOwnersUpdatedAtField(): Promise<void> {
         batch.add(doc.ref, { numOwnersUpdatedAt: 0 }, { merge: true });
       }
       if (!collection.isDataExported) {
-        batch.add(doc.ref, { isDataExported: false }, { merge: true });
+        batch.add(doc.ref, { 'state.export.done': false }, { merge: true });
       }
     });
 
