@@ -37,9 +37,9 @@ export default class CollectionDao {
 
 
     const collections: Collection[] = [];
-    for(const doc of collectionSnapshots.docs) {
-        collections.push(doc.data() as Collection);
-    }
+    collectionSnapshots.docs.forEach((doc) => {
+      collections.push(doc.data() as Collection);
+    })
 
     return collections;
    }
