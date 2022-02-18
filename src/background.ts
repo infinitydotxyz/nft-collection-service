@@ -129,8 +129,8 @@ export async function addNumOwnersUpdatedAtAndDataExportedFields(): Promise<void
       if (!collection.numOwnersUpdatedAt) {
         batch.add(doc.ref, { numOwnersUpdatedAt: 0 }, { merge: true });
       }
-      if (!collection.isDataExported) {
-        batch.add(doc.ref, { 'state.export.done': false }, { merge: true });
+      if (!collection.state.export) {
+        batch.add(doc.ref, { state: { export: { done: false } } }, { merge: true });
       }
     });
 
