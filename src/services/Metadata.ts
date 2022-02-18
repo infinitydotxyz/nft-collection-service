@@ -6,6 +6,7 @@ import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
 import NotFoundError from '../models/errors/NotFound';
+import { normalize } from 'path';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -41,7 +42,7 @@ export const config: MetadataClientOptions = {
         const cid = url.host;
         const id = url.pathname;
         const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
-        options.url = new URL(`${domain}${cid}${id}`);
+        options.url = new URL(normalize(`${domain}${cid}${id}`));
         const apiKey = randomItem(INFURA_API_KEYS);
         options.headers = {
           Authorization: apiKey
@@ -139,7 +140,7 @@ export default class MetadataClient {
             response.headers['content-type'] = contentType;
           }
 
-          return response ;
+          return response;
 
         case 404: 
           throw new NotFoundError("Server responded with status code 404");
@@ -152,7 +153,7 @@ export default class MetadataClient {
       }
     } catch (err: any) {
       if (err instanceof NotFoundError || attempt > 5) {
-        console.log(`Failed to get metadata. URL: ${url.href}. Error: ${err?.message}`);
+        console.log(`Failed to get metadata. URL: ${err.response.requestUrl} Original URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
       return await this.get(url, priority, attempt);

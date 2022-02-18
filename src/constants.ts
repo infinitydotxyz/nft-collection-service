@@ -98,7 +98,7 @@ const getMaxConcurrency = (): { limit: number, message: string } => {
 
   return {
     limit: maxConcurrencyPerCollection,
-    message: 'system heap size'
+    message: 'process heap size'
   }
 }
 const maxConcurrencyObj = getMaxConcurrency();
