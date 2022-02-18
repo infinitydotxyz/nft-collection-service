@@ -66,7 +66,7 @@ export function main(): void {
 export async function updateCollectionNumOwners(emitter: BackgroundTaskEmitter): Promise<void> {
   const openseaClient = new OpenSeaClient();
 
-  const collections = ((await collectionDao.getStaleCollectionOwners()) || []).filter((item) => {
+  const collections = ((await collectionDao.getStaleCollectionOwners()) || [] as Collection[]).filter((item) => {
     return !!item?.metadata?.links?.slug;
   });
 
