@@ -112,7 +112,5 @@ async function fileMode(fileArg: string): Promise<void> {
     promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck));
   }
 
-  await Promise.all(promises);
-
-  console.log(`All collections complete`);
+  await Promise.allSettled(promises);
 }

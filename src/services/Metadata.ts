@@ -156,7 +156,7 @@ export default class MetadataClient {
       }
     } catch (err: any) {
       if (attempt > 5) {
-        console.log(`Failed to get metadata URL: ${url.href}`);
+        console.log(`Failed to get metadata. URL: ${url.href}`);
         throw err;
       }
       return await this.get(url, priority, attempt);

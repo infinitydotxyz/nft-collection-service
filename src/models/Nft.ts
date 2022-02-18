@@ -17,6 +17,8 @@ import {
 import { firebase, metadataClient, moralis } from '../container';
 import { createHash } from 'crypto';
 import Moralis from '../services/Moralis';
+import PQueue from 'p-queue';
+import { TOKEN_URI_CONCURRENCY } from '../constants';
 
 export default class Nft {
   private token: Partial<TokenType>;
@@ -25,11 +27,15 @@ export default class Nft {
 
   private readonly moralis: Moralis;
 
+  private readonly tokenUriQueue: PQueue;
+
   constructor(token: MintToken & Partial<TokenType>, contract: Contract) {
     this.token = token;
     this.contract = contract;
 
     this.moralis = moralis;
+
+    this.tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY});
   }
 
   public async *refreshToken(
@@ -58,7 +64,9 @@ export default class Nft {
           case RefreshTokenFlow.Uri:
             const mintToken = this.token as MintToken;
             try {
-              const tokenUri = await this.contract.getTokenUri(mintToken.tokenId);
+              const tokenUri = await this.tokenUriQueue.add(async () => {
+                return await this.contract.getTokenUri(mintToken.tokenId);
+              }) 
               const uriToken: UriToken = {
                 ...mintToken,
                 tokenUri: tokenUri,

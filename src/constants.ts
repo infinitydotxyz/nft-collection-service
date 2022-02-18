@@ -82,6 +82,8 @@ const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 50; // MB
 export const METADATA_CONCURRENCY = (availableInMB / 2 ) / maxExpectedImageSize;
+export const COLLECTION_TASK_CONCURRENCY = 1;
+export const TOKEN_URI_CONCURRENCY = Math.floor(METADATA_CONCURRENCY / COLLECTION_TASK_CONCURRENCY) > 0 ? Math.floor(METADATA_CONCURRENCY / COLLECTION_TASK_CONCURRENCY) : 1;
 
 
 

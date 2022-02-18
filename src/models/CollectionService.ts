@@ -1,6 +1,6 @@
 import ContractFactory from './contracts/ContractFactory';
 import CollectionMetadataProvider from './CollectionMetadataProvider';
-import Collection from './Collection';
+import Collection, { CreationFlow } from './Collection';
 import { firebase, metadataClient, tokenDao } from '../container';
 import Emittery from 'emittery';
 import { MintToken, Token } from '../types/Token.interface';
@@ -9,6 +9,7 @@ import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import BatchHandler from './BatchHandler';
 import chalk from 'chalk';
+import { COLLECTION_TASK_CONCURRENCY } from '../constants';
 
 @singleton()
 export default class CollectionService {
@@ -21,7 +22,7 @@ export default class CollectionService {
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
     this.taskQueue = new PQueue({
-      concurrency: 2 // number of collections to run at once
+      concurrency: COLLECTION_TASK_CONCURRENCY // number of collections to run at once
     });
   }
 
@@ -30,7 +31,7 @@ export default class CollectionService {
       const hex = address.split('0x')[1].substring(0, 6);
       const color = chalk.hex(`#${hex}`);
       const log = (args: any | any[]): void => console.log(color(args));
-      log(`Starting Collection: ${chainId}:${address}`)
+      log(`Starting Collection: ${chainId}:${address}`);
 
       const contract = await this.contractFactory.create(address, chainId);
       const collection = new Collection(contract, metadataClient, this.collectionMetadataProvider);
@@ -55,8 +56,6 @@ export default class CollectionService {
         const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
         const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-
-
         return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
       };
 
@@ -70,7 +69,7 @@ export default class CollectionService {
       let lastLogAt = 0;
       emitter.on('progress', ({ step, progress }) => {
         const now = Date.now();
-        if(progress === 100 || progress === 0 || now > lastLogAt + 1000) {
+        if (progress === 100 || now > lastLogAt + 1000) {
           lastLogAt = now;
           log(formatLog(step, progress));
         }
@@ -95,7 +94,7 @@ export default class CollectionService {
         batch.add(tokenDoc, error, { merge: true });
       });
 
-      const createCollectionGenerator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
+      let iterator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
 
       let next: IteratorResult<
         { collection: Partial<CollectionType>; action?: 'tokenRequest' },
@@ -103,36 +102,53 @@ export default class CollectionService {
       >;
       let done = false;
       let valueToInject: Token[] | null = null;
+      let collectionData: Partial<CollectionType> = currentCollection;
+      let attempt = 0;
       while (!done) {
         try {
           if (valueToInject !== null) {
-            next = await createCollectionGenerator.next(valueToInject);
+            next = await iterator.next(valueToInject);
             valueToInject = null;
           } else {
-            next = await createCollectionGenerator.next();
+            next = await iterator.next();
           }
           done = next.done ?? false;
 
           if (done) {
-            log(`Collection Completed: ${chainId}:${address}`);
-            return;
-          }
+            const successful = collectionData?.state?.create?.step === CreationFlow.Complete;
+            if (successful) {
+              log(`Collection Completed: ${chainId}:${address}`);
+              return;
+            } else {
+              attempt += 1;
+              if (attempt >= 3) {
+                log(`Failed to complete collection: ${chainId}:${address}`);
+                console.error(collectionData.state?.create.error);
+                return;
+              }
 
-          const { collection: collectionData, action } = next.value;
+              log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
+              iterator = collection.createCollection(collectionData, emitter, hasBlueCheck);
+              done = false;
+            }
+          } else {
+            const { collection: updatedCollection, action } = next.value;
+            collectionData = updatedCollection;
 
-          batch.add(collectionDoc, collectionData, { merge: false });
-          await batch.flush();
+            batch.add(collectionDoc, collectionData, { merge: false });
+            await batch.flush();
 
-          if (action) {
-            switch (action) {
-              case 'tokenRequest':
-                await batch.flush();
-                const tokens = await tokenDao.getAllTokens(chainId, address);
-                valueToInject = tokens as Token[];
-                break;
+            if (action) {
+              switch (action) {
+                case 'tokenRequest':
+                  await batch.flush();
+                  const tokens = await tokenDao.getAllTokens(chainId, address);
+                  valueToInject = tokens as Token[];
+                  break;
 
-              default:
-                throw new Error(`Requested an invalid action: ${action}`);
+                default:
+                  throw new Error(`Requested an invalid action: ${action}`);
+              }
             }
           }
         } catch (err: any) {
