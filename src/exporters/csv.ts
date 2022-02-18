@@ -9,5 +9,5 @@ export const tokensDataToFile = async (chainId: string, collection: string): Pro
     const id = chainId + ':' + collection + ':' + token.tokenId;
     lines += `${id},${token.rarityScore},${token.rarityRank},${token.image?.url},${token.image?.contentType},${tokens.length}\n`;
   }
-  writeFileSync('./exported.csv', lines);
+  writeFileSync(`./${collection}.csv`, lines);
 };
