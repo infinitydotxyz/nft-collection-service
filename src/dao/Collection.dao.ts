@@ -33,7 +33,7 @@ export default class CollectionDao {
   async getStaleCollectionOwners(): Promise<Collection[]> {
     const now = Date.now();
     const staleIfUpdatedBefore = now - NUM_OWNERS_TTS;
-    const collectionSnapshots = await this.firebase.db.collection('collections').where('numOwnersUpdatedAt', '<', staleIfUpdatedBefore).get();
+    const collectionSnapshots = await this.firebase.db.collection('collections').limit(1000).where('numOwnersUpdatedAt', '<', staleIfUpdatedBefore).get();
 
 
     const collections: Collection[] = [];
