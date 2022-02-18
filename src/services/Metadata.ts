@@ -5,7 +5,6 @@ import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
-import v8 from 'v8';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -73,14 +72,6 @@ export default class MetadataClient {
     this.queue = new PQueue({
       concurrency: METADATA_CONCURRENCY
     });
-    function setTerminalTitle(title: string):void {
-      process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
-    }
-
-    setInterval(() => {
-      const size = this.queue.size + this.queue.pending;
-      setTerminalTitle(`Metadata Queue Size: ${this.queue.size} Pending: ${this.queue.pending}  Total: ${size}`);
-    }, 3000);
 
     this.client = got.extend({
       timeout: 120_000,

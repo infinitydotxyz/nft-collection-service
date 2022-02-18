@@ -3,15 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "npm install && npm run clean && tsc",
+    "build": "npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
     "fix": "eslint --fix .",
-    "start": "ts-node -r dotenv/config ./src/bootstrap.ts",
-    "dev": "cross-env NODE_ENV=script ts-node -r dotenv/config ./src/bootstrap.ts",
-    "watch": "cross-env NODE_ENV=script ts-node-dev -r dotenv/config ./src/bootstrap.ts",
-    "cli": "cross-env NODE_ENV=cli ts-node -r dotenv/config ./src/bootstrap.ts",
-    "cli-server": "npm run build && NODE_ENV=cli node --max-old-space-size=60000 -r dotenv/config ./dist/bootstrap.js"
+    "start": "npm run build && node -r dotenv/config ./dist/bootstrap.js",
+    "dev": "npm run build && cross-env NODE_ENV=script node -r dotenv/config ./dist/bootstrap.js",
+    "cli": "npm run build && cross-env NODE_ENV=cli node -r dotenv/config ./dist/bootstrap.js",
+    "cli-server": "npm run build && cross-env NODE_ENV=cli node --max-old-space-size=60000 -r dotenv/config ./dist/bootstrap.js"
   },
   "repository": {
     "type": "git",
@@ -32,8 +31,6 @@
     "eslint-plugin-promise": "^6.0.0",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
-    "ts-node": "^10.4.0",
-    "ts-node-dev": "^1.1.8",
     "typescript": "^4.5.5"
   },
   "dependencies": {
