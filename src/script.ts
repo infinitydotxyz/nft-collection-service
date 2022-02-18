@@ -14,7 +14,7 @@ export async function main(): Promise<void> {
      * must be run to add numOwnersUpdatedAtAndDataExported fields to existing collections
      * that don't yet have these fields
      */
-    await addNumOwnersUpdatedAtAndDataExportedFields();
+    // await addNumOwnersUpdatedAtAndDataExportedFields();
 
     // const numKeys = 45;
     // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';
