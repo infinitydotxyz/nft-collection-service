@@ -77,15 +77,35 @@ export const ONE_HOUR = 60 * ONE_MIN;
  */
 export const NUM_OWNERS_TTS = ONE_HOUR * 24;
 
-
-
 const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
 export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
-export const METADATA_CONCURRENCY = Math.floor(((availableInMB / 1.5) / maxExpectedImageSize) / COLLECTION_TASK_CONCURRENCY);
-export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY
+
+const maxConcurrencyPerCollection = Math.floor(((availableInMB / 1.5) / maxExpectedImageSize) / COLLECTION_TASK_CONCURRENCY);
+const maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
+const getMaxConcurrency = (): { limit: number, message: string } => {
+  const systemLimit = (maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY);
+
+  if(maxConcurrencyForIPFS < systemLimit) {
+    const difference =  systemLimit - maxConcurrencyForIPFS;
+    return { 
+      limit: maxConcurrencyForIPFS,
+      message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
+    }
+  }
+
+  return {
+    limit: maxConcurrencyPerCollection,
+    message: 'system heap size'
+  }
+}
+const maxConcurrencyObj = getMaxConcurrency();
+export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
+
+export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY;
+
 
 /**
  * start up log
@@ -101,6 +121,7 @@ ${' '.repeat(Math.abs(margin) / 2)}${chalk.green('NFT Scraper Settings')}
 ${chalk.gray(bar)}
 
 Collection Concurrency: ${COLLECTION_TASK_CONCURRENCY}
+  Concurrency limited by: ${maxConcurrencyObj.message}
 Metadata Client Concurrency: ${METADATA_CONCURRENCY} per collection
 Token Uri Concurrency: ${TOKEN_URI_CONCURRENCY} per collection
 
