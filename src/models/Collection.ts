@@ -540,12 +540,13 @@ export default class Collection {
     const tokens: MintToken[] = [];
     let unknownErrors = 0;
     for (const result of results) {
-      if (result.status === 'fulfilled' && !('error' in result.value)) {
+      if (result.status === 'fulfilled' && result.value?.state?.metadata && !('error' in result.value)) {
         tokens.push(result.value);
+
       } else {
         unknownErrors += 1;
 
-        if (result.status === 'fulfilled' && 'error' in result.value) {
+        if (result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
           console.log(result.value.state?.metadata.error);
         }
         console.error('unknown error occurred while getting token');
