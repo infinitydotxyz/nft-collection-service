@@ -5,7 +5,6 @@ import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
-import v8 from 'v8';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -156,7 +155,7 @@ export default class MetadataClient {
       }
     } catch (err: any) {
       if (attempt > 5) {
-        console.log(`Failed to get metadata. URL: ${url.href}`);
+        console.log(`Failed to get metadata. URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
       return await this.get(url, priority, attempt);
