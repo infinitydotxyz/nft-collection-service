@@ -390,6 +390,9 @@ export default class Collection {
           create: {
             step: stepToSave,
             error: error.toJSON()
+          },
+          export: {
+            done: false
           }
         }
       };
@@ -543,7 +546,7 @@ export default class Collection {
         unknownErrors += 1;
 
         if (result.status === 'fulfilled' && 'error' in result.value) {
-          console.log(result.value.error);
+          console.log(result.value.state?.metadata.error);
         }
         console.error('unknown error occurred while getting token');
         console.log(result);
