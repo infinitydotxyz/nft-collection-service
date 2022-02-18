@@ -109,10 +109,8 @@ async function fileMode(fileArg: string): Promise<void> {
     const itemHasBlueCheck = typeof item.hasBlueCheck === 'boolean' ? item.hasBlueCheck : false;
     const shouldHaveBlueCheck = (hasBlueCheck === undefined ? itemHasBlueCheck : hasBlueCheck) as boolean;
 
-    console.log(`Creating Collection: ${item.address} Chain Id: ${chainId} hasBlueCheck: ${shouldHaveBlueCheck}`);
-
     promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck));
   }
 
-  await Promise.all(promises);
+  await Promise.allSettled(promises);
 }

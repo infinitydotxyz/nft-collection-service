@@ -1,10 +1,12 @@
-import { INFURA_API_KEYS } from '../constants';
+import { INFURA_API_KEYS, METADATA_CONCURRENCY } from '../constants';
 import got, { Got, Options, Response } from 'got/dist/source';
 import PQueue from 'p-queue';
 import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
+import NotFoundError from '../models/errors/NotFound';
+import { normalize } from 'path';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -14,12 +16,13 @@ enum Protocol {
 
 type RequestTransformer = ((options: Options) => void) | null;
 
+
 interface MetadataClientOptions {
   protocols: Record<Protocol, { transform: RequestTransformer; ipfsPathFromUrl: (url: string | URL) => string }>;
 }
 
 const defaultIpfsPathFromUrl = (url: string | URL): string => {
-  url = new URL(url);
+  url = new URL(url?.toString());
   const cid = url.host;
   const id = url.pathname;
   return `${cid}${id}`;
@@ -34,12 +37,12 @@ export const config: MetadataClientOptions = {
     [Protocol.IPFS]: {
       transform: (options: Options) => {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const url = new URL(options.url!);
+        const url = new URL(options.url!.toString?.());
         options.method = 'post';
         const cid = url.host;
         const id = url.pathname;
         const domain = 'https://ipfs.infura.io:5001/api/v0/cat?arg=';
-        options.url = new URL(`${domain}${cid}${id}`);
+        options.url = new URL(normalize(`${domain}${cid}${id}`));
         const apiKey = randomItem(INFURA_API_KEYS);
         options.headers = {
           Authorization: apiKey
@@ -61,10 +64,6 @@ function isIpfs(requestUrl: string | URL): boolean {
  * Metadata client handles transforming requests for different protocols,
  * basic error handling of responses, and controls concurrency to prevent
  * flooding
- *
- *  TODO optimization: ipfs api supports multiple args, we can use this to get
- *       metadata for multiple items at once. Alternative is to get an entire
- *       directory at once
  */
 @singleton()
 export default class MetadataClient {
@@ -74,20 +73,23 @@ export default class MetadataClient {
 
   constructor() {
     this.queue = new PQueue({
-      concurrency: 30
+      concurrency: METADATA_CONCURRENCY
     });
 
     this.client = got.extend({
-      timeout: 10_000,
+      timeout: 120_000,
       throwHttpErrors: false,
-      retry: 0,
+      retry: {
+        limit: 0
+      },
+      http2: true,
       hooks: {
         init: [
           (options) => {
             if (!options.url) {
               throw new Error('Url must be set in options object to use this client');
             }
-            const url = new URL(options.url);
+            const url = new URL(options.url?.toString?.());
             const protocol = url.protocol.toLowerCase();
             const protocolConfig = config.protocols[protocol as Protocol];
             if (typeof protocolConfig.transform === 'function') {
@@ -105,15 +107,28 @@ export default class MetadataClient {
    * returns a promise for a successful response (i.e. status code 200)
    *
    */
-  async get(url: string | URL, attempt = 0): Promise<Response> {
+  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response<string>> {
     attempt += 1;
+
+    let url = new URL(u.toString());
+    if (url.href.includes('/ipfs/')) {
+      const pathname = url.pathname.split('/ipfs/')[1];
+      if (pathname) {
+        url = new URL(`ipfs://${pathname}`);
+      }
+    }
+
     try {
-      const response: Response = await this.queue.add(async () => {
-        /**
-         * you have to set the url in options for it to be defined in the init hook
-         */
-        return await this.client({ url });
-      });
+      const response: Response<string> = await this.queue.add(
+        async () => {
+          /**
+           * you have to set the url in options for it to be defined in the init hook
+           */
+          return await this.client({ url });
+        },
+        { priority }
+      ) ;
+
 
       switch (response.statusCode) {
         case 200:
@@ -127,17 +142,23 @@ export default class MetadataClient {
 
           return response;
 
+        case 404: 
+          throw new NotFoundError("Server responded with status code 404");
+
         case 429:
           throw new Error('Rate limited');
 
         default:
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
-    } catch (err) {
-      if (attempt > 5) {
+    } catch (err: any) {
+      if (err instanceof NotFoundError || attempt > 5) {
+        console.log(`Failed to get metadata. URL: ${err.response.requestUrl} Original URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
-      return await this.get(url, attempt);
+      return await this.get(url, priority, attempt);
     }
   }
 }
+
+

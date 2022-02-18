@@ -1,17 +1,28 @@
-import { tokensDataToFile } from './exporters/csv';
-import { collectionService, firebase } from './container';
+import { firebase } from './container';
+import BatchHandler from './models/BatchHandler';
+import { addNumOwnersUpdatedAtField } from './background';
+import { createInfuraApiKeys } from './scripts/createInfuraKeys';
 
 export async function main(): Promise<void> {
-  // const address = '0x1a92f7381b9f03921564a437210bb9396471050c'.toLowerCase();
+  // const address = '0x9e8b85dbb082255bd81c5b25323b694bc799a616'.toLowerCase();
   // const chainId = '1';
+  const requests = 0;
+  try{
 
-  // await collectionService.createCollection(address, chainId, true);
-  const chainId = '1';
-  const snap = await firebase.db.collection('collections').where('state.create.step', '==', 'complete').get();
-  for (const doc of snap.docs) {
-    const data = doc.data();
-    const address = data.address as string;
-    console.log('fetching data for', address);
-    await tokensDataToFile(chainId, address.toLowerCase());
-  } 
+  /**
+   * must be run to add numOwnersUpdatedAt field to existing collections 
+   * that don't yet have this field
+   */
+  // await addNumOwnersUpdatedAtField();
+
+    // const numKeys = 45;
+    // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';
+    // await createInfuraApiKeys(numKeys, namePrefix);
+
+  }catch(err) {
+    console.log(`Failed at ${requests}`)
+    console.error(err);
+  }
+
 }
+

@@ -9,6 +9,10 @@ results*.json
 creds/*
 
 
+# output
+dist/*
+
+
 # Logs
 logs
 *.log

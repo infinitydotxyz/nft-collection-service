@@ -8,7 +8,13 @@ export enum TokenStandard {
   ERC1155 = 'ERC1155'
 }
 
-export type HistoricalLogs = Readable | ethers.Event[] | Generator<Promise<ethers.Event[]>, void, unknown>;
+export interface HistoricalLogsChunk {
+  events: ethers.Event[];
+  fromBlock: number;
+  toBlock: number;
+  progress: number;
+}
+export type HistoricalLogs = Readable | ethers.Event[] | Generator<Promise<HistoricalLogsChunk>, void, unknown>;
 
 export interface HistoricalLogsOptions {
   fromBlock?: number;

@@ -54,16 +54,16 @@ export default class Firebase {
     return tokensCollectionRef.doc(tokenId);
   }
 
-  async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {
+  async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {
     let attempts = 0;
     while (true) {
       attempts += 1;
       try {
-        const remoteFile = this.bucket.file(path);
+        let remoteFile = this.bucket.file(path);
         const existsArray = await remoteFile.exists();
         if (existsArray && existsArray.length > 0 && !existsArray[0]) {
-          return await new Promise<File>((resolve, reject) => {
-            Readable.from(buffer).pipe(
+          remoteFile = await new Promise<File>((resolve, reject) => {
+            readable.pipe(
               remoteFile
                 .createWriteStream({
                   metadata: {
@@ -74,11 +74,13 @@ export default class Firebase {
                   reject(err);
                 })
                 .on('finish', () => {
-                  console.log(`uploaded: ${remoteFile.name}`);
+                  // console.log(`uploaded: ${remoteFile.name}`);
                   resolve(remoteFile);
                 })
             );
           });
+
+          return remoteFile;
         }
         return remoteFile;
       } catch (err) {
@@ -87,5 +89,10 @@ export default class Firebase {
         }
       }
     }
+
+  }
+
+  async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {
+    return await this.uploadReadable(Readable.from(buffer), path, contentType);
   }
 }
