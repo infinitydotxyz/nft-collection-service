@@ -181,13 +181,13 @@ export default class Collection {
                 void emitter.emit('progress', { progress, step });
               });
 
-              const { failed, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(
+              const { failedWithUnknownErrors, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(
                 mintEmitter,
                 resumeFromBlock ?? collection.deployedAtBlock
               );
 
-              if (failed > 0) {
-                throw new CollectionMintsError(`Failed to get mints for ${failed} tokens`); // get all blocks again
+              if (failedWithUnknownErrors > 0) {
+                throw new CollectionMintsError(`Failed to get mints for ${failedWithUnknownErrors} tokens with unknown errors`); // get all blocks again
               } else if (!gotAllBlocks) {
                 throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock);
               }
@@ -443,7 +443,7 @@ export default class Collection {
     resumeFromBlock?: number
   ): Promise<{
     tokens: MintToken[];
-    failed: number;
+    failedWithUnknownErrors: number;
     gotAllBlocks: boolean;
     startBlock?: number;
     lastSuccessfulBlock?: number;
@@ -550,7 +550,7 @@ export default class Collection {
 
     return {
       tokens,
-      failed: unknownErrors,
+      failedWithUnknownErrors: unknownErrors,
       gotAllBlocks,
       startBlock: startBlock,
       lastSuccessfulBlock
