@@ -25,8 +25,8 @@ export default class Erc721Contract extends AbstractContract {
 
   decodeTransfer(event: ethers.Event): { from: string; to: string; tokenId: string } {
     const args = event?.args;
-    const from = args?.[0];
-    const to = args?.[1];
+    const from = (args?.[0] as string) ?.toLowerCase?.();
+    const to = (args?.[1] as string)?.toLowerCase?.();
     const tokenId = (args?.[2] as BigNumber)?.toString?.();
 
     if (!to || !from || !tokenId) {
@@ -142,6 +142,9 @@ export default class Erc721Contract extends AbstractContract {
     return deployer;
   }
 
+  /**
+   * note, this only works if the contract is ownable
+   */
   async getContractCreationTx(): Promise<ethers.Event> {
     const filter = this.contract.filters.OwnershipTransferred(NULL_ADDR);
     // eslint-disable-next-line no-useless-catch

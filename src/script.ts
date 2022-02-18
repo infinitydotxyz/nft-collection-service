@@ -1,12 +1,26 @@
-import { tokensDataToFile } from './exporters/csv';
-import { collectionService } from './container';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { firebase } from './container';
+import BatchHandler from './models/BatchHandler';
+import { addNumOwnersUpdatedAtAndDataExportedFields } from './background';
+import { createInfuraApiKeys } from './scripts/createInfuraKeys';
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
-  const address = '0x1a92f7381b9f03921564a437210bb9396471050c'.toLowerCase();
-  const chainId = '1';
-
-  await collectionService.createCollection(address, chainId, true);
+  // const address = '0x9e8b85dbb082255bd81c5b25323b694bc799a616'.toLowerCase();
   // const chainId = '1';
-  // const address = '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'.toLowerCase();
-  // await tokensDataToFile(chainId, address);
+  const requests = 0;
+  try {
+    /**
+     * must be run to add numOwnersUpdatedAtAndDataExported fields to existing collections
+     * that don't yet have these fields
+     */
+    await addNumOwnersUpdatedAtAndDataExportedFields();
+
+    // const numKeys = 45;
+    // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';
+    // await createInfuraApiKeys(numKeys, namePrefix);
+  } catch (err) {
+    console.log(`Failed at ${requests}`);
+    console.error(err);
+  }
 }
