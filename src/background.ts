@@ -47,7 +47,7 @@ export function main(): void {
         log('Complete');
       } catch (err) {
         log('Failed');
-        console.error(err);
+        console.error(chalk.red(err));
       }
     };
 
@@ -115,7 +115,7 @@ export async function updateCollectionNumOwners(emitter: BackgroundTaskEmitter):
   }
 
   void emitter.emit('update', {
-    message: `Successfully updated: ${successful} collections. Failed to updated: ${failed} collections`
+    message: `Successfully updated: ${successful} collections. Failed to update: ${failed} collections`
   });
 }
 

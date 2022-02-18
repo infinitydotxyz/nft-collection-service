@@ -1,5 +1,5 @@
 import { writeFileSync } from 'fs';
-import { tokenDao } from '../container';
+import { firebase, tokenDao } from '../container';
 
 export const tokensDataToFile = async (chainId: string, collection: string): Promise<void> => {
   const tokens = await tokenDao.getAllTokens(chainId, collection);
@@ -11,3 +11,14 @@ export const tokensDataToFile = async (chainId: string, collection: string): Pro
   }
   writeFileSync(`./${collection}.csv`, lines);
 };
+
+export async function exportCollections():Promise<void> {
+  const snap = await firebase.db.collection('collections').where('state.create.step', '==', 'complete').get();
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    const address = data.address as string;
+    const chainId = data.chainId as string;
+    console.log('fetching data for', address);
+    await tokensDataToFile(chainId, address.toLowerCase());
+  }
+}

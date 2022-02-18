@@ -27,6 +27,7 @@ export default class CollectionService {
   }
 
   async createCollection(address: string, chainId: string, hasBlueCheck?: boolean): Promise<void> {
+    address = address.toLowerCase();
     return await this.taskQueue.add(async () => {
       const hex = address.split('0x')[1].substring(0, 6);
       const color = chalk.hex(`#${hex}`);
@@ -35,7 +36,7 @@ export default class CollectionService {
 
       const contract = await this.contractFactory.create(address, chainId);
       const collection = new Collection(contract, metadataClient, this.collectionMetadataProvider);
-      const collectionDoc = firebase.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
+      const collectionDoc = firebase.getCollectionDocRef(chainId, address);
 
       const batch = new BatchHandler();
 

@@ -53,10 +53,24 @@ export enum CreationFlow {
   Complete = 'complete'
 }
 
+type CollectionCreatorType = Pick<
+  CollectionType,
+  | 'chainId'
+  | 'address'
+  | 'tokenStandard'
+  | 'hasBlueCheck'
+  | 'deployedAt'
+  | 'deployer'
+  | 'deployedAtBlock'
+  | 'owner'
+  | 'state'
+>;
+type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
+type CollectionMintsType = CollectionMetadataType;
+type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
+
 export default class Collection {
   private readonly contract: Contract;
-
-  private readonly tokenMetadataClient: MetadataClient;
 
   private readonly collectionMetadataProvider: CollectionMetadataProvider;
 
@@ -66,7 +80,6 @@ export default class Collection {
     collectionMetadataProvider: CollectionMetadataProvider
   ) {
     this.contract = contract;
-    this.tokenMetadataClient = tokenMetadataClient;
     this.collectionMetadataProvider = collectionMetadataProvider;
   }
 
@@ -84,26 +97,12 @@ export default class Collection {
     any,
     Array<Partial<Token>> | undefined
   > {
-    type CollectionCreatorType = Pick<
-      CollectionType,
-      | 'chainId'
-      | 'address'
-      | 'tokenStandard'
-      | 'hasBlueCheck'
-      | 'deployedAt'
-      | 'deployer'
-      | 'deployedAtBlock'
-      | 'owner'
-      | 'state'
-    >;
-    type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
-    type CollectionMintsType = CollectionMetadataType;
-    type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
+
     const allTokens: Token[] = [];
 
-    let step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
+    let step: CreationFlow = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
     try {
       while (true) {
@@ -139,10 +138,12 @@ export default class Collection {
               const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(
                 this.contract.address
               );
+
               const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
               if (!slug) {
                 throw new Error('Failed to find collection slug');
               }
+
               const collectionMetadataCollection: CollectionMetadataType = {
                 ...(collection as CollectionCreatorType),
                 metadata: collectionMetadata,
@@ -230,15 +231,15 @@ export default class Collection {
 
               for (const token of tokens) {
                 const nft = new Nft(token as MintToken, this.contract);
-                const generator = nft.refreshToken();
+                const iterator = nft.refreshToken();
 
                 const tokenWithMetadataPromise = new Promise<Token>(async (resolve, reject) => {
                   let tokenWithMetadata = token;
                   try {
-                    let prevProgress = 0;
-                    for await (const { token: intermediateToken, failed, progress: newProgress } of generator) {
-                      progress = progress - prevProgress + newProgress;
-                      prevProgress = newProgress
+                    let prevTokenProgress = 0;
+                    for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {
+                      progress = progress - prevTokenProgress + tokenProgress;
+                      prevTokenProgress = tokenProgress;
 
                       void emitter.emit('progress', {
                         step: step,
@@ -254,7 +255,7 @@ export default class Collection {
                       throw new Error('Failed to refresh token');
                     }
 
-                    progress = progress - prevProgress + 1;
+                    progress = progress - prevTokenProgress + 1;
                     void emitter.emit('progress', {
                       step: step,
                       progress: Math.floor((progress / numTokens) * 100 * 100) / 100
@@ -263,7 +264,7 @@ export default class Collection {
                     resolve(tokenWithMetadata as Token);
                   } catch (err) {
                     console.error(err);
-                    resolve(tokenWithMetadata as Token)
+                    resolve(tokenWithMetadata as Token);
                   }
                 });
 
@@ -284,7 +285,6 @@ export default class Collection {
               };
               collection = collectionMetadataCollection; // update collection
               yield { collection };
-
             } catch (err: any) {
               // if any token fails we should throw an error
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
@@ -305,13 +305,15 @@ export default class Collection {
 
               const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
               const numNfts = tokens.length;
-              const invalidTokens = tokens.filter((item) => item.state?.metadata.error !== undefined || item.state?.metadata.step !== RefreshTokenFlow.Complete);
-              
+              const invalidTokens = tokens.filter(
+                (item) =>
+                  item.state?.metadata.error !== undefined || item.state?.metadata.step !== RefreshTokenFlow.Complete
+              );
 
               if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
                 throw new CollectionTokenMetadataError(
-                  `Recevied invalid tokens. Expected: ${expectedNumNfts} Received: ${numNfts}. Invalid tokens: ${invalidTokens.length}`
-                ); 
+                  `Received invalid tokens. Expected: ${expectedNumNfts} Received: ${numNfts}. Invalid tokens: ${invalidTokens.length}`
+                );
               }
 
               const attributes = this.contract.aggregateTraits(tokens) ?? {};
@@ -527,13 +529,13 @@ export default class Collection {
       if (result.status === 'fulfilled' && !('error' in result.value)) {
         tokens.push(result.value);
       } else {
-        unknownErrors += 1; 
+        unknownErrors += 1;
 
-        if(result.status === 'fulfilled' && ('error' in result.value)) {
-          console.log((result.value as any).error)
+        if (result.status === 'fulfilled' && 'error' in result.value) {
+          console.log((result.value as any).error);
         }
         console.error('unknown error occurred while getting token');
-        console.log(result)
+        console.log(result);
         if (result.status === 'rejected') {
           console.error(result.reason);
         }
