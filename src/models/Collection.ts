@@ -271,7 +271,13 @@ export default class Collection {
                 tokenPromises.push(tokenWithMetadataPromise);
               }
 
-              await Promise.all(tokenPromises);
+              const results = await Promise.allSettled(tokenPromises);
+              for(const result of results) {
+                if(result.status === 'rejected') {
+                  const message = typeof result?.reason === 'string' ? result.reason  : 'Failed to refresh token';
+                  throw new Error(message);
+                }
+              }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
                 ...(collection as CollectionMintsType),
