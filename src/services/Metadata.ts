@@ -5,6 +5,7 @@ import { detectContentType } from '../utils/sniff';
 import { Readable } from 'stream';
 import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
+import NotFoundError from '../models/errors/NotFound';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -13,6 +14,7 @@ enum Protocol {
 }
 
 type RequestTransformer = ((options: Options) => void) | null;
+
 
 interface MetadataClientOptions {
   protocols: Record<Protocol, { transform: RequestTransformer; ipfsPathFromUrl: (url: string | URL) => string }>;
@@ -147,6 +149,9 @@ export default class MetadataClient {
 
           return response ;
 
+        case 404: 
+          throw new NotFoundError("Server responded with status code 404");
+
         case 429:
           throw new Error('Rate limited');
 
@@ -154,7 +159,7 @@ export default class MetadataClient {
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
     } catch (err: any) {
-      if (attempt > 5) {
+      if (err instanceof NotFoundError || attempt > 5) {
         console.log(`Failed to get metadata. URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
@@ -162,3 +167,5 @@ export default class MetadataClient {
     }
   }
 }
+
+
