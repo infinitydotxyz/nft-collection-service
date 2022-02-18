@@ -1,7 +1,6 @@
-import got, {
+import {
     CacheError,
     CancelError,
-    Got,
     MaxRedirectsError,
     ParseError,
     ReadError,
