@@ -123,7 +123,7 @@ export async function addNumOwnersUpdatedAtField(): Promise<void> {
   try {
     const batch = new BatchHandler();
 
-    const collections = await firebase.db.collection('collections').get();
+    const collections = await firebase.db.collection('collections').limit(1000).get();
     collections.forEach((doc) => {
       const collection = doc.data();
       if (!collection.numOwnersUpdatedAt) {
