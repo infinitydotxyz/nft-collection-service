@@ -540,19 +540,16 @@ export default class Collection {
     const tokens: MintToken[] = [];
     let unknownErrors = 0;
     for (const result of results) {
-      if (result.status === 'fulfilled' && result.value?.state?.metadata && !('error' in result.value?.state?.metadata)) {
-        tokens.push(result.value);
+      if (result.status === 'fulfilled') {
+        if (result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
+          unknownErrors += 1;
+          console.error('unknown error occurred while getting token');
+        } else {
+          tokens.push(result.value);
+        }
       } else {
         unknownErrors += 1;
-        console.error('unknown error occurred while getting token');
-
-        if (result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
-          console.log(result.value.state?.metadata.error);
-        } else if (result.status === 'rejected') {
-          console.error(result.reason);
-        } else {
-          console.log(result.value);
-        }
+        console.error(result.reason);
       }
     }
 
