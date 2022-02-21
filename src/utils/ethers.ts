@@ -1,16 +1,10 @@
-import { ethers } from 'ethers';
-import { randomItem, sleep } from './';
-import { JSON_RPC_MAINNET_KEYS } from '../constants';
+import { sleep } from './';
+import { logger, providers } from '../container'; 
+import { JsonRpcProvider } from '@ethersproject/providers';
 
-export function getProviderByChainId(chainId: string): ethers.providers.JsonRpcProvider {
-  switch (chainId) {
-    case '1':
-      const JSON_RPC_MAINNET = randomItem(JSON_RPC_MAINNET_KEYS);
-      const provider = new ethers.providers.JsonRpcProvider(JSON_RPC_MAINNET);
-      return provider;
-    default:
-      throw new Error(`Provider not available for chain id: ${chainId}`);
-  }
+
+export function getProviderByChainId(chainId: string): JsonRpcProvider {
+  return providers.getProviderByChainId(chainId)
 }
 
 enum JsonRpcError {
@@ -36,6 +30,7 @@ export function ethersErrorHandler<Response>(
         const res = await request();
         return res;
       } catch (err: any) {
+        logger.error('Failed ethers request', err);
         if (attempts > maxAttempts) {
           throw err;
         }
@@ -78,13 +73,13 @@ export function ethersErrorHandler<Response>(
               return await attempt(attempts);
 
             default:
-              console.log(`Encountered unknown error code ${err.code}`);
+              logger.log(`Encountered unknown error code ${err.code}`);
               throw err;
           }
         }
 
-        console.log('failed to get code from ethers error');
-        console.log(err);
+        logger.log('failed to get code from ethers error');
+        logger.log(err);
 
         return await attempt(attempts);
       }

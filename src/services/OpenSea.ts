@@ -6,6 +6,7 @@ import { CollectionMetadata } from '../types/Collection.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
+import { logger } from '../container';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -152,6 +153,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
             throw new Error(`Unknown status code: ${res.statusCode}`);
         }
       } catch (err) {
+        logger.error('Failed OpenSea request', err)
         const handlerRes = gotErrorHandler(err);
         if ('retry' in handlerRes) {
           await sleep(handlerRes.delay);

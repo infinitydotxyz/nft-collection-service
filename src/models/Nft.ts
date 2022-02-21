@@ -14,11 +14,10 @@ import {
   RefreshTokenMetadataError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
-import { firebase, metadataClient, moralis } from '../container';
+import { firebase, metadataClient, moralis, logger } from '../container';
 import { createHash } from 'crypto';
 import Moralis from '../services/Moralis';
 import PQueue from 'p-queue';
-import { TOKEN_URI_CONCURRENCY } from '../constants';
 
 export default class Nft {
   private token: Partial<TokenType>;
@@ -29,13 +28,13 @@ export default class Nft {
 
   private readonly tokenUriQueue: PQueue;
 
-  constructor(token: MintToken & Partial<TokenType>, contract: Contract) {
+  constructor(token: MintToken & Partial<TokenType>, contract: Contract, tokenUriQueue: PQueue) {
     this.token = token;
     this.contract = contract;
 
     this.moralis = moralis;
 
-    this.tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY});
+    this.tokenUriQueue = tokenUriQueue;
   }
 
   public async *refreshToken(
@@ -80,6 +79,7 @@ export default class Nft {
 
               yield { token: this.token, progress: 0.1 };
             } catch (err: any) {
+              logger.error(`Failed to get token uri. Contract: ${this.contract.address} Token: ${mintToken.tokenId}`, err);
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token uri';
               throw new RefreshTokenUriError(message);
             }
@@ -112,6 +112,7 @@ export default class Nft {
 
               yield { token: this.token, progress: 0.3 };
             } catch (err: any) {
+              logger.error('Failed to get token metadata', err);
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
               throw new RefreshTokenMetadataError(message);
@@ -175,6 +176,7 @@ export default class Nft {
 
               yield { token: this.token, progress: 1 };
             } catch (err: RefreshTokenMetadataError | any) {
+              logger.error('Failed to get token image', err);
               if (err instanceof RefreshTokenMetadataError) {
                 throw err;
               }
@@ -217,7 +219,7 @@ export default class Nft {
             : "Failed to refresh metadata. It's likely errors are not being handled correctly.";
         stepToSave = RefreshTokenFlow.Uri; // restart
         error = new RefreshTokenError(stepToSave, message);
-        console.error(err);
+        logger.error(err);
       }
 
       const token: Partial<TokenType> = {

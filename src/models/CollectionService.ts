@@ -4,6 +4,7 @@ import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import { COLLECTION_TASK_CONCURRENCY } from '../constants';
 import { createCollection } from '../workers/collectionRunner';
+import { logger } from '../container';
 
 @singleton()
 export default class CollectionService {
@@ -36,8 +37,7 @@ export default class CollectionService {
       try{
         await createCollection(address, chainId, hasBlueCheck);
       }catch(err) {
-        console.log('Worker errored...');
-        console.error(err);
+        logger.error('Worker errored...', err);
       }
     })
   }

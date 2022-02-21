@@ -1,11 +1,12 @@
 import got, { Got, Response } from 'got';
-import { TokenStandard } from 'models/contracts/Contract.interface';
+import { TokenStandard } from '../models/contracts/Contract.interface';
 import { sleep } from '../utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
 import { TokenMetadata } from 'types/Token.interface';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
+import { logger } from '../container';
 
 interface Web3Response<T> {
   total: number;
@@ -145,6 +146,7 @@ export default class Moralis {
             throw new Error(`Moralis client received unknown status code ${res.statusCode}`);
         }
       } catch (err) {
+        logger.error('Failed moralis request', err);
         const handlerRes = gotErrorHandler(err);
         if ('retry' in handlerRes) {
           await sleep(handlerRes.delay);

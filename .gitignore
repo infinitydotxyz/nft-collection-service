@@ -11,6 +11,7 @@ creds/*
 
 # output
 dist/*
+errors.txt
 
 
 # Logs

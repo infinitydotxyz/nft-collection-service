@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { isMainThread, parentPort } from 'worker_threads';
 import chalk from 'chalk';
 import Collection, { CreationFlow } from '../models/Collection';
-import { firebase, metadataClient, tokenDao } from '../container';
+import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { MintToken, Token } from '../types/Token.interface';
@@ -12,7 +12,7 @@ import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 
 async function createCollection(): Promise<void> {
   if (isMainThread) {
-    console.log('main thread');
+    logger.log('main thread');
   } else {
     const [, , address, chainId, hasBlueCheckArg] = process.argv;
     const hasBlueCheck = hasBlueCheckArg === 'true';
@@ -122,7 +122,7 @@ async function createCollection(): Promise<void> {
             attempt += 1;
             if (attempt >= 3) {
               log(`Failed to complete collection: ${chainId}:${address}`);
-              console.error(collectionData.state?.create.error);
+              logger.error(collectionData.state?.create.error);
               return;
             }
 
@@ -155,7 +155,7 @@ async function createCollection(): Promise<void> {
         const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
         const errorMessage = `Collection ${chainId}:${address} failed to complete due to unknown error: ${message}`;
         log(errorMessage);
-        console.error(err);
+        logger.error(err);
         batch.add(
           collectionDoc,
           { state: { create: { step: '', error: { message: errorMessage } } } },
