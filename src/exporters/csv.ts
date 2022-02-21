@@ -1,5 +1,5 @@
 import { writeFileSync } from 'fs';
-import { firebase, tokenDao } from '../container';
+import { firebase, tokenDao, logger } from '../container';
 
 export const tokensDataToFile = async (chainId: string, collection: string): Promise<void> => {
   const tokens = await tokenDao.getAllTokens(chainId, collection);
@@ -18,7 +18,7 @@ export async function exportCollections():Promise<void> {
     const data = doc.data();
     const address = data.address as string;
     const chainId = data.chainId as string;
-    console.log('fetching data for', address);
+    logger.log('fetching data for', address);
     await tokensDataToFile(chainId, address.toLowerCase());
   }
 }

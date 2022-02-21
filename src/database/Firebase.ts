@@ -5,6 +5,7 @@ import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { logger } from '../container';
 
 @singleton()
 export default class Firebase {
@@ -71,10 +72,11 @@ export default class Firebase {
                   }
                 })
                 .on('error', (err) => {
+                  logger.error(err);
                   reject(err);
                 })
                 .on('finish', () => {
-                  // console.log(`uploaded: ${remoteFile.name}`);
+                  // logger.log(`uploaded: ${remoteFile.name}`);
                   resolve(remoteFile);
                 })
             );

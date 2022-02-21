@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { firebase } from './container';
+import { firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import { addNumOwnersUpdatedAtAndDataExportedFields } from './background';
 import { createInfuraApiKeys } from './scripts/createInfuraKeys';
@@ -19,8 +19,11 @@ export async function main(): Promise<void> {
     // const numKeys = 45;
     // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';
     // await createInfuraApiKeys(numKeys, namePrefix);
+    logger.log('Hello world');
+    logger.error(new Error("hello world error"));
+
   } catch (err) {
-    console.log(`Failed at ${requests}`);
-    console.error(err);
+    logger.log(`Failed at ${requests}`);
+    logger.error(err);
   }
 }

@@ -42,7 +42,8 @@ module.exports = {
   rules: {
     'no-case-declarations': 0,
     'restrict-template-expressions': 0,
-    'no-async-promise-executor': 0
+    'no-async-promise-executor': 0,
+    'no-console': 2
   },
   ignorePatterns: ['/dist/**', '**/node_modules/**']
 };

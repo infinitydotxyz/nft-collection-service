@@ -1,10 +1,11 @@
 import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
-import { Readable } from 'node:stream';
+import { Readable } from 'stream';
 import { CollectionAttributes } from '../../types/Collection.interface';
 import { Token } from '../../types/Token.interface';
 import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
+import { logger } from '../../container';
 
 export interface LogRequestOptions {
   fromBlock?: number;
@@ -78,6 +79,7 @@ export default abstract class Contract implements IContract {
       const owner: string = (await this.contract.owner()) ?? '';
       return owner?.toLowerCase() ?? '';
     } catch (err: any) {
+      logger.error('failed to get collection owner', err);
       if ('code' in err) {
         if (err.code === 'CALL_EXCEPTION') {
           return ''; // contract is not ownable, consider the deployer as the owner
@@ -116,6 +118,7 @@ export default abstract class Contract implements IContract {
         try {
           maxBlock = (await provider.getBlockNumber()) - MAX_UNCLE_ABLE_BLOCKS;
         } catch (err) {
+          logger.error('failed to get current block number', err);
           throw new Error('failed to get current block number');
         }
       } else {
@@ -183,6 +186,7 @@ export default abstract class Contract implements IContract {
               events
             };
           }catch(err) {
+            logger.error('Failed to optimize logs query', err);
             pagesWithoutResults = 0;
           }
         }

@@ -7,6 +7,7 @@ import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
 import NotFoundError from '../models/errors/NotFound';
 import { normalize } from 'path';
+import {logger } from '../container';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -82,7 +83,6 @@ export default class MetadataClient {
       retry: {
         limit: 0
       },
-      http2: true,
       hooks: {
         init: [
           (options) => {
@@ -143,7 +143,7 @@ export default class MetadataClient {
           return response;
 
         case 404: 
-          throw new NotFoundError("Server responded with status code 404");
+          throw new NotFoundError(`Server responded with status code 404 Url: ${response.requestUrl}`);
 
         case 429:
           throw new Error('Rate limited');
@@ -152,8 +152,9 @@ export default class MetadataClient {
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
     } catch (err: any) {
+      logger.error('Failed to get metadata', err);
       if (err instanceof NotFoundError || attempt > 5) {
-        console.log(`Failed to get metadata. URL: ${err.response.requestUrl} Original URL: ${url.href}. Error: ${err?.message}`);
+        logger.log(`Failed to get metadata. Original URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
       return await this.get(url, priority, attempt);

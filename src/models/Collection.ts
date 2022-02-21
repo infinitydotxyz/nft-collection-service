@@ -6,7 +6,7 @@ import { ImageToken, MintToken, RefreshTokenFlow, Token } from '../types/Token.i
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
-import { NULL_ADDR } from '../constants';
+import { NULL_ADDR, TOKEN_URI_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
@@ -18,6 +18,8 @@ import {
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
+import { logger } from '../container';
+import PQueue from 'p-queue';
 
 export enum CreationFlow {
   /**
@@ -127,6 +129,7 @@ export default class Collection {
               collection = initialCollection; // update collection
               yield { collection };
             } catch (err: any) {
+              logger.error('Failed to get collection creator', err);
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection creator';
               throw new CollectionCreatorError(message);
@@ -161,6 +164,7 @@ export default class Collection {
               collection = collectionMetadataCollection; // update collection
               yield { collection };
             } catch (err: any) {
+              logger.error('Failed to get collection metadata', err);
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection metadata';
               throw new CollectionMetadataError(message);
@@ -210,6 +214,7 @@ export default class Collection {
               collection = collectionMintsCollection;
               yield { collection }; // update collection
             } catch (err: any) {
+              logger.error('Failed to get collection mints', err);
               if (err instanceof CollectionMintsError) {
                 throw err;
               }
@@ -234,8 +239,9 @@ export default class Collection {
 
               const tokenPromises: Array<Promise<ImageToken>> = [];
 
+              const tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY});
               for (const token of tokens) {
-                const nft = new Nft(token as MintToken, this.contract);
+                const nft = new Nft(token as MintToken, this.contract, tokenUriQueue);
                 const iterator = nft.refreshToken();
 
                 const tokenWithMetadataPromise = new Promise<Token>(async (resolve, reject) => {
@@ -268,7 +274,7 @@ export default class Collection {
                     void emitter.emit('token', tokenWithMetadata as Token);
                     resolve(tokenWithMetadata as Token);
                   } catch (err) {
-                    console.error(err);
+                    logger.error(err);
                     resolve(tokenWithMetadata as Token);
                   }
                 });
@@ -297,6 +303,7 @@ export default class Collection {
               collection = collectionMetadataCollection; // update collection
               yield { collection };
             } catch (err: any) {
+              logger.error('Failed to get collection tokens', err);
               // if any token fails we should throw an error
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
               throw new CollectionTokenMetadataError(message);
@@ -331,8 +338,8 @@ export default class Collection {
               const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
               for (const token of tokensWithRarity) {
                 void emitter.emit('token', token).catch((err) => {
-                  console.log('error while emitting token');
-                  console.error(err);
+                  logger.log('error while emitting token');
+                  logger.error(err);
                   // safely ignore
                 });
               }
@@ -354,6 +361,7 @@ export default class Collection {
 
               yield { collection };
             } catch (err: any) {
+              logger.error('Failed to aggregate collection metadata', err);
               if (err instanceof CollectionTokenMetadataError) {
                 throw err;
               }
@@ -530,8 +538,8 @@ export default class Collection {
         tokenPromises = [...tokenPromises, ...chunkPromises];
       }
     } catch (err) {
-      console.log('failed to get all mints for a collection');
-      console.error(err);
+      logger.log('failed to get all mints for a collection');
+      logger.error(err);
       gotAllBlocks = false; // failed to get all mints
     }
 
@@ -540,16 +548,14 @@ export default class Collection {
     const tokens: MintToken[] = [];
     let unknownErrors = 0;
     for (const result of results) {
-      if (result.status === 'fulfilled') {
-        if (result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
-          unknownErrors += 1;
-          console.error('unknown error occurred while getting token');
-        } else {
-          tokens.push(result.value);
-        }
+      if(result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
+        logger.log(result.value.state?.metadata.error);
+      } else if (result.status === 'fulfilled') {
+        tokens.push(result.value);
       } else {
         unknownErrors += 1;
-        console.error(result.reason);
+        logger.error('unknown error occurred while getting token');
+        logger.error(result.reason);
       }
     }
 
