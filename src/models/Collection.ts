@@ -239,7 +239,7 @@ export default class Collection {
 
               const tokenPromises: Array<Promise<ImageToken>> = [];
 
-              const tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY, interval: 2000, intervalCap: TOKEN_URI_CONCURRENCY});
+              const tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY});
               for (const token of tokens) {
                 const nft = new Nft(token as MintToken, this.contract, tokenUriQueue);
                 const iterator = nft.refreshToken();
