@@ -87,8 +87,10 @@ async function createCollection(): Promise<void> {
         reason: data.error,
         timestamp: Date.now()
       };
-      const tokenDoc = collectionDoc.collection('nfts').doc(data.tokenId);
-      batch.add(tokenDoc, error, { merge: true });
+      if(data?.tokenId) {
+        const tokenDoc = collectionDoc.collection('nfts').doc(data.tokenId);
+        batch.add(tokenDoc, error, { merge: true });
+      }
     });
 
     let iterator = collection.createCollection(currentCollection, emitter, hasBlueCheck);

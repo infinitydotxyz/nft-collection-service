@@ -82,7 +82,6 @@ export default class MetadataClient {
       retry: {
         limit: 0
       },
-      http2: true,
       hooks: {
         init: [
           (options) => {
