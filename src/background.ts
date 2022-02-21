@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Emittery from 'emittery';
 import { ONE_HOUR } from './constants';
-import { collectionDao, firebase } from './container';
+import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
 import { Collection } from './types/Collection.interface';
@@ -29,7 +29,7 @@ export function main(): void {
   const runTask = (task: BackgroundTask): void => {
     const emitter: BackgroundTaskEmitter = new Emittery();
     const log = (message: string): void => {
-      console.log(chalk.blue(`[Background Task][${task.name}][${task.interval / 1000}s interval] ${message}`));
+      logger.log(chalk.blue(`[Background Task][${task.name}][${task.interval / 1000}s interval] ${message}`));
     };
 
     emitter.on('update', (update) => {
@@ -47,7 +47,7 @@ export function main(): void {
         log('Complete');
       } catch (err) {
         log('Failed');
-        console.error(chalk.red(err));
+        logger.error(chalk.red(err));
       }
     };
 
@@ -136,7 +136,7 @@ export async function addNumOwnersUpdatedAtAndDataExportedFields(): Promise<void
 
     await batch.flush();
   } catch (err) {
-    console.log('Failed to commit batch adding numOwnersUpdatedAt field to collections');
-    console.error(err);
+    logger.log('Failed to commit batch adding numOwnersUpdatedAt field to collections');
+    logger.error(err);
   }
 }

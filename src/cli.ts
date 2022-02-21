@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
-import { collectionService } from './container';
+import { collectionService, logger } from './container';
 
 enum Task {
   CreateCollection = 'create'
@@ -73,11 +73,11 @@ async function addressMode(addressArg: string): Promise<void> {
   }
 
   try {
-    console.log(`Starting Task: ${task} Address: ${address} Chain Id: ${chainId} `);
+    logger.log(`Starting Task: ${task} Address: ${address} Chain Id: ${chainId} `);
     await method();
   } catch (err) {
-    console.log(`Failed to complete task`);
-    console.error(err);
+    logger.log(`Failed to complete task`);
+    logger.error(err);
   }
 }
 
@@ -97,7 +97,7 @@ async function fileMode(fileArg: string): Promise<void> {
     hasBlueCheck = parseArg(hasBlueCheckArg) === 'true';
   }
 
-  console.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`);
+  logger.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`);
 
   const promises: Array<Promise<void>> = [];
   for (const item of data) {

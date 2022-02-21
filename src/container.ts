@@ -5,6 +5,12 @@ import TokenDao from './dao/Token.dao';
 import CollectionDao from './dao/Collection.dao';
 import CollectionService from './models/CollectionService';
 import Moralis from './services/Moralis';
+import Logger from './utils/Logger';
+import Providers from './models/Providers';
+
+
+export const logger: Logger = container.resolve(Logger);
+export const providers: Providers = container.resolve(Providers);
 
 export const firebase: Firebase = container.resolve(Firebase);
 export const metadataClient: MetadataClient = container.resolve(MetadataClient);

@@ -1,0 +1,216 @@
+Failed to get collection creator [
+  Error: failed to get contract creator tx for: 0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb on chain: 1
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:135:23)
+      at Generator.next (<anonymous>)
+      at fulfilled (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:5:58)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+Failed to get collection creator [
+  Error: failed to get contract creator tx for: 0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb on chain: 1
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:135:23)
+      at Generator.next (<anonymous>)
+      at fulfilled (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:5:58)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+Failed to get collection creator [
+  Error: failed to get contract creator tx for: 0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb on chain: 1
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:135:23)
+      at Generator.next (<anonymous>)
+      at fulfilled (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:5:58)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+{
+  message: 'failed to get contract creator tx for: 0xa3aee8bce55beea1951ef834b99f3ac60d1abeeb on chain: 1',
+  discriminator: 'collection-creator'
+}
+Error: missing revert data in call exception (error={"reason":"missing response","code":"SERVER_ERROR","requestBody":"{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f\",\"data\":\"0xc87b56dd0000000000000000000000000000000000000000000000000000000000000c26\"},\"latest\"],\"id\":2583,\"jsonrpc\":\"2.0\"}","requestMethod":"POST","serverError":{"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"54.83.3.10","port":443},"url":"https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s"}, data="0x", code=CALL_EXCEPTION, version=providers/5.5.3)
+    at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+    at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+    at checkError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:76:16)
+    at JsonRpcProvider.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:659:47)
+    at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:48:23)
+    at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:29:53)
+    at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:21:65)
+    at runMicrotasks (<anonymous>)
+    at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+  reason: 'missing revert data in call exception',
+  code: 'CALL_EXCEPTION',
+  error: Error: missing response (requestBody="{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f\",\"data\":\"0xc87b56dd0000000000000000000000000000000000000000000000000000000000000c26\"},\"latest\"],\"id\":2583,\"jsonrpc\":\"2.0\"}", requestMethod="POST", serverError={"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"54.83.3.10","port":443}, url="https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s", code=SERVER_ERROR, version=web/5.5.1)
+      at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+      at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+      at /Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:248:36
+      at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:33:23)
+      at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:14:53)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+    reason: 'missing response',
+    code: 'SERVER_ERROR',
+    requestBody: '{"method":"eth_call","params":[{"to":"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f","data":"0xc87b56dd0000000000000000000000000000000000000000000000000000000000000c26"},"latest"],"id":2583,"jsonrpc":"2.0"}',
+    requestMethod: 'POST',
+    serverError: Error: connect ETIMEDOUT 54.83.3.10:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1161:16) {
+      errno: -60,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '54.83.3.10',
+      port: 443
+    },
+    url: 'https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s'
+  },
+  data: '0x'
+}
+Failed to get token uri. Contract: 0x9a534628b4062e123ce7ee2222ec20b86e16ca8f Token: 3110 [
+  Error: failed to get token uri
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:214:23)
+      at Generator.throw (<anonymous>)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+Error: missing revert data in call exception (error={"reason":"missing response","code":"SERVER_ERROR","requestBody":"{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f\",\"data\":\"0xc87b56dd00000000000000000000000000000000000000000000000000000000000011c7\"},\"latest\"],\"id\":4202,\"jsonrpc\":\"2.0\"}","requestMethod":"POST","serverError":{"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"54.160.49.90","port":443},"url":"https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s"}, data="0x", code=CALL_EXCEPTION, version=providers/5.5.3)
+    at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+    at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+    at checkError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:76:16)
+    at JsonRpcProvider.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:659:47)
+    at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:48:23)
+    at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:29:53)
+    at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:21:65)
+    at runMicrotasks (<anonymous>)
+    at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+  reason: 'missing revert data in call exception',
+  code: 'CALL_EXCEPTION',
+  error: Error: missing response (requestBody="{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f\",\"data\":\"0xc87b56dd00000000000000000000000000000000000000000000000000000000000011c7\"},\"latest\"],\"id\":4202,\"jsonrpc\":\"2.0\"}", requestMethod="POST", serverError={"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"54.160.49.90","port":443}, url="https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s", code=SERVER_ERROR, version=web/5.5.1)
+      at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+      at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+      at /Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:248:36
+      at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:33:23)
+      at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:14:53)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+    reason: 'missing response',
+    code: 'SERVER_ERROR',
+    requestBody: '{"method":"eth_call","params":[{"to":"0x9a534628b4062e123ce7ee2222ec20b86e16ca8f","data":"0xc87b56dd00000000000000000000000000000000000000000000000000000000000011c7"},"latest"],"id":4202,"jsonrpc":"2.0"}',
+    requestMethod: 'POST',
+    serverError: Error: connect ETIMEDOUT 54.160.49.90:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1161:16) {
+      errno: -60,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '54.160.49.90',
+      port: 443
+    },
+    url: 'https://eth-mainnet.alchemyapi.io/v2/3mIyUchls4JVljIH_3YbC7es9U3BI3_s'
+  },
+  data: '0x'
+}
+Failed to get token uri. Contract: 0x9a534628b4062e123ce7ee2222ec20b86e16ca8f Token: 4551 [
+  Error: failed to get token uri
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:214:23)
+      at Generator.throw (<anonymous>)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+Error: missing revert data in call exception (error={"reason":"missing response","code":"SERVER_ERROR","requestBody":"{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d\",\"data\":\"0xc87b56dd0000000000000000000000000000000000000000000000000000000000001965\"},\"latest\"],\"id\":4312,\"jsonrpc\":\"2.0\"}","requestMethod":"POST","serverError":{"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"52.203.150.9","port":443},"url":"https://eth-mainnet.alchemyapi.io/v2/ePYMYZ8ZCe3MzCbhjNbhoIndEs5c9DY7"}, data="0x", code=CALL_EXCEPTION, version=providers/5.5.3)
+    at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+    at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+    at checkError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:76:16)
+    at JsonRpcProvider.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:659:47)
+    at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:48:23)
+    at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:29:53)
+    at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/providers/lib/json-rpc-provider.js:21:65)
+    at runMicrotasks (<anonymous>)
+    at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+  reason: 'missing revert data in call exception',
+  code: 'CALL_EXCEPTION',
+  error: Error: missing response (requestBody="{\"method\":\"eth_call\",\"params\":[{\"to\":\"0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d\",\"data\":\"0xc87b56dd0000000000000000000000000000000000000000000000000000000000001965\"},\"latest\"],\"id\":4312,\"jsonrpc\":\"2.0\"}", requestMethod="POST", serverError={"errno":-60,"code":"ETIMEDOUT","syscall":"connect","address":"52.203.150.9","port":443}, url="https://eth-mainnet.alchemyapi.io/v2/ePYMYZ8ZCe3MzCbhjNbhoIndEs5c9DY7", code=SERVER_ERROR, version=web/5.5.1)
+      at Logger.makeError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:199:21)
+      at Logger.throwError (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/logger/lib/index.js:208:20)
+      at /Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:248:36
+      at step (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:33:23)
+      at Object.throw (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:14:53)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@ethersproject/web/lib/index.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5) {
+    reason: 'missing response',
+    code: 'SERVER_ERROR',
+    requestBody: '{"method":"eth_call","params":[{"to":"0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d","data":"0xc87b56dd0000000000000000000000000000000000000000000000000000000000001965"},"latest"],"id":4312,"jsonrpc":"2.0"}',
+    requestMethod: 'POST',
+    serverError: Error: connect ETIMEDOUT 52.203.150.9:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1161:16) {
+      errno: -60,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '52.203.150.9',
+      port: 443
+    },
+    url: 'https://eth-mainnet.alchemyapi.io/v2/ePYMYZ8ZCe3MzCbhjNbhoIndEs5c9DY7'
+  },
+  data: '0x'
+}
+Failed to get token uri. Contract: 0x3bf2922f4520a8ba0c2efc3d2a1539678dad5e9d Token: 6501 [
+  Error: failed to get token uri
+      at Erc721Contract.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:214:23)
+      at Generator.throw (<anonymous>)
+      at rejected (/Users/admin/code/github.com/mavriklabs/nft-collection-service/dist/models/contracts/Erc721Contract.js:6:65)
+      at runMicrotasks (<anonymous>)
+      at processTicksAndRejections (node:internal/process/task_queues:96:5)
+]
+Failed to get metadata [
+  RequestError: connect ETIMEDOUT 52.201.118.67:5001
+      at ClientRequest.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/got/dist/source/core/index.js:962:111)
+      at Object.onceWrapper (node:events:510:26)
+      at ClientRequest.emit (node:events:402:35)
+      at ClientRequest.origin.emit (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@szmarczak/http-timer/dist/source/index.js:43:20)
+      at TLSSocket.socketErrorListener (node:_http_client:447:9)
+      at TLSSocket.emit (node:events:390:28)
+      at emitErrorNT (node:internal/streams/destroy:157:8)
+      at emitErrorCloseNT (node:internal/streams/destroy:122:3)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21)
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1161:16) {
+    code: 'ETIMEDOUT',
+    timings: {
+      start: 1645467927095,
+      socket: 1645467927095,
+      lookup: 1645467927096,
+      connect: undefined,
+      secureConnect: undefined,
+      upload: undefined,
+      response: undefined,
+      end: undefined,
+      error: 1645468002100,
+      abort: undefined,
+      phases: [Object]
+    }
+  }
+]
+Failed to get metadata [
+  RequestError: connect ETIMEDOUT 54.157.70.31:5001
+      at ClientRequest.<anonymous> (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/got/dist/source/core/index.js:962:111)
+      at Object.onceWrapper (node:events:510:26)
+      at ClientRequest.emit (node:events:402:35)
+      at ClientRequest.origin.emit (/Users/admin/code/github.com/mavriklabs/nft-collection-service/node_modules/@szmarczak/http-timer/dist/source/index.js:43:20)
+      at TLSSocket.socketErrorListener (node:_http_client:447:9)
+      at TLSSocket.emit (node:events:390:28)
+      at emitErrorNT (node:internal/streams/destroy:157:8)
+      at emitErrorCloseNT (node:internal/streams/destroy:122:3)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21)
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1161:16) {
+    code: 'ETIMEDOUT',
+    timings: {
+      start: 1645468206103,
+      socket: 1645468206115,
+      lookup: 1645468206117,
+      connect: undefined,
+      secureConnect: undefined,
+      upload: undefined,
+      response: undefined,
+      end: undefined,
+      error: 1645468281096,
+      abort: undefined,
+      phases: [Object]
+    }
+  }
+]

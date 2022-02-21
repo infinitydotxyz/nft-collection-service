@@ -5,11 +5,12 @@ import { main as cli } from './cli';
 import { main } from './index';
 import {main as background} from './background';
 import { START_UP_MESSAGE } from './constants';
+import { logger } from './container';
 
 async function bootstrap(): Promise<void> {
   const env = getEnv();
 
-  console.log(START_UP_MESSAGE);
+  logger.log(START_UP_MESSAGE);
 
   background();
 

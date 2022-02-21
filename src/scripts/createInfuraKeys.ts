@@ -1,5 +1,6 @@
 import got, { Response } from 'got';
 import { sleep } from '../utils';
+import { logger } from '../container';
 
 export async function createInfuraApiKeys(numKeys: number, namePrefix: string): Promise<void> {
   const authKeys = [];
@@ -17,13 +18,13 @@ export async function createInfuraApiKeys(numKeys: number, namePrefix: string): 
       const result = await createInfuraProject(projectName, authCookie);
       if (result?.result?.project?.id && result?.result?.project?.secret) {
         authKeys.push({ id: result.result.project.id, secret: result.result.project.secret });
-        console.log(`Created key ${x}`);
+        logger.log(`Created key ${x}`);
       } else {
-        console.log('Failed to create key');
+        logger.log('Failed to create key');
       }
     } catch (err) {
-      console.log('Failed to create key');
-      console.error(err);
+      logger.log('Failed to create key');
+      logger.error(err);
     }
 
     await sleep(3000);
@@ -32,7 +33,7 @@ export async function createInfuraApiKeys(numKeys: number, namePrefix: string): 
   let index = 0;
   for (const key of authKeys) {
     index += 1;
-    console.log(`INFURA_IPFS_PROJECT_ID${index}='${key.id}' \nINFURA_IPFS_PROJECT_SECRET${index}='${key.secret}'`);
+    logger.log(`INFURA_IPFS_PROJECT_ID${index}='${key.id}' \nINFURA_IPFS_PROJECT_SECRET${index}='${key.secret}'`);
   }
 }
 
@@ -78,6 +79,6 @@ async function createInfuraProject(projectName: string, cookies: string): Promis
       return response.body;
     }
   } catch (err) {
-    console.error(err);
+    logger.error(err);
   }
 }

@@ -7,6 +7,7 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
+import { logger } from '../../container';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -231,6 +232,7 @@ export default class Erc721Contract extends AbstractContract {
       }
       throw new Error('failed to get token uri');
     } catch (err) {
+      logger.error(err);
       throw new Error('failed to get token uri');
     }
   }

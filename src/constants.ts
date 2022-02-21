@@ -72,7 +72,7 @@ export const ONE_HOUR = 60 * ONE_MIN;
 
 /**
  * 
- * configs
+ * Concurrency configs
  * 
  */
 export const NUM_OWNERS_TTS = ONE_HOUR * 24;
@@ -104,7 +104,17 @@ const getMaxConcurrency = (): { limit: number, message: string } => {
 const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
-export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY;
+export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY * 10;
+
+
+/**
+ * 
+ * Logger Config
+ * 
+ */
+export const INFO_LOG = true;
+export const ERROR_LOG = true;
+export const ERROR_LOG_FILE = './errors.txt';
 
 
 /**
