@@ -17,7 +17,7 @@ export async function createCollection(chainId: string, address: string, hasBlue
     });
 
     worker.on('error', (err) => {
-      logger.error(err);
+      logger.error(`Collection worker errored. Collection ${chainId}:${address}.`, err);
       reject(err);
     });
   });
