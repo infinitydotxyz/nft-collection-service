@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { ERROR_LOG, ERROR_LOG_FILE, INFO_LOG } from '../constants';
 import { singleton } from 'tsyringe';
 import { createWriteStream, WriteStream } from 'fs';
