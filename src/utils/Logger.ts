@@ -12,7 +12,7 @@ export default class Logger {
   private readonly errorLogger!: Console;
 
   constructor() {
-    const errorLogFile = ERROR_LOG_FILE ?? './errors.txt';
+    const errorLogFile = ERROR_LOG_FILE;
     this.errorStream = createWriteStream(errorLogFile, { encoding: 'utf-8', flags: 'a' });
     this.errorLogger = new Console(this.errorStream, this.errorStream);
     this.registerProcessListeners();

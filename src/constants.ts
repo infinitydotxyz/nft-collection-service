@@ -112,9 +112,10 @@ export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY * 10;
  * Logger Config
  * 
  */
-export const INFO_LOG = true;
-export const ERROR_LOG = true;
-export const ERROR_LOG_FILE = './errors.txt';
+
+export const INFO_LOG = process.env.INFO_LOG !== 'false'; // explicity set to false to disable logs
+export const ERROR_LOG = process.env.ERROR_LOG !== 'false'; // explicitly set to false to disable logs
+export const ERROR_LOG_FILE = process.env.ERROR_LOG_FILE ?? ''; // specify file to write to error log file
 
 
 /**
