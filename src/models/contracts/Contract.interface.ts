@@ -58,6 +58,11 @@ export default interface Contract {
   getContractCreationTx: () => Promise<ethers.Event>;
 
   /**
+   * returns whether the given topic is a transfer 
+   */
+  isTransfer: (topic: string) => boolean;
+
+  /**
    * returns a promise of a readable stream of mint events
    */
   getMints: (options?: HistoricalLogsOptions) => Promise<HistoricalLogs>;

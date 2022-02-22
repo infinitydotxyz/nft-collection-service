@@ -12,6 +12,7 @@ import {
   RefreshTokenError,
   RefreshTokenImageError,
   RefreshTokenMetadataError,
+  RefreshTokenMintError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 import { firebase, metadataClient, moralis, logger } from '../container';
@@ -40,12 +41,7 @@ export default class Nft {
 
   private readonly imageUploadQueue: PQueue;
 
-  constructor(
-    token: MintToken & Partial<TokenType>,
-    contract: Contract,
-    tokenUriQueue: PQueue,
-    imageUploadQueue: PQueue
-  ) {
+  constructor(token: MintToken & Partial<TokenType>, contract: Contract, tokenUriQueue: PQueue, imageUploadQueue: PQueue) {
     this.token = token;
     this.contract = contract;
 
@@ -56,31 +52,18 @@ export default class Nft {
     this.imageUploadQueue = imageUploadQueue;
   }
 
-  public static validateToken(
-    token: Partial<TokenType>,
-    step: RefreshTokenFlow.Mint
-  ): ReturnType<RefreshTokenFlow.Mint>;
+  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Mint): ReturnType<RefreshTokenFlow.Mint>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Uri): ReturnType<RefreshTokenFlow.Uri>;
-  public static validateToken(
-    token: Partial<TokenType>,
-    step: RefreshTokenFlow.Metadata
-  ): ReturnType<RefreshTokenFlow.Metadata>;
-  public static validateToken(
-    token: Partial<TokenType>,
-    step: RefreshTokenFlow.Image
-  ): ReturnType<RefreshTokenFlow.Image>;
-  public static validateToken(
-    token: Partial<TokenType>,
-    step: RefreshTokenFlow.Complete
-  ): ReturnType<RefreshTokenFlow.Complete>;
+  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Metadata): ReturnType<RefreshTokenFlow.Metadata>;
+  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Image): ReturnType<RefreshTokenFlow.Image>;
+  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Complete): ReturnType<RefreshTokenFlow.Complete>;
   public static validateToken<T extends RefreshTokenFlow>(token: Partial<TokenType>, step: T): ReturnType<T> {
     /**
      * validate mint token
      */
-    if (!token.mintedAt || !token.minter || !token.tokenId) {
+    if (!token.mintedAt || !token.minter || !token.tokenId || typeof token.mintPrice !== 'number' || !token.mintTxHash) {
       // validate token
-      throw new RefreshTokenError(
-        RefreshTokenFlow.Mint,
+      throw new RefreshTokenMintError(
         `Invalid mint token property. Token Id: ${token.tokenId} Minted At: ${token.mintedAt} Minter: ${token.minter} `
       );
     }
@@ -182,10 +165,10 @@ export default class Nft {
               this.token = uriToken;
               yield { token: this.token, progress: 0.1 };
             } catch (err: any) {
-              logger.error(
-                `Failed to get token uri. Contract: ${this.contract.address} Token: ${mintToken.tokenId}`,
-                err
-              );
+              logger.error(`Failed to get token uri. Contract: ${this.contract.address} Token: ${mintToken.tokenId}`, err);
+              if (err instanceof RefreshTokenMetadataError) {
+                throw err;
+              }
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token uri';
               throw new RefreshTokenUriError(message);
             }
@@ -198,8 +181,7 @@ export default class Nft {
             try {
               metadata = await this.getTokenMetadata();
             } catch (err: any) {
-              const message =
-                typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
               throw new RefreshTokenMetadataError(message);
             }
 
@@ -223,8 +205,10 @@ export default class Nft {
               yield { token: this.token, progress: 0.3 };
             } catch (err: any) {
               logger.error('Failed to get token metadata', err);
-              const message =
-                typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
+              if (err instanceof RefreshTokenMetadataError) {
+                throw err;
+              }
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get token metadata';
               throw new RefreshTokenMetadataError(message);
             }
             break;
@@ -297,8 +281,7 @@ export default class Nft {
               if (err instanceof RefreshTokenMetadataError) {
                 throw err;
               }
-              const message =
-                typeof err?.message === 'string' ? (err.message as string) : 'Failed to upload token image';
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to upload token image';
               throw new RefreshTokenImageError(message);
             }
 
@@ -326,6 +309,10 @@ export default class Nft {
         }
       }
     } catch (err: RefreshTokenError | any) {
+      if (err instanceof RefreshTokenMintError) {
+        throw err;
+      }
+
       let error;
       let stepToSave: RefreshTokenFlow = this.token.state?.metadata.step ?? RefreshTokenFlow.Uri;
       if (err instanceof RefreshTokenError) {

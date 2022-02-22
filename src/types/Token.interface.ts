@@ -4,7 +4,7 @@ import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow'
 export type TokenMetadata = Erc721Metadata;
 
 
-export type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId' | 'state'>;
+export type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId' | 'state' | 'mintTxHash' | 'mintPrice'>;
 
 export type UriToken = MintToken & Pick<Token, 'tokenUri'>;
 
@@ -47,6 +47,10 @@ interface BaseToken {
    * unix timestamp (in ms)
    */
   mintedAt: number;
+
+  mintTxHash: string;
+
+  mintPrice: number;
 
   /**
    * unix timestamp (in ms) of when the token was burned

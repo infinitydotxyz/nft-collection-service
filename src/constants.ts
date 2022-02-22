@@ -107,7 +107,7 @@ const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
 // export const TOKEN_URI_CONCURRENCY = Math.floor(JSON_RPC_MAINNET_KEYS.length * 30 / COLLECTION_TASK_CONCURRENCY);
-export const TOKEN_URI_CONCURRENCY = 10;
+export const TOKEN_URI_CONCURRENCY = 50;
 export const IMAGE_UPLOAD_CONCURRENCY = 50;
 
 

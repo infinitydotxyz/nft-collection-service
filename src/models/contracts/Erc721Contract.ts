@@ -162,6 +162,14 @@ export default class Erc721Contract extends AbstractContract {
     }
   }
 
+  isTransfer(topic: string): boolean {
+    const transferTopic = this.contract.filters.Transfer(NULL_ADDR)?.topics?.[0];
+    if(transferTopic && transferTopic === topic) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * get all transfers from 0x0
    *
