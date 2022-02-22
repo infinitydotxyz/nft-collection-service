@@ -548,7 +548,7 @@ export default class Collection {
               const transferLogs = (receipt?.logs ?? []).filter((log) => {
                 return this.contract.isTransfer(log.topics[0]);
               });
-              const pricePerMint = ethValue / transferLogs.length;
+              const pricePerMint = Math.round(10000 * ( ethValue / transferLogs.length)) / 10000 ;
               resolve({ value: pricePerMint});
               break;
             } catch(err) {
