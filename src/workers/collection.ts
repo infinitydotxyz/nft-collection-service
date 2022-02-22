@@ -14,8 +14,9 @@ async function createCollection(): Promise<void> {
   if (isMainThread) {
     logger.log('main thread');
   } else {
-    const [, , address, chainId, hasBlueCheckArg] = process.argv;
+    const [, , address, chainId, hasBlueCheckArg, resetArg] = process.argv;
     const hasBlueCheck = hasBlueCheckArg === 'true';
+    const reset = resetArg === 'true';
 
     const hex = address.split('0x')[1].substring(0, 6);
 
@@ -27,7 +28,7 @@ async function createCollection(): Promise<void> {
 
     const log = (args: any | any[]): void => parentPort?.postMessage(color(args));
 
-    log(`Starting Collection: ${chainId}:${address}`);
+    log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset}`);
     const provider = new CollectionMetadataProvider();
     const contractFactory = new ContractFactory();
     const contract = await contractFactory.create(address, chainId);
@@ -37,7 +38,7 @@ async function createCollection(): Promise<void> {
     const batch = new BatchHandler();
 
     const data = await collectionDoc.get();
-    const currentCollection = data.data() ?? {};
+    const currentCollection = reset ? {} : data.data() ?? {};
 
     const formatLog = (step: string, progress: number): string => {
       const now = new Date();
@@ -74,12 +75,12 @@ async function createCollection(): Promise<void> {
 
     emitter.on('token', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); // overwrite any errors
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); 
     });
 
     emitter.on('mint', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: false });
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: !reset });
     });
 
     emitter.on('tokenError', (data) => {

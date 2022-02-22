@@ -42,7 +42,7 @@ export default class BatchHandler {
           await batch.commit();
           return;
         } catch (err) {
-          logger.error('Failed to commit batch', err);
+          // logger.error('Failed to commit batch', err);
           if (attempt > maxAttempts) {
             logger.log(`Failed to commit batch`);
             throw err;

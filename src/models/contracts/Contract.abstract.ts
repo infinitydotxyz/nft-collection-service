@@ -55,6 +55,8 @@ export default abstract class Contract implements IContract {
 
   abstract getContractCreationTx(): Promise<ethers.Event>;
 
+  abstract isTransfer(topic: string): boolean;
+
   abstract getMints(options?: HistoricalLogsOptions): Promise<HistoricalLogs>;
 
   abstract getTokenIds(): Promise<string[]>;

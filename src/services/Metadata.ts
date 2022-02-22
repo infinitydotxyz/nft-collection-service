@@ -152,9 +152,8 @@ export default class MetadataClient {
           throw new Error(`Unknown error. Status code: ${response.statusCode}`);
       }
     } catch (err: any) {
-      logger.error('Failed to get metadata', err);
       if (err instanceof NotFoundError || attempt > 5) {
-        logger.log(`Failed to get metadata. Original URL: ${url.href}. Error: ${err?.message}`);
+        logger.error(`Failed to get metadata. Original URL: ${url.href}. Error: ${err?.message}`);
         throw err;
       }
       return await this.get(url, priority, attempt);
