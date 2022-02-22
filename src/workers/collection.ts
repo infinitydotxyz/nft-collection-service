@@ -14,8 +14,9 @@ async function createCollection(): Promise<void> {
   if (isMainThread) {
     logger.log('main thread');
   } else {
-    const [, , address, chainId, hasBlueCheckArg, reset] = process.argv;
+    const [, , address, chainId, hasBlueCheckArg, resetArg] = process.argv;
     const hasBlueCheck = hasBlueCheckArg === 'true';
+    const reset = resetArg === 'true';
 
     const hex = address.split('0x')[1].substring(0, 6);
 
@@ -74,12 +75,12 @@ async function createCollection(): Promise<void> {
 
     emitter.on('token', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); // overwrite any errors
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); 
     });
 
     emitter.on('mint', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: false });
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
     });
 
     emitter.on('tokenError', (data) => {

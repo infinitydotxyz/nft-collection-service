@@ -404,11 +404,37 @@ export default class Collection {
             }
             break;
           case CreationFlow.Complete:
+            /**
+             * validate tokens
+             */
+            const tokens: Array<Partial<Token>> | undefined = yield {
+              collection: collection,
+              action: 'tokenRequest'
+            };
+
+            if (!tokens) {
+              throw new CollectionMintsError('Token metadata received undefined tokens');
+            }
+
+            let invalidTokens = 0;
+            for(const token of tokens) {
+              try{
+                Nft.validateToken(token, RefreshTokenFlow.Complete);
+              }catch(err) {
+                invalidTokens += 1;
+              }
+            }
+
+            if(invalidTokens > 0) {
+              throw new CollectionMintsError(`Received ${invalidTokens} invalid tokens`);
+            }
+
             return;
         }
         void emitter.emit('progress', { step, progress: 100 });
       }
     } catch (err: CreationFlowError | any) {
+      logger.error(err);
       let error;
       let stepToSave: CreationFlow = step;
       if (err instanceof CreationFlowError) {
@@ -593,8 +619,6 @@ export default class Collection {
         mintTxHash: event.transactionHash,
         mintPrice
       };
-
-      token.minter = transfer.to.toLowerCase();
 
       return Nft.validateToken(token, RefreshTokenFlow.Mint);
     };
