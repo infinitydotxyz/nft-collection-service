@@ -30,12 +30,12 @@ export default class CollectionService {
     }, 3000);
   }
 
-  async createCollection(address: string, chainId: string, hasBlueCheck = false): Promise<void> {
+  async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false): Promise<void> {
     address = address.toLowerCase();
 
     return await this.taskQueue.add(async( ) => {
       try{
-        await createCollection(address, chainId, hasBlueCheck);
+        await createCollection(address, chainId, hasBlueCheck, reset);
       }catch(err) {
         logger.error('Worker errored...', err);
       }
