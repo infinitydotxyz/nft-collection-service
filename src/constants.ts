@@ -68,12 +68,10 @@ export const MAX_UNCLE_ABLE_BLOCKS = 6;
 export const ONE_MIN = 60_000;
 export const ONE_HOUR = 60 * ONE_MIN;
 
-
-
 /**
- * 
+ *
  * Concurrency configs
- * 
+ *
  */
 export const NUM_OWNERS_TTS = ONE_HOUR * 24;
 
@@ -83,26 +81,29 @@ const maxExpectedImageSize = 10; // MB
 
 export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
 
-const maxConcurrencyPerCollection = Math.floor(((availableInMB / 1.5) / maxExpectedImageSize) / COLLECTION_TASK_CONCURRENCY);
-const maxConcurrencyForIPFS = (INFURA_API_KEYS.length * 100);
+const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
+let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
+if (maxConcurrencyForIPFS > 400) { // set the max concurrency lower since we currently get rate limited based on ip or account
+  maxConcurrencyForIPFS = 400;
+}
 const maxConcurrencyForIPFSPerCollection = Math.floor(maxConcurrencyForIPFS / COLLECTION_TASK_CONCURRENCY);
 
-const getMaxConcurrency = (): { limit: number, message: string } => {
-  const systemLimit = (maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY);
+const getMaxConcurrency = (): { limit: number; message: string } => {
+  const systemLimit = maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY;
 
-  if(maxConcurrencyForIPFS < systemLimit) {
-    const difference =  systemLimit - maxConcurrencyForIPFS;
-    return { 
+  if (maxConcurrencyForIPFS < systemLimit) {
+    const difference = systemLimit - maxConcurrencyForIPFS;
+    return {
       limit: maxConcurrencyForIPFSPerCollection,
       message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
-    }
+    };
   }
 
   return {
     limit: maxConcurrencyPerCollection,
     message: 'process heap size'
-  }
-}
+  };
+};
 const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
@@ -110,23 +111,21 @@ export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 export const TOKEN_URI_CONCURRENCY = 50;
 export const IMAGE_UPLOAD_CONCURRENCY = 50;
 
-
 /**
- * 
+ *
  * Logger Config
- * 
+ *
  */
 export const INFO_LOG = process.env.INFO_LOG !== 'false'; // explicity set to false to disable logs
 export const ERROR_LOG = process.env.ERROR_LOG !== 'false'; // explicitly set to false to disable logs
 export const ERROR_LOG_FILE = process.env.ERROR_LOG_FILE ?? ''; // specify file to write to error log file
 
-
 /**
  * start up log
  */
 const bar = '-'.repeat(process.stdout.columns);
-const title = 'NFT Scraper'
-const margin = process.stdout.columns - title.length
+const title = 'NFT Scraper';
+const margin = process.stdout.columns - title.length;
 export const START_UP_MESSAGE = `
 ${bar}
 \n
@@ -143,5 +142,4 @@ System:
   Heap size: ${availableInMB / 1000} GB
 
 ${bar}
-`
-
+`;
