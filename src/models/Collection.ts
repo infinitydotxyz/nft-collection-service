@@ -578,7 +578,6 @@ export default class Collection {
               resolve({ value: pricePerMint});
               break;
             } catch(err) {
-              logger.error(err);
               if(attempts > 3) {
                 resolve({error: err});
               }
