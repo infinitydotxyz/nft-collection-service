@@ -16,6 +16,7 @@ export type AggregatedToken = ImageToken & Pick<Token, 'rarityScore' | 'rarityRa
 
 
 export enum RefreshTokenFlow {
+  Mint = 'mint',
   /**
    * get the token uri
    */

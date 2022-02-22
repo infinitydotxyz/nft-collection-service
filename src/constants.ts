@@ -84,14 +84,16 @@ const maxExpectedImageSize = 10; // MB
 export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
 
 const maxConcurrencyPerCollection = Math.floor(((availableInMB / 1.5) / maxExpectedImageSize) / COLLECTION_TASK_CONCURRENCY);
-const maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
+const maxConcurrencyForIPFS = (INFURA_API_KEYS.length * 100);
+const maxConcurrencyForIPFSPerCollection = Math.floor(maxConcurrencyForIPFS / COLLECTION_TASK_CONCURRENCY);
+
 const getMaxConcurrency = (): { limit: number, message: string } => {
   const systemLimit = (maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY);
 
   if(maxConcurrencyForIPFS < systemLimit) {
     const difference =  systemLimit - maxConcurrencyForIPFS;
     return { 
-      limit: maxConcurrencyForIPFS,
+      limit: maxConcurrencyForIPFSPerCollection,
       message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
     }
   }
@@ -104,7 +106,9 @@ const getMaxConcurrency = (): { limit: number, message: string } => {
 const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
-export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY * 10;
+// export const TOKEN_URI_CONCURRENCY = Math.floor(JSON_RPC_MAINNET_KEYS.length * 30 / COLLECTION_TASK_CONCURRENCY);
+export const TOKEN_URI_CONCURRENCY = 10;
+export const IMAGE_UPLOAD_CONCURRENCY = 50;
 
 
 /**
@@ -112,7 +116,6 @@ export const TOKEN_URI_CONCURRENCY = METADATA_CONCURRENCY * 10;
  * Logger Config
  * 
  */
-
 export const INFO_LOG = process.env.INFO_LOG !== 'false'; // explicity set to false to disable logs
 export const ERROR_LOG = process.env.ERROR_LOG !== 'false'; // explicitly set to false to disable logs
 export const ERROR_LOG_FILE = process.env.ERROR_LOG_FILE ?? ''; // specify file to write to error log file

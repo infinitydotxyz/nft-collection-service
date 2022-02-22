@@ -1,20 +1,20 @@
 /* eslint-disable no-console */
 import { ERROR_LOG, ERROR_LOG_FILE, INFO_LOG } from '../constants';
 import { singleton } from 'tsyringe';
-import { createWriteStream, WriteStream } from 'fs';
+import { createWriteStream } from 'fs';
 import { Console } from 'console';
 import { isMainThread } from 'worker_threads';
 
 @singleton()
 export default class Logger {
-  private readonly errorStream!: WriteStream;
-
-  private readonly errorLogger!: Console;
+  private readonly errorLogger?: Console;
 
   constructor() {
     const errorLogFile = ERROR_LOG_FILE;
-    this.errorStream = createWriteStream(errorLogFile, { encoding: 'utf-8', flags: 'a' });
-    this.errorLogger = new Console(this.errorStream, this.errorStream);
+    if(errorLogFile){
+      const errorStream = createWriteStream(errorLogFile, { encoding: 'utf-8', flags: 'a' });
+      this.errorLogger = new Console(errorStream, errorStream);
+    }
     this.registerProcessListeners();
   }
 

@@ -26,7 +26,7 @@ export default class Erc721Contract extends AbstractContract {
 
   decodeTransfer(event: ethers.Event): { from: string; to: string; tokenId: string } {
     const args = event?.args;
-    const from = (args?.[0] as string) ?.toLowerCase?.();
+    const from = (args?.[0] as string)?.toLowerCase?.();
     const to = (args?.[1] as string)?.toLowerCase?.();
     const tokenId = (args?.[2] as BigNumber)?.toString?.();
 
@@ -223,18 +223,13 @@ export default class Erc721Contract extends AbstractContract {
       // base uri is not supported
     }
 
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const response: string[] = await this.contract.functions.tokenURI(tokenId);
-      const tokenUri = response[0];
-      if (typeof tokenUri === 'string' && tokenUri) {
-        return tokenUri;
-      }
-      throw new Error('failed to get token uri');
-    } catch (err) {
-      logger.error(err);
-      throw new Error('failed to get token uri');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const response: string[] = await this.contract.functions.tokenURI(tokenId);
+    tokenUri = response[0];
+    if (typeof tokenUri === 'string' && tokenUri) {
+      return tokenUri;
     }
+    throw new Error('failed to get token uri');
   }
 
   private async getBaseUri(refresh = false): Promise<string> {

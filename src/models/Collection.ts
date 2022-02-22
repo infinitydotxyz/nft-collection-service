@@ -6,7 +6,7 @@ import { ImageToken, MintToken, RefreshTokenFlow, Token } from '../types/Token.i
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
-import { NULL_ADDR, TOKEN_URI_CONCURRENCY } from '../constants';
+import { IMAGE_UPLOAD_CONCURRENCY, NULL_ADDR, TOKEN_URI_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
@@ -239,12 +239,13 @@ export default class Collection {
 
               const tokenPromises: Array<Promise<ImageToken>> = [];
 
-              const tokenUriQueue = new PQueue({concurrency: TOKEN_URI_CONCURRENCY});
+              const tokenUriQueue = new PQueue({ concurrency: TOKEN_URI_CONCURRENCY });
+              const uploadImageQueue = new PQueue({concurrency: IMAGE_UPLOAD_CONCURRENCY});
               for (const token of tokens) {
-                const nft = new Nft(token as MintToken, this.contract, tokenUriQueue);
+                const nft = new Nft(token as MintToken, this.contract, tokenUriQueue, uploadImageQueue);
                 const iterator = nft.refreshToken();
 
-                const tokenWithMetadataPromise = new Promise<Token>(async (resolve, reject) => {
+                const tokenWithMetadataPromise = new Promise<ImageToken>(async (resolve, reject) => {
                   let tokenWithMetadata = token;
                   try {
                     let prevTokenProgress = 0;
@@ -271,11 +272,12 @@ export default class Collection {
                       step: step,
                       progress: Math.floor((progress / numTokens) * 100 * 100) / 100
                     });
+
                     void emitter.emit('token', tokenWithMetadata as Token);
-                    resolve(tokenWithMetadata as Token);
+                    resolve(tokenWithMetadata as ImageToken);
                   } catch (err) {
                     logger.error(err);
-                    resolve(tokenWithMetadata as Token);
+                    reject(err);
                   }
                 });
 
@@ -471,15 +473,19 @@ export default class Collection {
     const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
       const result = blockTimestamps.get(item.blockNumber);
       if (!result) {
-        const promise = new Promise<{ error: any } | { value: number }>((resolve) => {
-          item
-            .getBlock()
-            .then((block) => {
+        const promise = new Promise<{ error: any } | { value: number }>(async (resolve) => {
+          let attempts = 0;
+          while(attempts < 3) {
+            attempts += 1;
+            try{
+              const block = await item.getBlock();
               resolve({ value: block.timestamp * 1000 });
-            })
-            .catch((err) => {
-              resolve({ error: err });
-            });
+            }catch(err) {
+              if(attempts > 3) {
+                resolve({ error: err });
+              }
+            }
+          }
         });
         blockTimestamps.set(item.blockNumber, promise);
         return await promise;
@@ -507,14 +513,15 @@ export default class Collection {
         mintedAt,
         minter: transfer.to.toLowerCase()
       };
+
       token.minter = transfer.to.toLowerCase();
 
-      return token;
+      return Nft.validateToken(token, RefreshTokenFlow.Mint);
     };
 
     const mintsStream = await this.contract.getMints({ fromBlock: resumeFromBlock, returnType: 'stream' });
 
-    let tokenPromises: Array<Promise<MintToken>> = [];
+    let tokenPromises: Array<Promise<Array<PromiseSettledResult<MintToken>>>> = [];
 
     let gotAllBlocks = true;
     let startBlock: number | undefined;
@@ -530,12 +537,17 @@ export default class Collection {
         void emitter.emit('progress', { progress });
 
         const chunkPromises = mintEvents.map(async (event) => {
+          
           const token = await getTokenFromTransfer(event);
           void emitter.emit('mint', token);
           return token;
         });
 
-        tokenPromises = [...tokenPromises, ...chunkPromises];
+        /**
+         * wrap each chunk to prevent uncaught rejections
+         */
+        const chunkPromise = Promise.allSettled(chunkPromises);
+        tokenPromises = [...tokenPromises, chunkPromise];
       }
     } catch (err) {
       logger.log('failed to get all mints for a collection');
@@ -543,12 +555,17 @@ export default class Collection {
       gotAllBlocks = false; // failed to get all mints
     }
 
-    const results = await Promise.allSettled(tokenPromises);
+    const result = await Promise.all(tokenPromises);
+
+    const promiseSettledResults = result.reduce((acc, item) => {
+      return [...acc, ...item];
+    }, [])
 
     const tokens: MintToken[] = [];
     let unknownErrors = 0;
-    for (const result of results) {
-      if(result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
+    for (const result of promiseSettledResults) {
+
+      if (result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
         logger.log(result.value.state?.metadata.error);
       } else if (result.status === 'fulfilled') {
         tokens.push(result.value);
