@@ -80,7 +80,7 @@ async function createCollection(): Promise<void> {
 
     emitter.on('mint', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: !reset });
     });
 
     emitter.on('tokenError', (data) => {
