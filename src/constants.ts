@@ -108,7 +108,7 @@ const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
 // export const TOKEN_URI_CONCURRENCY = Math.floor(JSON_RPC_MAINNET_KEYS.length * 30 / COLLECTION_TASK_CONCURRENCY);
-export const TOKEN_URI_CONCURRENCY = 50;
+export const ALCHEMY_CONCURRENCY = 50;
 export const IMAGE_UPLOAD_CONCURRENCY = 50;
 
 /**
@@ -136,7 +136,8 @@ ${chalk.gray(bar)}
 Collection Concurrency: ${COLLECTION_TASK_CONCURRENCY}
   Concurrency limited by: ${maxConcurrencyObj.message}
 Metadata Client Concurrency: ${METADATA_CONCURRENCY} per collection
-Token Uri Concurrency: ${TOKEN_URI_CONCURRENCY} per collection
+Alchemy Concurrency: ${ALCHEMY_CONCURRENCY} per collection
+Image Upload Concurrency: ${IMAGE_UPLOAD_CONCURRENCY} per collection
 
 System:
   Heap size: ${availableInMB / 1000} GB

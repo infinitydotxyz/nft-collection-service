@@ -6,7 +6,7 @@ import { ImageToken, MintToken, RefreshTokenFlow, Token } from '../types/Token.i
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
-import { IMAGE_UPLOAD_CONCURRENCY, NULL_ADDR, TOKEN_URI_CONCURRENCY } from '../constants';
+import { IMAGE_UPLOAD_CONCURRENCY, NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
@@ -103,7 +103,7 @@ export default class Collection {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
 
-    const ethersQueue = new PQueue({ concurrency: TOKEN_URI_CONCURRENCY, interval: 1000, intervalCap: TOKEN_URI_CONCURRENCY });
+    const ethersQueue = new PQueue({ concurrency: ALCHEMY_CONCURRENCY, interval: 1000, intervalCap: ALCHEMY_CONCURRENCY });
 
     const allTokens: Token[] = [];
 
