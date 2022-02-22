@@ -33,6 +33,7 @@ async function addressMode(addressArg: string): Promise<void> {
   let chainId = '1';
   let task = Task.CreateCollection;
   let hasBlueCheck = false;
+  let reset = false;
   if (addressArg) {
     address = parseArg(addressArg);
   } else {
@@ -51,6 +52,13 @@ async function addressMode(addressArg: string): Promise<void> {
     return item.includes('hasBlueCheck');
   });
 
+  const resetArg = process.argv.find((item) => {
+    return item.includes('reset');
+  });
+  if (resetArg) {
+    reset = parseArg(resetArg) === 'true';
+  }
+
   if (chainIdArg) {
     chainId = parseArg(chainIdArg);
   }
@@ -66,7 +74,7 @@ async function addressMode(addressArg: string): Promise<void> {
   let method: () => Promise<any>;
   switch (task) {
     case Task.CreateCollection:
-      method = collectionService.createCollection.bind(collectionService, address, chainId, hasBlueCheck);
+      method = collectionService.createCollection.bind(collectionService, address, chainId, hasBlueCheck, reset);
       break;
     default:
       throw new Error(`Invalid task type ${task}`);
@@ -88,6 +96,7 @@ async function fileMode(fileArg: string): Promise<void> {
   const data = JSON.parse(contents);
 
   let hasBlueCheck: boolean | undefined;
+  let reset: boolean | undefined;
 
   const hasBlueCheckArg = process.argv.find((item) => {
     return item.includes('hasBlueCheck');
@@ -95,6 +104,13 @@ async function fileMode(fileArg: string): Promise<void> {
 
   if (hasBlueCheckArg) {
     hasBlueCheck = parseArg(hasBlueCheckArg) === 'true';
+  }
+
+  const resetArg = process.argv.find((item) => {
+    return item.includes('reset');
+  });
+  if (resetArg) {
+    reset = parseArg(resetArg) === 'true';
   }
 
   logger.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`);
@@ -109,7 +125,7 @@ async function fileMode(fileArg: string): Promise<void> {
     const itemHasBlueCheck = typeof item.hasBlueCheck === 'boolean' ? item.hasBlueCheck : false;
     const shouldHaveBlueCheck = (hasBlueCheck === undefined ? itemHasBlueCheck : hasBlueCheck) as boolean;
 
-    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck));
+    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset));
   }
 
   await Promise.allSettled(promises);

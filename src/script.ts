@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { firebase, logger } from './container';
+import { firebase, logger, tokenDao } from './container';
 import BatchHandler from './models/BatchHandler';
 import { addNumOwnersUpdatedAtAndDataExportedFields } from './background';
 import { createInfuraApiKeys } from './scripts/createInfuraKeys';
@@ -19,8 +19,26 @@ export async function main(): Promise<void> {
     // const numKeys = 45;
     // const namePrefix = 'INFINITY_NFT_COLLECTION_SERVICE';
     // await createInfuraApiKeys(numKeys, namePrefix);
-    logger.log('Hello world');
-    logger.error(new Error("hello world error"));
+    const addr = '0x1cb1a5e65610aeff2551a50f76a87a7d3fb649c6';
+    const chain = '1';
+    const tokens = await tokenDao.getAllTokens(chain, addr);
+    logger.log(`Found: ${tokens.length} tokens`)
+    const batch = new BatchHandler();
+    tokens.forEach((tokenDoc) => {
+      const { mintPrice, mintTxHash, ...tokenWithoutMintPrice }  = tokenDoc;
+      if(!tokenWithoutMintPrice.tokenId) {
+        logger.log(`Invalid token`);
+        logger.log(tokenWithoutMintPrice);
+      } else {
+        const ref = firebase.getTokenDocRef(chain, addr, tokenWithoutMintPrice.tokenId)
+        batch.add(ref , tokenWithoutMintPrice, { merge: false});
+      }
+    })
+
+
+    await batch.flush();
+
+    logger.log(`Set collection to state without mint price`);
 
   } catch (err) {
     logger.log(`Failed at ${requests}`);

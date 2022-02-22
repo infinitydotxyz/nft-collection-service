@@ -23,6 +23,12 @@ export class RefreshTokenError extends Error {
     }
 }
 
+export class RefreshTokenMintError extends RefreshTokenError {
+    constructor(message?: string) {
+        super(RefreshTokenFlow.Mint, message);
+    }
+}
+
 export class RefreshTokenUriError extends RefreshTokenError {
     constructor(message?: string) {
         super(RefreshTokenFlow.Uri, message);

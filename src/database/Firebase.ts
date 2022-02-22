@@ -72,7 +72,6 @@ export default class Firebase {
                   }
                 })
                 .on('error', (err) => {
-                  logger.error(err);
                   reject(err);
                 })
                 .on('finish', () => {
