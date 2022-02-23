@@ -15,6 +15,10 @@ export default class BatchHandler {
     this.currentBatch = this.newBatch();
   }
 
+  get size(): number{ 
+    return this.currentBatch.size;
+  }
+
   add(
     doc: FirebaseFirestore.DocumentReference,
     object: Partial<FirebaseFirestore.DocumentData>,

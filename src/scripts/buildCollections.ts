@@ -16,6 +16,7 @@ import chalk from 'chalk';
 export async function buildCollections(): Promise<void> {
     const opensea = new OpenSeaClient();
   
+
     async function* collectionGenerator(): AsyncGenerator<OpenSeaCollection[]> {
       let timeout = 1000;
       let offset = 0;
@@ -59,9 +60,14 @@ export async function buildCollections(): Promise<void> {
     const collectionQueue = new PQueue({concurrency: 2, interval: 2000, intervalCap: 2});
   
     const batch = new BatchHandler();
-    const getCollection =async (slug: string): Promise<Array<Partial<Collection>>> => {
+
+    /**
+     * getCollection attempts to create collection objects given the slug for a collection
+     * returns an array of valid collections that are not yet stored in the db
+     */
+    const getCollection =async (openseaSlug: string): Promise<Array<Partial<Collection>>> => {
       try {
-        const collection = await opensea.getCollection(slug);
+        const collection = await opensea.getCollection(openseaSlug);
         if(collection?.primary_asset_contracts && collection?.primary_asset_contracts.length > 0) {  
           const contracts: Array<Partial<Collection>> = [];
           for(const contract of collection?.primary_asset_contracts) {
@@ -106,7 +112,7 @@ export async function buildCollections(): Promise<void> {
       }catch(err: any) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         if(!err?.toString?.()?.includes('Not found')) {
-            logger.log(`Failed to get collection (${slug}) from opensea.`, err);
+            logger.log(`Failed to get collection (${openseaSlug}) from opensea.`, err);
         }
         return [];
       }
@@ -134,13 +140,12 @@ export async function buildCollections(): Promise<void> {
           collectionsPromises.push(promise);
         }
       }
-    
+      
       logger.log(`Found: ${validCollections} potentially valid collections from ${collections.length} collections received from OpenSea`);
       await Promise.all(collectionsPromises);
   
-  
       try{
-        logger.log(`Committing batch`);
+        logger.log(`Committing batch of ${batch.size} collections`);
         await batch.flush();
       }catch{}
     }
