@@ -9,6 +9,7 @@
 
 * Tasks
     * `scrape` - scrapes collections from opensea and new collections to the db (saves the minimal amount of data for a collection)
+        * Example command: `npm run cli -- task=build`
     * `create` - handles creating the specified collection (gets all data for the collection including all nfts)
         * Modes 
             * Address Mode 
