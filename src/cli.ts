@@ -1,117 +1,190 @@
+import { ethers } from 'ethers';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { buildCollections } from './scripts/buildCollections';
 import { collectionService, logger } from './container';
 
 enum Task {
-  CreateCollection = 'create'
+  CreateCollection = 'create',
+  ScrapeCollections = 'scrape'
 }
 
-const parseArg = (arg: string): string => {
-  return arg.split('=')[1]?.trim()?.toLowerCase?.() ?? '';
-};
+interface ModeArgument {
+  arg: string;
+  default?: string;
+  required?: {
+    errorMessage: string;
+  };
+  validate?: (parsedArg: string) => true | string;
+}
 
-export async function main(): Promise<void> {
+enum Mode {
+  File = 'file',
+  Address = 'address'
+}
+
+function getMode(): Mode {
   const fileArg = process.argv.find((item) => {
     return item.includes('file');
   });
+
+  if (fileArg) {
+    return Mode.File;
+  }
 
   const addressArg = process.argv.find((item) => {
     return item.includes('address');
   });
 
-  if (fileArg) {
-    return await fileMode(fileArg);
-  } else if (addressArg) {
-    return await addressMode(addressArg);
-  } else {
-    throw new Error('Failed to pass a file or address');
+  if (addressArg) {
+    return Mode.Address;
+  }
+
+  throw new Error('Invalid mode');
+}
+
+function getTask(): Task {
+  const args = parseArgs([    {
+    arg: 'task',
+    default: Task.CreateCollection
+  }]);
+
+  switch(args.task) {
+    case Task.CreateCollection:
+      return Task.CreateCollection;
+    case Task.ScrapeCollections:
+       return Task.ScrapeCollections;
+    default: 
+      throw new Error(`Invalid task type: ${args.task}`);
   }
 }
 
-async function addressMode(addressArg: string): Promise<void> {
-  let address;
-  let chainId = '1';
-  let task = Task.CreateCollection;
-  let hasBlueCheck = false;
-  let reset = false;
-  if (addressArg) {
-    address = parseArg(addressArg);
-  } else {
-    throw new Error('Must pass a collection address');
+export async function main(): Promise<void> {
+  const task = getTask();
+
+  switch(task) {
+    case Task.CreateCollection: 
+      return await create();
+    case Task.ScrapeCollections: 
+      return await buildCollections();
   }
+}
 
-  const chainIdArg = process.argv.find((item) => {
-    return item.includes('chain');
-  });
 
-  const taskArg = process.argv.find((item) => {
-    return item.includes('task');
-  });
+async function create(): Promise<void> {
+  const mode = getMode();
 
-  const hasBlueCheckArg = process.argv.find((item) => {
-    return item.includes('hasBlueCheck');
-  });
-
-  const resetArg = process.argv.find((item) => {
-    return item.includes('reset');
-  });
-  if (resetArg) {
-    reset = parseArg(resetArg) === 'true';
-  }
-
-  if (chainIdArg) {
-    chainId = parseArg(chainIdArg);
-  }
-
-  if (taskArg) {
-    task = parseArg(taskArg) as Task;
-  }
-
-  if (hasBlueCheckArg) {
-    hasBlueCheck = parseArg(hasBlueCheckArg) === 'true';
-  }
-
-  let method: () => Promise<any>;
-  switch (task) {
-    case Task.CreateCollection:
-      method = collectionService.createCollection.bind(collectionService, address, chainId, hasBlueCheck, reset);
-      break;
+  switch (mode) {
+    case Mode.File:
+      return await fileMode();
+    case Mode.Address:
+      return await addressMode();
     default:
-      throw new Error(`Invalid task type ${task}`);
+      throw new Error('Mode not yet implemented');
   }
+}
+
+function parseArgs(modeArgs: ModeArgument[]): { [key: string]: string } {
+  const parseArg = (arg: string): string => {
+    const fullArg = process.argv.find((item) => {
+      return item.includes(arg);
+    });
+    return (fullArg ?? '').split('=')[1]?.trim() ?? '';
+  };
+
+  const args: { [key: string]: string } = {};
+
+  for (const desc of modeArgs) {
+    let arg: string | number = parseArg(desc.arg);
+    if (!arg && desc.default) {
+      arg = desc.default;
+    }
+
+    if (desc.required && !arg) {
+      throw new Error(desc.required.errorMessage);
+    }
+
+    if (typeof desc.validate === 'function') {
+      const result = desc.validate(arg);
+      if (typeof result === 'string' || !result) {
+        throw new Error(result);
+      }
+    }
+
+    args[desc.arg] = arg;
+  }
+
+  return args;
+}
+
+async function addressMode(): Promise<void> {
+  const addressModeArgs: ModeArgument[] = [
+    {
+      arg: 'address',
+      default: '',
+      required: {
+        errorMessage: 'failed to pass address'
+      },
+      validate: (address: string) => (ethers.utils.isAddress(address) ? true : 'Invalid address')
+    },
+    {
+      arg: 'chain',
+      default: '1'
+    },
+    {
+      arg: 'hasBlueCheck',
+      default: 'false'
+    },
+    {
+      arg: 'reset',
+      default: 'false'
+    }
+  ];
+
+  const args = parseArgs(addressModeArgs);
+
+  const address = args.address;
+  const chainId = args.chain;
+  const hasBlueCheck = args.hasBlueCheck === 'true';
+  const reset = args.reset === 'true';
 
   try {
-    logger.log(`Starting Task: ${task} Address: ${address} Chain Id: ${chainId} `);
-    await method();
+    logger.log(`Starting Task: create Address: ${address} Chain Id: ${chainId} `);
+    await collectionService.createCollection(address, chainId, hasBlueCheck, reset);
   } catch (err) {
     logger.log(`Failed to complete task`);
     logger.error(err);
   }
 }
 
-async function fileMode(fileArg: string): Promise<void> {
-  const file = parseArg(fileArg);
+async function fileMode(): Promise<void> {
+  const fileModeArgs: ModeArgument[] = [
+    {
+      arg: 'file',
+      default: '',
+      required: {
+        errorMessage: 'failed to pass path to input file'
+      }
+    },
+    {
+      arg: 'hasBlueCheck',
+      default: 'false'
+    },
+    {
+      arg: 'reset',
+      default: 'false'
+    }
+  ];
+
+  const args = parseArgs(fileModeArgs);
+
+  const file = args.file;
   const filePath = path.resolve(file);
   const contents = await readFile(filePath, 'utf-8');
   const data = JSON.parse(contents);
 
-  let hasBlueCheck: boolean | undefined;
-  let reset: boolean | undefined;
-
-  const hasBlueCheckArg = process.argv.find((item) => {
-    return item.includes('hasBlueCheck');
-  });
-
-  if (hasBlueCheckArg) {
-    hasBlueCheck = parseArg(hasBlueCheckArg) === 'true';
-  }
-
-  const resetArg = process.argv.find((item) => {
-    return item.includes('reset');
-  });
-  if (resetArg) {
-    reset = parseArg(resetArg) === 'true';
-  }
+  const hasBlueCheck = args.hasBlueCheck === 'true';
+  const reset = args.reset === 'true';
 
   logger.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`);
 
