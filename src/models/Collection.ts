@@ -167,7 +167,6 @@ export default class Collection {
               collection = collectionMetadataCollection; // update collection
               yield { collection };
             } catch (err: any) {
-              logger.error('Failed to get collection metadata', err);
               const message =
                 typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection metadata';
               throw new CollectionMetadataError(message);
