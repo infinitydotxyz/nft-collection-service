@@ -83,7 +83,8 @@ export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
-if (maxConcurrencyForIPFS > 400) { // set the max concurrency lower since we currently get rate limited based on ip or account
+if (maxConcurrencyForIPFS > 400) {
+  // set the max concurrency lower since we currently get rate limited based on ip or account
   maxConcurrencyForIPFS = 400;
 }
 const maxConcurrencyForIPFSPerCollection = Math.floor(maxConcurrencyForIPFS / COLLECTION_TASK_CONCURRENCY);

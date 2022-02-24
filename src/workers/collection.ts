@@ -75,7 +75,7 @@ async function createCollection(): Promise<void> {
 
     emitter.on('token', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-      batch.add(tokenDoc, { ...token, error: {} }, { merge: true }); 
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
     });
 
     emitter.on('mint', (token) => {
@@ -88,7 +88,7 @@ async function createCollection(): Promise<void> {
         reason: data.error,
         timestamp: Date.now()
       };
-      if(data?.tokenId) {
+      if (data?.tokenId) {
         const tokenDoc = collectionDoc.collection('nfts').doc(data.tokenId);
         batch.add(tokenDoc, error, { merge: true });
       }
@@ -157,11 +157,7 @@ async function createCollection(): Promise<void> {
         const errorMessage = `Collection ${chainId}:${address} failed to complete due to unknown error: ${message}`;
         log(errorMessage);
         logger.error(err);
-        batch.add(
-          collectionDoc,
-          { state: { create: { step: '', error: { message: errorMessage } } } },
-          { merge: true }
-        );
+        batch.add(collectionDoc, { state: { create: { step: '', error: { message: errorMessage } } } }, { merge: true });
         await batch.flush();
       }
     }

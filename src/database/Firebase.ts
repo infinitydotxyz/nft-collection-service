@@ -5,7 +5,6 @@ import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { logger } from '../container';
 
 @singleton()
 export default class Firebase {
@@ -29,10 +28,7 @@ export default class Firebase {
     this.bucket = firebaseAdmin.storage().bucket();
   }
 
-  getCollectionDocRef(
-    chainId: string,
-    address: string
-  ): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
+  getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
     const collectionDoc = this.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
     return collectionDoc;
   }
@@ -90,7 +86,6 @@ export default class Firebase {
         }
       }
     }
-
   }
 
   async uploadBuffer(buffer: Buffer, path: string, contentType: string): Promise<File> {

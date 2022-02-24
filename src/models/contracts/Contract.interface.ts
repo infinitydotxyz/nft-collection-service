@@ -58,7 +58,7 @@ export default interface Contract {
   getContractCreationTx: () => Promise<ethers.Event>;
 
   /**
-   * returns whether the given topic is a transfer 
+   * returns whether the given topic is a transfer
    */
   isTransfer: (topic: string) => boolean;
 

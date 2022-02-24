@@ -11,7 +11,7 @@ export default class Logger {
 
   constructor() {
     const errorLogFile = ERROR_LOG_FILE;
-    if(errorLogFile){
+    if (errorLogFile) {
       const errorStream = createWriteStream(errorLogFile, { encoding: 'utf-8', flags: 'a' });
       this.errorLogger = new Console(errorStream, errorStream);
     }
@@ -55,8 +55,8 @@ export default class Logger {
       this.error('Unhandled rejection', reason);
     });
 
-    process.on('exit', ( code) => {
-      if (isMainThread) { 
+    process.on('exit', (code) => {
+      if (isMainThread) {
         this.log(`Process exiting... Code: ${code}`);
       }
     });

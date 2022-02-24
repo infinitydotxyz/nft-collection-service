@@ -1,49 +1,47 @@
 import { RefreshTokenFlow } from '../../types/Token.interface';
 
 export interface RefreshTokenErrorJson {
-    message: string;
+  message: string;
 
-    discriminator: RefreshTokenFlow;
+  discriminator: RefreshTokenFlow;
 }
 
 export class RefreshTokenError extends Error {
-    discriminator: RefreshTokenFlow;
+  discriminator: RefreshTokenFlow;
 
+  constructor(discriminator: RefreshTokenFlow, message?: string) {
+    super(message);
+    this.discriminator = discriminator;
+  }
 
-    constructor(discriminator: RefreshTokenFlow, message?: string) {
-        super(message);
-        this.discriminator = discriminator;
-    }
-
-    toJSON(): RefreshTokenErrorJson {
-        return  {
-            message: this.message,
-            discriminator: this.discriminator
-        }
-    }
+  toJSON(): RefreshTokenErrorJson {
+    return {
+      message: this.message,
+      discriminator: this.discriminator
+    };
+  }
 }
 
 export class RefreshTokenMintError extends RefreshTokenError {
-    constructor(message?: string) {
-        super(RefreshTokenFlow.Mint, message);
-    }
+  constructor(message?: string) {
+    super(RefreshTokenFlow.Mint, message);
+  }
 }
 
 export class RefreshTokenUriError extends RefreshTokenError {
-    constructor(message?: string) {
-        super(RefreshTokenFlow.Uri, message);
-    }
+  constructor(message?: string) {
+    super(RefreshTokenFlow.Uri, message);
+  }
 }
 
-
 export class RefreshTokenMetadataError extends RefreshTokenError {
-    constructor(message?: string) {
-        super(RefreshTokenFlow.Metadata, message);
-    }
+  constructor(message?: string) {
+    super(RefreshTokenFlow.Metadata, message);
+  }
 }
 
 export class RefreshTokenImageError extends RefreshTokenError {
-    constructor(message?: string) {
-        super(RefreshTokenFlow.Image, message);
-    }
+  constructor(message?: string) {
+    super(RefreshTokenFlow.Image, message);
+  }
 }
