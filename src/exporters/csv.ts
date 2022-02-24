@@ -12,7 +12,7 @@ export const tokensDataToFile = async (chainId: string, collection: string): Pro
   writeFileSync(`./${collection}.csv`, lines);
 };
 
-export async function exportCollections():Promise<void> {
+export async function exportCollections(): Promise<void> {
   const snap = await firebase.db.collection('collections').where('state.export.done', '==', false).get();
   for (const doc of snap.docs) {
     const data = doc.data();

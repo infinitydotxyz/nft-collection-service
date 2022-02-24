@@ -44,17 +44,19 @@ function getMode(): Mode {
 }
 
 function getTask(): Task {
-  const args = parseArgs([    {
-    arg: 'task',
-    default: Task.CreateCollection
-  }]);
+  const args = parseArgs([
+    {
+      arg: 'task',
+      default: Task.CreateCollection
+    }
+  ]);
 
-  switch(args.task) {
+  switch (args.task) {
     case Task.CreateCollection:
       return Task.CreateCollection;
     case Task.ScrapeCollections:
-       return Task.ScrapeCollections;
-    default: 
+      return Task.ScrapeCollections;
+    default:
       throw new Error(`Invalid task type: ${args.task}`);
   }
 }
@@ -62,14 +64,13 @@ function getTask(): Task {
 export async function main(): Promise<void> {
   const task = getTask();
 
-  switch(task) {
-    case Task.CreateCollection: 
+  switch (task) {
+    case Task.CreateCollection:
       return await create();
-    case Task.ScrapeCollections: 
+    case Task.ScrapeCollections:
       return await buildCollections();
   }
 }
-
 
 async function create(): Promise<void> {
   const mode = getMode();

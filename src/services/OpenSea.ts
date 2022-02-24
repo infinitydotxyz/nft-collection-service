@@ -79,10 +79,10 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
 
     const dataInInfinityFormat: CollectionMetadata = {
       name,
-      description: data.description ?? "",
+      description: data.description ?? '',
       symbol: data.symbol ?? '',
-      profileImage: collection.image_url ?? "",
-      bannerImage: collection.banner_image_url ?? "",
+      profileImage: collection.image_url ?? '',
+      bannerImage: collection.banner_image_url ?? '',
       links: {
         timestamp: new Date().getTime(),
         discord: collection.discord_url ?? '',

@@ -20,7 +20,7 @@ export default class CollectionService {
       concurrency: COLLECTION_TASK_CONCURRENCY // number of collections to run at once
     });
 
-    function setTerminalTitle(title: string):void {
+    function setTerminalTitle(title: string): void {
       process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
     }
 
@@ -33,12 +33,12 @@ export default class CollectionService {
   async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false): Promise<void> {
     address = address.toLowerCase();
 
-    return await this.taskQueue.add(async( ) => {
-      try{
+    return await this.taskQueue.add(async () => {
+      try {
         await createCollection(address, chainId, hasBlueCheck, reset);
-      }catch(err) {
+      } catch (err) {
         logger.error('Worker errored...', err);
       }
-    })
+    });
   }
 }

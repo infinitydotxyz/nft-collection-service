@@ -1,11 +1,9 @@
 import { CreationFlow } from '../Collection';
 
-
 export interface CreationFlowErrorJson {
-  message: string,
-  discriminator: CreationFlow | 'unknown'
+  message: string;
+  discriminator: CreationFlow | 'unknown';
 }
-
 
 export class CreationFlowError extends Error {
   discriminator: CreationFlow | 'unknown';
@@ -35,32 +33,30 @@ export class CollectionMetadataError extends CreationFlowError {
   }
 }
 
-export interface CollectionMintsErrorJSON extends CreationFlowErrorJson{
+export interface CollectionMintsErrorJSON extends CreationFlowErrorJson {
   lastSuccessfulBlock?: number;
 }
 
 export class CollectionMintsError extends CreationFlowError {
-
   lastSuccessfulBlock?: number;
 
   constructor(message?: string, lastSuccessfulBlock?: number) {
     super(CreationFlow.CollectionMints, message);
-    this.lastSuccessfulBlock = lastSuccessfulBlock
+    this.lastSuccessfulBlock = lastSuccessfulBlock;
   }
 
   toJSON(): CollectionMintsErrorJSON {
-    if(this.lastSuccessfulBlock !== undefined) {
+    if (this.lastSuccessfulBlock !== undefined) {
       return {
         discriminator: this.discriminator,
         lastSuccessfulBlock: this.lastSuccessfulBlock,
         message: this.message
-      }
+      };
     }
     return {
       discriminator: this.discriminator,
       message: this.message
-    }
-
+    };
   }
 }
 

@@ -50,8 +50,8 @@ export default class Moralis {
     this.queue = new PQueue({
       concurrency: 10,
       intervalCap: 17,
-      interval: 3000,
-    })
+      interval: 3000
+    });
   }
 
   /**
@@ -65,13 +65,12 @@ export default class Moralis {
           chain: this.getChain(chainId),
           cursor
         },
-        responseType: 'json',
+        responseType: 'json'
       })
     );
 
     return res;
   }
-
 
   /**
    * getAllTokens gets all tokens for a contract
@@ -95,13 +94,13 @@ export default class Moralis {
         searchParams: {
           chain: this.getChain(chainId)
         },
-        responseType: 'json',
+        responseType: 'json'
       })
     );
 
     const token = res.body;
 
-    if(token.metadata === null) {
+    if (token.metadata === null) {
       throw new Error("Moralis doesn't have metadata");
     }
 
@@ -133,15 +132,15 @@ export default class Moralis {
       try {
         const res = await this.queue.add(async () => {
           return await request();
-        })
+        });
 
         switch (res.statusCode) {
           case 200:
             return res;
 
           case 429:
-            throw new Error("Rate limited");
-            
+            throw new Error('Rate limited');
+
           default:
             throw new Error(`Moralis client received unknown status code ${res.statusCode}`);
         }

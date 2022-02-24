@@ -63,9 +63,7 @@ export default class Erc721Contract extends AbstractContract {
       });
     }
 
-    const tokensSortedByRarity = updatedTokens.sort(
-      (itemA, itemB) => (itemB.rarityScore ?? 0) - (itemA.rarityScore ?? 0)
-    );
+    const tokensSortedByRarity = updatedTokens.sort((itemA, itemB) => (itemB.rarityScore ?? 0) - (itemA.rarityScore ?? 0));
 
     return tokensSortedByRarity.map((token, index) => {
       return {
@@ -112,8 +110,7 @@ export default class Erc721Contract extends AbstractContract {
        * increment counts
        */
       collectionTraits[traitType].count += 1;
-      collectionTraits[traitType].percent =
-        Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
+      collectionTraits[traitType].percent = Math.round((collectionTraits[traitType].count / tokens.length) * 100 * 100) / 100;
       collectionTraits[traitType].values[value].count += 1;
 
       const percent = Math.round((collectionTraits[traitType].values[value].count / tokens.length) * 100 * 100) / 100;
@@ -164,7 +161,7 @@ export default class Erc721Contract extends AbstractContract {
 
   isTransfer(topic: string): boolean {
     const transferTopic = this.contract.filters.Transfer(NULL_ADDR)?.topics?.[0];
-    if(transferTopic && transferTopic === topic) {
+    if (transferTopic && transferTopic === topic) {
       return true;
     }
     return false;

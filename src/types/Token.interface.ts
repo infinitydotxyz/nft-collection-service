@@ -1,8 +1,7 @@
 import { Erc721Metadata } from './Metadata.interface';
-import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow'
+import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
 
 export type TokenMetadata = Erc721Metadata;
-
 
 export type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId' | 'state' | 'mintTxHash' | 'mintPrice'>;
 
@@ -13,7 +12,6 @@ export type MetadataToken = UriToken & Pick<Token, 'metadata' | 'numTraitTypes' 
 export type ImageToken = MetadataToken & Pick<Token, 'image'>;
 
 export type AggregatedToken = ImageToken & Pick<Token, 'rarityScore' | 'rarityRank'>;
-
 
 export enum RefreshTokenFlow {
   Mint = 'mint',
@@ -109,11 +107,11 @@ interface BaseToken {
   };
 
   state?: {
-    metadata: { 
-      step: RefreshTokenFlow,
-      error?: RefreshTokenErrorJson
-    }
-  }
+    metadata: {
+      step: RefreshTokenFlow;
+      error?: RefreshTokenErrorJson;
+    };
+  };
 }
 
 export interface Erc721Token extends BaseToken {

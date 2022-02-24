@@ -111,10 +111,7 @@ export default abstract class Contract implements IContract {
 
     toBlock = toBlock ?? 'latest';
 
-    const getMaxBlock = async (
-      provider: ethers.providers.JsonRpcProvider,
-      toBlock: number | 'latest'
-    ): Promise<number> => {
+    const getMaxBlock = async (provider: ethers.providers.JsonRpcProvider, toBlock: number | 'latest'): Promise<number> => {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
@@ -157,10 +154,7 @@ export default abstract class Contract implements IContract {
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
     let from = minBlock;
 
-    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(
-      maxAttempts,
-      1000
-    );
+    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000);
 
     let pagesWithoutResults = 0;
     while (from < maxBlock) {
@@ -175,7 +169,7 @@ export default abstract class Contract implements IContract {
       const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
 
       yield errorHandler(async () => {
-        if(pagesWithoutResults > 5) {
+        if (pagesWithoutResults > 5) {
           try {
             const events = await thunkedLogRequest(from, maxBlock);
             const fromBlock = minBlock;
@@ -187,15 +181,15 @@ export default abstract class Contract implements IContract {
               toBlock,
               events
             };
-          }catch(err) {
+          } catch (err) {
             logger.error('Failed to optimize logs query', err);
             pagesWithoutResults = 0;
           }
         }
 
         const events = await thunkedLogRequest(from, to);
-        
-        if(events.length === 0) {
+
+        if (events.length === 0) {
           pagesWithoutResults += 1;
         } else {
           pagesWithoutResults = 0;

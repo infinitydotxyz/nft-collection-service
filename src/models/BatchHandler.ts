@@ -15,7 +15,7 @@ export default class BatchHandler {
     this.currentBatch = this.newBatch();
   }
 
-  get size(): number{ 
+  get size(): number {
     return this.currentBatch.size;
   }
 
