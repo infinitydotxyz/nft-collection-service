@@ -7,7 +7,7 @@ import { singleton } from 'tsyringe';
 import { randomItem } from '../utils';
 import NotFoundError from '../models/errors/NotFound';
 import { normalize } from 'path';
-import {logger } from '../container';
+import { logger } from '../container';
 
 enum Protocol {
   HTTPS = 'https:',
@@ -16,7 +16,6 @@ enum Protocol {
 }
 
 type RequestTransformer = ((options: Options) => void) | null;
-
 
 interface MetadataClientOptions {
   protocols: Record<Protocol, { transform: RequestTransformer; ipfsPathFromUrl: (url: string | URL) => string }>;
@@ -127,8 +126,7 @@ export default class MetadataClient {
           return await this.client({ url });
         },
         { priority }
-      ) ;
-
+      );
 
       switch (response.statusCode) {
         case 200:
@@ -142,7 +140,7 @@ export default class MetadataClient {
 
           return response;
 
-        case 404: 
+        case 404:
           throw new NotFoundError(`Server responded with status code 404 Url: ${response.requestUrl}`);
 
         case 429:
@@ -160,5 +158,3 @@ export default class MetadataClient {
     }
   }
 }
-
-

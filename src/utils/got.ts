@@ -1,14 +1,14 @@
 import {
-    CacheError,
-    CancelError,
-    MaxRedirectsError,
-    ParseError,
-    ReadError,
-    RequestError,
-    TimeoutError,
-    UnsupportedProtocolError,
-    UploadError
-  } from 'got';
+  CacheError,
+  CancelError,
+  MaxRedirectsError,
+  ParseError,
+  ReadError,
+  RequestError,
+  TimeoutError,
+  UnsupportedProtocolError,
+  UploadError
+} from 'got';
 
 export type GotError =
   | RequestError
@@ -35,19 +35,17 @@ export function isGotError(error: GotError | unknown): boolean {
   );
 }
 
-
 const fatal = [CancelError, UnsupportedProtocolError];
 
-
-export function gotErrorHandler(error: GotError | unknown): { retry: true, delay: number } |  { fatal: boolean }  {
-    if(isGotError(error)) {
-        for (const fatalErrorType of fatal) {
-            if (error instanceof fatalErrorType) { 
-                return { fatal: true };
-            }
-        }
-        return { retry: true, delay: 1000 };
+export function gotErrorHandler(error: GotError | unknown): { retry: true; delay: number } | { fatal: boolean } {
+  if (isGotError(error)) {
+    for (const fatalErrorType of fatal) {
+      if (error instanceof fatalErrorType) {
+        return { fatal: true };
+      }
     }
+    return { retry: true, delay: 1000 };
+  }
 
-    return { fatal: false }
+  return { fatal: false };
 }

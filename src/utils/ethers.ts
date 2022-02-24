@@ -1,10 +1,9 @@
 import { sleep } from './';
-import { logger, providers } from '../container'; 
+import { logger, providers } from '../container';
 import { JsonRpcProvider } from '@ethersproject/providers';
 
-
 export function getProviderByChainId(chainId: string): JsonRpcProvider {
-  return providers.getProviderByChainId(chainId)
+  return providers.getProviderByChainId(chainId);
 }
 
 enum JsonRpcError {

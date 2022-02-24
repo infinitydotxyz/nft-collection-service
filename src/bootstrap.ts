@@ -3,7 +3,7 @@ import { Env, getEnv } from './utils';
 import { main as dev } from './script';
 import { main as cli } from './cli';
 import { main } from './index';
-import {main as background} from './background';
+import { main as background } from './background';
 import { START_UP_MESSAGE } from './constants';
 import { logger } from './container';
 
