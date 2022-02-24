@@ -69,20 +69,23 @@ export async function buildCollections(): Promise<void> {
       if (collection?.primary_asset_contracts && collection?.primary_asset_contracts.length > 0) {
         const contracts: Array<Partial<Collection>> = [];
         for (const contract of collection?.primary_asset_contracts) {
-          if (contract.name && contract.schema_name && contract.address) {
+          const address = (contract.address ?? '').trim().toLowerCase()
+          const openseaStorefront = '0x495f947276749ce646f68ac8c248420045cb7b5e';
+          if (contract.name && contract.schema_name && address && address !== openseaStorefront) {
             try {
               // assume all contracts are on mainnet
-              const metadata = await opensea.getCollectionMetadata(contract.address); // ensure the contract is on mainnet.
+              const metadata = await opensea.getCollectionMetadata(address); // ensure the contract is on mainnet.
               const slug = getSearchFriendlyString(metadata.links.slug ?? '');
               if (!slug) {
                 throw new Error('Failed to find collection slug');
               }
+              
               // ensure we don't yet have this document
-              const doc = await firebase.getCollectionDocRef('1', contract.address).get();
+              const doc = await firebase.getCollectionDocRef('1', address).get();
               if (!doc.exists) {
                 const collectionData: Partial<Collection> = {
                   chainId: '1',
-                  address: contract.address,
+                  address: address,
                   metadata: metadata,
                   slug,
                   state: {

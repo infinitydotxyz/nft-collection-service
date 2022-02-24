@@ -6,7 +6,6 @@ import { CollectionMetadata } from '../types/Collection.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
-import { logger } from '../container';
 import { TokenStandard } from 'models/contracts/Contract.interface';
 
 /**
