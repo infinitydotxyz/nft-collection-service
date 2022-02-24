@@ -12,8 +12,8 @@ export async function main(): Promise<void> {
      * that don't yet have these fields
      */
     // await addNumOwnersUpdatedAtAndDataExportedFields();
-    await buildCollections();
-    // await collectionDao.getCollectionsSummary();
+    // await buildCollections();
+    await collectionDao.getCollectionsSummary();
   } catch (err) {
     logger.error(err);
   }

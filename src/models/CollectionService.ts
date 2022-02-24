@@ -5,29 +5,37 @@ import { singleton } from 'tsyringe';
 import { COLLECTION_TASK_CONCURRENCY } from '../constants';
 import { createCollection } from '../workers/collectionRunner';
 import { logger } from '../container';
+import { EventEmitter } from 'stream';
 
 @singleton()
-export default class CollectionService {
+export default class CollectionService extends EventEmitter {
   private readonly contractFactory: ContractFactory;
   private readonly collectionMetadataProvider: CollectionMetadataProvider;
 
   private readonly taskQueue: PQueue;
 
   constructor() {
+    super();
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
     this.taskQueue = new PQueue({
       concurrency: COLLECTION_TASK_CONCURRENCY // number of collections to run at once
     });
 
-    function setTerminalTitle(title: string): void {
-      process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
-    }
 
-    setInterval(() => {
-      const size = this.taskQueue.size + this.taskQueue.pending;
-      setTerminalTitle(`Collection Queue Size: ${this.taskQueue.size} Pending: ${this.taskQueue.pending}  Total: ${size}`);
-    }, 3000);
+    this.taskQueue.on('add', () => {
+      this.emit('collectionComplete', {
+        size: this.taskQueue.size,
+        pending: this.taskQueue.pending
+      });
+    });
+
+    this.taskQueue.on('next', () => {
+      this.emit('collectionComplete', {
+        size: this.taskQueue.size,
+        pending: this.taskQueue.pending
+      });
+    });
   }
 
   async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false): Promise<void> {

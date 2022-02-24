@@ -3,19 +3,11 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { buildCollections } from './scripts/buildCollections';
 import { collectionService, logger } from './container';
+import { parseArgs, ModeArgument, setTerminalTitle } from './utils/cli';
 
 enum Task {
   CreateCollection = 'create',
   ScrapeCollections = 'scrape'
-}
-
-interface ModeArgument {
-  arg: string;
-  default?: string;
-  required?: {
-    errorMessage: string;
-  };
-  validate?: (parsedArg: string) => true | string;
 }
 
 enum Mode {
@@ -61,8 +53,13 @@ function getTask(): Task {
   }
 }
 
+
+
 export async function main(): Promise<void> {
   const task = getTask();
+  collectionService.on('collectionComplete', (data: { size: number, pending: number}) => {
+    setTerminalTitle(`Collection Queue Size: ${data.size} Pending: ${data.pending}  Total: ${data.size + data.pending}`);
+  })
 
   switch (task) {
     case Task.CreateCollection:
@@ -71,6 +68,8 @@ export async function main(): Promise<void> {
       return await buildCollections();
   }
 }
+
+
 
 async function create(): Promise<void> {
   const mode = getMode();
@@ -85,38 +84,7 @@ async function create(): Promise<void> {
   }
 }
 
-function parseArgs(modeArgs: ModeArgument[]): { [key: string]: string } {
-  const parseArg = (arg: string): string => {
-    const fullArg = process.argv.find((item) => {
-      return item.includes(arg);
-    });
-    return (fullArg ?? '').split('=')[1]?.trim() ?? '';
-  };
 
-  const args: { [key: string]: string } = {};
-
-  for (const desc of modeArgs) {
-    let arg: string | number = parseArg(desc.arg);
-    if (!arg && desc.default) {
-      arg = desc.default;
-    }
-
-    if (desc.required && !arg) {
-      throw new Error(desc.required.errorMessage);
-    }
-
-    if (typeof desc.validate === 'function') {
-      const result = desc.validate(arg);
-      if (typeof result === 'string' || !result) {
-        throw new Error(result);
-      }
-    }
-
-    args[desc.arg] = arg;
-  }
-
-  return args;
-}
 
 async function addressMode(): Promise<void> {
   const addressModeArgs: ModeArgument[] = [
@@ -204,3 +172,5 @@ async function fileMode(): Promise<void> {
 
   await Promise.allSettled(promises);
 }
+
+
