@@ -80,6 +80,10 @@ interface BaseCollection {
       step: CreationFlow;
       error?: Record<string, any>;
     };
+    queue?: {
+      enqueuedAt: number;
+      claimedAt?: number;
+    },
     export: {
       done: boolean;
     };

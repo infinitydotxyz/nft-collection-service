@@ -14,27 +14,34 @@ export default class CollectionService extends EventEmitter {
 
   private readonly taskQueue: PQueue;
 
+  readonly concurrency: number;
+
   constructor() {
     super();
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
+    this.concurrency = COLLECTION_TASK_CONCURRENCY;
     this.taskQueue = new PQueue({
-      concurrency: COLLECTION_TASK_CONCURRENCY // number of collections to run at once
+      concurrency: this.concurrency // number of collections to run at once
     });
 
 
     this.taskQueue.on('add', () => {
-      this.emit('collectionComplete', {
+      this.emit('sizeChange', {
         size: this.taskQueue.size,
         pending: this.taskQueue.pending
       });
     });
 
     this.taskQueue.on('next', () => {
-      this.emit('collectionComplete', {
+      this.emit('sizeChange', {
         size: this.taskQueue.size,
         pending: this.taskQueue.pending
       });
+
+      this.emit('collectionCompleted', () => {
+        this.emit('collectionCompleted');
+      })
     });
   }
 

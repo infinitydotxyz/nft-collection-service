@@ -426,6 +426,7 @@ export default class Collection {
       collection = {
         ...collection,
         state: {
+          ...collection.state,
           create: {
             step: stepToSave,
             error: error.toJSON()

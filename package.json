@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "fix": "eslint --fix .",
     "start": "node -r dotenv/config ./dist/bootstrap.js",
+    "start:dev": "npm run build && node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV=script node -r dotenv/config ./dist/bootstrap.js",
     "cli": "npm run build && cross-env NODE_ENV=cli node -r dotenv/config ./dist/bootstrap.js",
     "cli-server": "npm run build && cross-env TEENY_REQUEST_WARN_CONCURRENT_REQUESTS=10000 cross-env NODE_ENV=cli node --max-old-space-size=60000 -r dotenv/config ./dist/bootstrap.js"

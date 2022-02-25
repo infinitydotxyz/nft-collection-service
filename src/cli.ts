@@ -57,7 +57,7 @@ function getTask(): Task {
 
 export async function main(): Promise<void> {
   const task = getTask();
-  collectionService.on('collectionComplete', (data: { size: number, pending: number}) => {
+  collectionService.on('sizeChange', (data: { size: number, pending: number}) => {
     setTerminalTitle(`Collection Queue Size: ${data.size} Pending: ${data.pending}  Total: ${data.size + data.pending}`);
   })
 
@@ -78,7 +78,7 @@ async function create(): Promise<void> {
     case Mode.File:
       return await fileMode();
     case Mode.Address:
-      return await addressMode();
+      return await addressMode(); 
     default:
       throw new Error('Mode not yet implemented');
   }
