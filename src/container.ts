@@ -7,7 +7,7 @@ import CollectionService from './models/CollectionService';
 import Moralis from './services/Moralis';
 import Logger from './utils/Logger';
 import Providers from './models/Providers';
-import { CollectionQueue } from './models/CollectionQueueMonitor';
+import { CollectionQueue } from './models/CollectionQueue';
 
 export const logger: Logger = container.resolve(Logger);
 export const providers: Providers = container.resolve(Providers);

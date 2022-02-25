@@ -42,6 +42,7 @@
     "dotenv": "^16.0.0",
     "emittery": "^0.10.1",
     "ethers": "^5.5.4",
+    "express": "^4.17.3",
     "file-type": "^16.5.3",
     "firebase-admin": "^10.0.2",
     "got": "^11.8.3",
