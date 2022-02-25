@@ -25,11 +25,9 @@ async function bootstrap(): Promise<void> {
     case Env.Serve:
       // await server();
       return;
-    case Env.Queue: 
-      await new Promise(() => {
-        // start a collection queue monitor
-        const collectionQueueMonitor = new CollectionQueueMonitor();
-      });
+    case Env.Queue:
+      // start a collection queue monitor
+      new CollectionQueueMonitor().start();
       return;
     default:
       throw new Error(`Env not bootstrapped ${env}`);

@@ -1,5 +1,5 @@
 import { COLLECTION_SCHEMA_VERSION } from '../constants';
-import { firebase, logger } from '../container';
+import { firebase } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { CreationFlow } from '../models/Collection';
 import { Collection } from '../types/Collection.interface';
@@ -11,10 +11,8 @@ import { Collection } from '../types/Collection.interface';
  * collection schema with a version
  */
 export async function migrateToVersion1(): Promise<void> {
-  logger.log(`Starting migration`);
   const batchHandler = new BatchHandler();
   const collections = await firebase.db.collection('collections').get();
-  logger.log(`Migrating: ${collections.docs.length} collections`);
   collections.forEach((snapshot) => {
     const collectionRef = snapshot.ref;
     const collection: Partial<Collection> = snapshot.data();
@@ -40,7 +38,6 @@ export async function migrateToVersion1(): Promise<void> {
       const incompleteCollection: Partial<Collection> = {
         ...collection,
         state: {
-
           ...collection?.state,
           version: COLLECTION_SCHEMA_VERSION,
           create: {

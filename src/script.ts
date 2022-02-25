@@ -5,6 +5,7 @@ import { Collection } from 'types/Collection.interface';
 import { collectionDao, firebase, logger } from './container';
 
 import { buildCollections } from './scripts/buildCollections';
+import { CollectionQueueMonitor } from './models/CollectionQueueMonitor';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
@@ -18,6 +19,10 @@ export async function main(): Promise<void> {
     // await collectionDao.getCollectionsSummary();
     
     // await addQueuePropertiesToCollections();
+
+    const queue = new CollectionQueueMonitor();
+
+    await queue.logCollectionErrors();
 
   } catch (err) {
     logger.error(err);
