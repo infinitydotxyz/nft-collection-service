@@ -37,6 +37,8 @@ export function getEnv(): Env {
       return Env.Script;
     case Env.Queue:
       return Env.Queue;
+    case Env.Serve: 
+      return Env.Serve;
     default:
       throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
   }

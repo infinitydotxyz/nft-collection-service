@@ -6,13 +6,20 @@ import { collectionService, firebase, logger } from '../container';
 import { Collection } from '../types/Collection.interface';
 import { CreationFlow } from './Collection';
 import CollectionService from './CollectionService';
+import { singleton } from 'tsyringe';
+import { isMainThread } from 'worker_threads';
 
-export class CollectionQueueMonitor {
+
+interface CollectionErrorQuery {name: string, type: "error" | 'process', step: 'any' | 'unknown' | CreationFlow, query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>}
+@singleton()
+export class CollectionQueue {
   private readonly collectionService: CollectionService;
 
   private readonly collections: AsyncGenerator<Partial<Collection>, void, Partial<Collection>>;
 
   private isRunning = false;
+
+  private isMonitoringErrors = false;
 
   private readonly claimQueue: PQueue;
 
@@ -36,7 +43,7 @@ export class CollectionQueueMonitor {
   }
 
   start(): void {
-    if (this.isRunning) {
+    if (this.isRunning || !isMainThread) {
       return;
     }
 
@@ -107,6 +114,7 @@ export class CollectionQueueMonitor {
   }
 
   private async nextCollection(): Promise<Partial<Collection>> {
+    logger.log(`Waiting for collection to be queued...`);
     const result = await this.collections.next();
     assert(result.done === false, 'Unexpected result. Generator should not end');
     return result.value;
@@ -188,77 +196,15 @@ export class CollectionQueueMonitor {
   }
 
   /**
-   * queries for errored collections and logs the results
+   * queries for errored collections, logs the results
+   * enqueues collections that errored due to a process failure
    */
-  async logCollectionErrors(): Promise<void> {
-    const collections = firebase.db.collection('collections');
-    const invalidIfClaimedBefore = Date.now() - ONE_HOUR * 3;
+  async queryCollectionErrors(): Promise<void> {
+    const failedCollectionQueries = this.collectionErrorQueries;
 
-    /**
-     * errored collections
-     * when a collection errors we should send a discord webhook
-     */
-    const erroredCollections = {
-      name: 'Collections With Errors',
-      type: 'error',
-      step: 'any',
-      query: collections.where('state.create.error.message', '>=', '')
-    };
-
-    const getQuery = (step: CreationFlow): FirebaseFirestore.Query<FirebaseFirestore.DocumentData> => {
-      return collections.where('state.create.step', '==', step).where('state.queue.claimedAt', '<', invalidIfClaimedBefore).where('state.queue.claimedAt', '>', 0);
-    };
-
-    const failedUnknown = {
-      type: 'process',
-      name: 'Collections that failed on an unknown step',
-      step: 'unknown',
-      query: collections.where('state.create.step', '==', '').where('state.queue.claimedAt', '<', invalidIfClaimedBefore).where('state.queue.claimedAt', '>', 0)
-    };
-    const failedToGetCollectionCreator = {
-      type: 'process',
-      name: 'Collections that failed to get collection creator',
-      step: CreationFlow.CollectionCreator,
-      query: getQuery(CreationFlow.CollectionCreator)
-    };
-    const failedToGetCollectionMetadata = {
-      type: 'process',
-      name: 'Collections that failed to get collection metadata',
-      step: CreationFlow.CollectionMetadata,
-      query: getQuery(CreationFlow.CollectionMetadata)
-    };
-    const failedToGetCollectionMints = {
-      type: 'process',
-      name: 'Collections that failed to get mints',
-      step: CreationFlow.CollectionMints,
-      query: getQuery(CreationFlow.CollectionMints)
-    };
-    const failedToGetTokenMetadata = {
-      type: 'process',
-      name: 'Collections that failed to get token metadata',
-      step: CreationFlow.TokenMetadata,
-      query: getQuery(CreationFlow.TokenMetadata)
-    };
-    const failedToAggrgate = {
-      type: 'process',
-      name: 'Collections that failed to aggregate token data',
-      step: CreationFlow.AggregateMetadata,
-      query: getQuery(CreationFlow.AggregateMetadata)
-    };
-
-    const failedCollectionQueries = [
-      erroredCollections,
-      failedUnknown,
-      failedToGetCollectionCreator,
-      failedToGetCollectionMetadata,
-      failedToGetCollectionMints,
-      failedToGetTokenMetadata,
-      failedToAggrgate
-    ];
-
-    const results: Record<CreationFlow | 'unknown', { count: number }> = {} as any;
-    for (const item of [...Object.values(CreationFlow), 'unknown']) {
-      results[item as CreationFlow | 'unknown'] = {
+    const results: Record<CreationFlow | 'unknown' | 'any', { count: number }> = {} as any;
+    for (const item of [...Object.values(CreationFlow), 'unknown', 'any']) {
+      results[item as CreationFlow | 'unknown' | 'any'] = {
         count: 0
       };
     }
@@ -281,7 +227,13 @@ export class CollectionQueueMonitor {
             }
 
             const step = collection?.state?.create?.step ?? 'unknown';
-            results[step].count += 1;
+            if(!results[step]) {
+              results[step as string as CreationFlow] = {
+                count: 1,
+              }
+            } else {
+              results[step].count += 1;
+            }
           });
           break;
 
@@ -294,12 +246,16 @@ export class CollectionQueueMonitor {
                 snapshot.id,
                 `[Process Errored] [${snapshot.id}] [${collection.state?.create?.step}] ${collection?.state?.create.error?.message}`
               );
+              if(!results[queryObj.step]) {
+                results[queryObj.step as string as CreationFlow] = {
+                  count: 1,
+                }
+              } else {
+                results[queryObj.step].count += 1;
+              }
+              const [chainId, address] = snapshot.id.split(':');
+              await this.enqueueCollection(address, chainId);
             }
-
-            results[queryObj.step as CreationFlow | 'unknown'].count += 1;
-
-            // const [address, chainId] = snapshot.id.split(':');
-            // await this.enqueueCollection(address, chainId);
           });
           break;
 
@@ -314,6 +270,80 @@ export class CollectionQueueMonitor {
     logger.log(JSON.stringify(results, null, 2));
   }
 
+  private get collectionErrorQueries(): CollectionErrorQuery[] {
+    const collections = firebase.db.collection('collections');
+    const invalidIfClaimedBefore = Date.now() - ONE_HOUR * 3;
+    /**
+     * errored collections
+     * when a collection errors we should send a discord webhook
+     */
+    const erroredCollections: CollectionErrorQuery = {
+      name: 'Collections With Errors',
+      type: 'error',
+      step: 'any',
+      query: collections.where('state.create.error.message', '>=', '')
+    };
+
+    const getQuery = (step: CreationFlow): FirebaseFirestore.Query<FirebaseFirestore.DocumentData> => {
+      return collections
+        .where('state.create.step', '==', step)
+        .where('state.queue.claimedAt', '<', invalidIfClaimedBefore)
+        .where('state.queue.claimedAt', '>', 0);
+    };
+
+    const failedUnknown: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed on an unknown step',
+      step: 'unknown',
+      query: collections
+        .where('state.create.step', '==', '')
+        .where('state.queue.claimedAt', '<', invalidIfClaimedBefore)
+        .where('state.queue.claimedAt', '>', 0)
+    };
+    const failedToGetCollectionCreator: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed to get collection creator',
+      step: CreationFlow.CollectionCreator,
+      query: getQuery(CreationFlow.CollectionCreator)
+    };
+    const failedToGetCollectionMetadata: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed to get collection metadata',
+      step: CreationFlow.CollectionMetadata,
+      query: getQuery(CreationFlow.CollectionMetadata)
+    };
+    const failedToGetCollectionMints: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed to get mints',
+      step: CreationFlow.CollectionMints,
+      query: getQuery(CreationFlow.CollectionMints)
+    };
+    const failedToGetTokenMetadata: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed to get token metadata',
+      step: CreationFlow.TokenMetadata,
+      query: getQuery(CreationFlow.TokenMetadata)
+    };
+    const failedToAggrgate: CollectionErrorQuery = {
+      type: 'process',
+      name: 'Collections that failed to aggregate token data',
+      step: CreationFlow.AggregateMetadata,
+      query: getQuery(CreationFlow.AggregateMetadata)
+    };
+
+    const collectionErrorQueries: CollectionErrorQuery[] = [
+      erroredCollections,
+      failedUnknown,
+      failedToGetCollectionCreator,
+      failedToGetCollectionMetadata,
+      failedToGetCollectionMints,
+      failedToGetTokenMetadata,
+      failedToAggrgate
+    ];
+
+    return collectionErrorQueries;
+  }
+
   /**
    * to enqueue a collection
    * 1. create a collection document with an address and chainId
@@ -322,7 +352,12 @@ export class CollectionQueueMonitor {
    *    * note enqueued at determines the collections position in the queue. To prioritize a collection
    *      enqueuedAt to something like 0. By default you should use the current time
    */
-  async enqueueCollection(address: string, chainId: string, timestamp = Date.now()): Promise<void> {
+  async enqueueCollection(
+    address: string,
+    chainId: string,
+    timestamp = Date.now(),
+    collectionUpdate?: Partial<Collection>
+  ): Promise<void> {
     address = address.trim().toLowerCase();
     const validateChainId = (chainId: string): void => {
       if (chainId !== '1') {
@@ -345,19 +380,20 @@ export class CollectionQueueMonitor {
     const considerInvalidAfter = 2 * ONE_HOUR;
     const hasBeenClaimed = typeof claimedAt === 'number' && claimedAt + considerInvalidAfter < Date.now();
     const hasHadTimeToMakeProgress = typeof claimedAt === 'number' && claimedAt + 60_0000 < Date.now();
-    const hasMadeProgress = !!step || !hasHadTimeToMakeProgress;
+    const hasMadeProgress = (!!step && step !== CreationFlow.CollectionCreator) || !hasHadTimeToMakeProgress;
     const errored = !!error;
 
     async function enqueue(chainId: string, address: string): Promise<void> {
       const collectionDoc = firebase.getCollectionDocRef(chainId, address);
-      const initialCollection: Partial<Collection> =  {
+      const initialCollection: Partial<Collection> = {
         chainId,
         address,
+        ...collectionUpdate,
         state: {
           version: COLLECTION_SCHEMA_VERSION,
           create: {
-            step: CreationFlow.CollectionCreator,
-            updatedAt: timestamp,
+            step: collectionUpdate?.state?.create?.step ?? collection?.state?.create?.step ?? CreationFlow.CollectionCreator,
+            updatedAt: timestamp
           },
           queue: {
             enqueuedAt: timestamp,
@@ -367,27 +403,52 @@ export class CollectionQueueMonitor {
             done: false
           }
         }
-      }
-      await collectionDoc.set(
-       initialCollection,
-        { merge: false }
-      );
+      };
+
+      await collectionDoc.set(initialCollection, { merge: false });
     }
 
     if (step === CreationFlow.Complete) {
+      logger.log(`Attempted to enqueue a collection that has been completed`);
       // collection complete
     } else if (hasBeenClaimed && hasMadeProgress && !errored) {
+      logger.log(`Attempted to enqueue a collection that has been claimed, has made progress and has not errored`);
+      logger.log(hasHadTimeToMakeProgress, step);
       // collection is being created
     } else if (hasBeenClaimed && (!hasMadeProgress || errored)) {
       // collection failed to be created
-
+      logger.log(`Enqueueing collection: ${chainId}:${address}`);
       // re-enqueue
       await enqueue(chainId, address);
     } else if (isQueued) {
+      logger.log(`Attempted to enqueue a collection that is already queued`);
       // queued
     } else {
+      logger.log(`Enqueueing collection: ${chainId}:${address}`);
       // enqueue collection
       await enqueue(chainId, address);
+    }
+  }
+
+  monitorCollectionsWithProcessErrors():void {
+    if(this.isMonitoringErrors) {
+      return;
+    }
+    this.isMonitoringErrors = true;
+
+    const processErrorQueries = this.collectionErrorQueries.filter((item) => item.type ==='process');
+
+    for(const errorQuery of processErrorQueries) {
+      errorQuery.query.onSnapshot((snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          logger.log(`Collection Errored: ${errorQuery.name} [${doc.id}]`);
+          const [chainId, address] = doc.id.split(":");
+
+          this.enqueueCollection(address,chainId, Date.now()).catch((err) => {
+            logger.error(`Failed to enqueue collection`, err);
+          })
+        })
+      })
     }
   }
 }

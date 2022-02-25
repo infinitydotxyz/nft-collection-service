@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Emittery from 'emittery';
 import { ONE_HOUR } from './constants';
-import { collectionDao, firebase, logger } from './container';
+import { collectionDao, collectionQueue, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
 import {migrateToVersion1} from './scripts/migrateToVersion1';
@@ -12,7 +12,7 @@ type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: stri
 interface BackgroundTask {
   name: string;
   interval: number | "ONCE";
-  fn: (emitter: BackgroundTaskEmitter) => Promise<void>;
+  fn: (emitter: BackgroundTaskEmitter) => (Promise<void> | void);
 }
 
 const tasks: BackgroundTask[] = [
@@ -25,8 +25,14 @@ const tasks: BackgroundTask[] = [
     name: "Migrate collection schema",
     interval: 'ONCE',
     fn: migrateToVersion1
+  },
+  {
+    name: "Enqueue process error collections",
+    interval: 'ONCE',
+    fn: collectionQueue.monitorCollectionsWithProcessErrors.bind(collectionQueue)
   }
 ];
+
 
 /**
  * register background tasks

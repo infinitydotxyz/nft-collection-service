@@ -2,10 +2,8 @@
 import BatchHandler from './models/BatchHandler';
 import { CreationFlow } from './models/Collection';
 import { Collection } from 'types/Collection.interface';
-import { collectionDao, firebase, logger } from './container';
-
+import { collectionDao, collectionQueue, firebase, logger } from './container';
 import { buildCollections } from './scripts/buildCollections';
-import { CollectionQueueMonitor } from './models/CollectionQueueMonitor';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
@@ -20,9 +18,8 @@ export async function main(): Promise<void> {
     
     // await addQueuePropertiesToCollections();
 
-    const queue = new CollectionQueueMonitor();
 
-    await queue.logCollectionErrors();
+    await collectionQueue.queryCollectionErrors();
 
   } catch (err) {
     logger.error(err);
