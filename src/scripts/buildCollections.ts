@@ -6,8 +6,9 @@ import { Collection } from '../types/Collection.interface';
 import BatchHandler from '../models/BatchHandler';
 import { CreationFlow } from '../models/Collection';
 import chalk from 'chalk';
-import { AssertionError } from 'node:assert';
+import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
+import { COLLECTION_SCHEMA_VERSION } from '../constants';
 
 /**
  * buildCollections gets collections from opensea
@@ -97,6 +98,7 @@ export async function buildCollections(): Promise<void> {
                   metadata: metadata,
                   slug,
                   state: {
+                    version: COLLECTION_SCHEMA_VERSION,
                     create: {
                       step: CreationFlow.CollectionCreator,
                       updatedAt: Date.now()

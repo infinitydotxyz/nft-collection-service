@@ -10,8 +10,6 @@ export async function main(): Promise<void> {
   });
 }
 
-// TODO need a background process to find errored collections and collections that have been claimed but haven't made progress
-
 /**
  * to enqueue a collection
  * 1. create a collection document with an address and chainId

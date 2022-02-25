@@ -10,6 +10,10 @@ function getEnvironmentVariable(name: string, required = true): string {
   return variable;
 }
 
+
+
+export const COLLECTION_SCHEMA_VERSION = 1;
+
 export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 

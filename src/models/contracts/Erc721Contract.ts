@@ -7,7 +7,6 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
-import { logger } from '../../container';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;

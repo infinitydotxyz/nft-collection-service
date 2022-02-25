@@ -6,7 +6,6 @@ import { collectionService, firebase, logger } from '../container';
 import { Collection } from '../types/Collection.interface';
 import { CreationFlow } from './Collection';
 import CollectionService from './CollectionService';
-import { CreationFlowError } from './errors/CreationFlow';
 
 export class CollectionQueueMonitor {
   private readonly collectionService: CollectionService;
@@ -194,6 +193,8 @@ export class CollectionQueueMonitor {
 
 
     const query = firebase.db.collection('collections').where('state.create.step', '!=', CreationFlow.Complete).where('state.queue.claimedAt', '<', Date.now() - (ONE_HOUR * 3));
+
+
 
 
   }
