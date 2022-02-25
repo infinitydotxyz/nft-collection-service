@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { AssertionError } from 'node:assert';
+import Alchemy from './services/Alchemy';
 import { collectionDao, firebase, logger } from './container';
 
 import { buildCollections } from './scripts/buildCollections';
@@ -12,7 +13,9 @@ export async function main(): Promise<void> {
      * that don't yet have these fields
      */
     // await addNumOwnersUpdatedAtAndDataExportedFields();
-    await buildCollections();
+    // await buildCollections();
+    const alchemyClient = new Alchemy();
+    alchemyClient.getNFTsOfCollection('0x61fce80d72363b731425c3a2a46a1a5fed9814b2');
     // await collectionDao.getCollectionsSummary();
   } catch (err) {
     logger.error(err);
