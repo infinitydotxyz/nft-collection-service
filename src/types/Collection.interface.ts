@@ -78,9 +78,13 @@ interface BaseCollection {
   state: {
     create: {
       step: CreationFlow;
+      /**
+       * epoch of when the step/error was last updated
+       */
+      updatedAt: number;
       error?: Record<string, any>;
     };
-    queue?: {
+    queue: {
       enqueuedAt: number;
       claimedAt?: number;
     },

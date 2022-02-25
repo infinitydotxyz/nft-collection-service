@@ -17,6 +17,9 @@ export async function main(): Promise<void> {
     // await buildCollections();
     await collectionDao.getCollectionsSummary();
     
+    /**
+     * added queue properties and updateAt 
+     */
     async function addQueuePropertiesToCollections(): Promise<void> {
       logger.log(`Starting migration`)
       const batchHandler = new BatchHandler();
@@ -26,10 +29,15 @@ export async function main(): Promise<void> {
         const collectionRef = snapshot.ref;
         const collection: Partial<Collection> = snapshot.data();
         if (collection?.state?.create?.step === CreationFlow.Complete) {
+
           const completedCollection: Collection = {
             ...(collection as Collection),
             state: {
               ...collection.state,
+              create: {
+                ...collection?.state?.create ?? {},
+                updatedAt: collection?.state?.create?.updatedAt ?? Date.now()
+              },
               queue: {
                 enqueuedAt: Date.now(),
                 claimedAt: Date.now()
@@ -44,6 +52,7 @@ export async function main(): Promise<void> {
               ...collection?.state,
               create: {
                 step: collection?.state?.create?.step ?? CreationFlow.CollectionCreator,
+                updatedAt: collection?.state?.create?.updatedAt ?? Date.now(),
                 ...collection?.state?.create
               },
               queue: {

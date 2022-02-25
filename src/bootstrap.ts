@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { Env, getEnv } from './utils';
 import { main as dev } from './script';
 import { main as cli } from './cli';
-import { main } from './index';
+// import { main as server } from './server';
 import { main as background } from './background';
 import { START_UP_MESSAGE } from './constants';
 import { logger } from './container';
@@ -22,8 +22,8 @@ async function bootstrap(): Promise<void> {
     case Env.Script:
       await dev();
       return;
-    case Env.Production:
-      await main();
+    case Env.Serve:
+      // await server();
       return;
     case Env.Queue: 
       await new Promise(() => {

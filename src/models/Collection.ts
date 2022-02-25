@@ -109,7 +109,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.CollectionMetadata // update step
+                    step: CreationFlow.CollectionMetadata, // update step
+                    updatedAt: Date.now()
                   }
                 }
               };
@@ -138,7 +139,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.CollectionMints // update step
+                    step: CreationFlow.CollectionMints, // update step
+                    updatedAt: Date.now()
                   },
                   export: {
                     done: false
@@ -187,7 +189,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.TokenMetadata
+                    step: CreationFlow.TokenMetadata,
+                    updatedAt: Date.now()
                   }
                 }
               };
@@ -300,7 +303,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.AggregateMetadata // update step
+                    step: CreationFlow.AggregateMetadata, // update step
+                    updatedAt: Date.now()
                   }
                 }
               };
@@ -358,7 +362,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.Complete
+                    step: CreationFlow.Complete,
+                    updatedAt: Date.now()
                   }
                 }
               };
@@ -429,6 +434,7 @@ export default class Collection {
           ...collection.state,
           create: {
             step: stepToSave,
+            updatedAt: Date.now(),
             error: error.toJSON()
           },
           export: {

@@ -1,9 +1,12 @@
 import assert from 'assert';
+import { ONE_HOUR } from '../constants';
 import PQueue from 'p-queue';
 import { Readable } from 'stream';
 import { collectionService, firebase, logger } from '../container';
 import { Collection } from '../types/Collection.interface';
+import { CreationFlow } from './Collection';
 import CollectionService from './CollectionService';
+import { CreationFlowError } from './errors/CreationFlow';
 
 export class CollectionQueueMonitor {
   private readonly collectionService: CollectionService;
@@ -157,5 +160,41 @@ export class CollectionQueueMonitor {
     collectionStream._read = readChunk;
 
     return collectionStream;
+  }
+
+
+  /**
+   * queries for errored collections and enqueues them
+   */
+  private monitorErroredCollections(): void {
+    const collections =  firebase.db.collection('collections');
+    const invalidIfClaimedBefore = Date.now() - ( ONE_HOUR * 3 );
+    /**
+     * collections can fail in multiple ways
+     * 1. there was an error while getting the collection data (state.create.error is defined)
+     * 2. the process handling the collection exited without writing an error 
+     */
+
+    /**
+     * errored collections
+     * when a collection errors we should send a discord webhook
+     */
+    const erroredCollections = collections.where('state.create.error', '>', '').orderBy('state.create.updatedAt', 'desc'); // won't return collections that don't have an updated at field
+
+
+    /**
+     * process failures
+     */
+    const failedUnknown = collections.where('state.create.step', '==', '').where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+    const failedToGetCollectionCreator = collections.where('state.create.step', '==', CreationFlow.CollectionCreator).where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+    const failedToGetCollectionMetadata = collections.where('state.create.step', '==', CreationFlow.CollectionMetadata).where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+    const failedToGetCollectionMints = collections.where('state.create.step', '==', CreationFlow.CollectionMints).where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+    const failedToGetTokenMetadata = collections.where('state.create.step', '==', CreationFlow.TokenMetadata).where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+    const failedToAggrgate = collections.where('state.create.step', '==', CreationFlow.AggregateMetadata).where('state.queue.claimedAt', '<', invalidIfClaimedBefore);
+
+
+    const query = firebase.db.collection('collections').where('state.create.step', '!=', CreationFlow.Complete).where('state.queue.claimedAt', '<', Date.now() - (ONE_HOUR * 3));
+
+
   }
 }
