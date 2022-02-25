@@ -25,7 +25,8 @@ export function isDev(): boolean {
 export enum Env {
   Cli = 'cli',
   Script = 'script',
-  Production = 'production'
+  Production = 'production',
+  Queue = 'queue',
 }
 
 export function getEnv(): Env {
@@ -34,6 +35,8 @@ export function getEnv(): Env {
       return Env.Cli;
     case Env.Script:
       return Env.Script;
+    case Env.Queue: 
+      return Env.Queue;
     default:
       if (process.env.NODE_ENV) {
         throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);

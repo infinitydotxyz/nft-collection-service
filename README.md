@@ -1,11 +1,12 @@
 # nft-collection-service
 
 ## Scripts
-* `npm run start` - starts the program in production mode (not yet implemented)
+<!-- * `npm run serve` - starts the program in production mode (not yet implemented) -->
 * `npm run dev` - runs `script.ts` for developing/testing flows
-* `npm run watch` - same as `npm run dev` but will restart on changes
 * `npm run cli` - start in cli mode. Example: `npm run cli -- address=0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D chain=1 task=create`
-
+* `npm run cli-server` - start in cli mode with a heap size of 60GB
+* `npm run queue` - starts a collection queue listener to scrape collections based off a db subscription 
+## CLI 
 
 * Tasks
     * `scrape` - scrapes collections from opensea and new collections to the db (saves the minimal amount of data for a collection)
@@ -33,3 +34,4 @@
                     ...
                 ]
                 ```
+

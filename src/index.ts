@@ -10,7 +10,7 @@ export async function main(): Promise<void> {
   });
 }
 
- // TODO need a background process to find errored collections and collections that have been claimed but haven't made progress
+// TODO need a background process to find errored collections and collections that have been claimed but haven't made progress
 
 /**
  * to enqueue a collection
@@ -36,18 +36,15 @@ async function enqueueCollection(address: string, chainId: string): Promise<void
 
   const step = collection?.state?.create?.step;
   const error = collection?.state?.create?.error;
-
   const queuedAt = collection?.state?.queue?.enqueuedAt;
-
   const claimedAt = collection?.state?.queue?.claimedAt;
-
   const isQueued = typeof queuedAt === 'number';
 
   const considerInvalidAfter = 2 * ONE_HOUR;
   const hasBeenClaimed = typeof claimedAt === 'number' && claimedAt + considerInvalidAfter < Date.now();
   const hasHadTimeToMakeProgress = typeof claimedAt === 'number' && claimedAt + 60_0000 < Date.now();
   const hasMadeProgress = !!step || !hasHadTimeToMakeProgress;
-  const errored = !!error; // TODO a claim should reset the error
+  const errored = !!error;
 
   async function enqueue(chainId: string, address: string): Promise<void> {
     const collectionDoc = firebase.getCollectionDocRef(chainId, address);

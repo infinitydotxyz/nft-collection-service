@@ -40,6 +40,20 @@ async function createCollection(): Promise<void> {
     const data = await collectionDoc.get();
     const currentCollection = reset ? {} : data.data() ?? {};
 
+    if(!currentCollection?.state?.queue?.claimedAt || !currentCollection?.state?.queue?.enqueuedAt) {
+      const now = Date.now();
+      await collectionDoc.set({
+        ...currentCollection,
+        state: {
+          ...currentCollection?.state,
+          queue: {
+            claimedAt: currentCollection?.state?.queue?.claimedAt || now,
+            enqueuedAt: currentCollection?.state?.queue?.enqueuedAt || now,
+          }
+        }
+      })
+    }
+
     const formatLog = (step: string, progress: number): string => {
       const now = new Date();
       const formatNum = (num: number, padWith: string, minLength: number): string => {
