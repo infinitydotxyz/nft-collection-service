@@ -1,13 +1,16 @@
 // alchemy-nft-api/alchemy-web3-script.js
-import { createAlchemyWeb3 } from '@alch/alchemy-web3';
+import { AlchemyWeb3, createAlchemyWeb3 } from '@alch/alchemy-web3';
 import { singleton } from 'tsyringe';
 import { logger } from '../container';
 import axios from 'axios';
 
 @singleton()
 export default class Alchemy {
-  // Initialize an alchemy-web3 instance:
-  web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET1 ?? '');
+  private readonly web3: AlchemyWeb3;
+
+  constructor() {
+    this.web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET1 ?? '');
+  }
 
   async getNFTsOfOwner(address: string): Promise<void> {
     // The wallet address we want to query for NFTs:
@@ -38,30 +41,25 @@ export default class Alchemy {
       contractAddress: '0x5180db8F5c931aaE63c74266b211F580155ecac8',
       tokenId: '1590'
     });
-
-    logger.log(response?.metadata);
-
-    // Print some commonly used fields:
-    // logger.log('NFT name: ', response.title);
-    // logger.log('token type: ', response?.id?.tokenMetadata?.tokenType);
-    // logger.log('tokenUri: ', response?.tokenUri?.gateway);
-    // logger.log('image url: ', response?.metadata?.image);
-    // logger.log('time last updated: ', response?.timeLastUpdated);
-    // logger.log('===');
+    logger.log(JSON.stringify(response, null, 2));
   }
 
-  getNFTsOfCollection(contractAddr: string): void {
-    // Fetch metadata for a particular NFT:
-    logger.log('fetching nfts of a collection');
+  async getNFTsOfCollection(contractAddr: string, startToken: string): Promise<CollectionNFTsResponse> {
     const baseURL = `${process.env.JSON_RPC_MAINNET1}/getNFTsForCollection`;
-    const cursorKey = '';
     const withMetadata = 'true';
-    const url = `${baseURL}?contractAddress=${contractAddr}&cursorKey=${cursorKey}&withMetadata=${withMetadata}`;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    axios
-      .get(url)
-      .then((response) => logger.log(JSON.stringify(response.data, null, 2)))
-      .catch((error) => logger.log(error));
+    const url = `${baseURL}?contractAddress=${contractAddr}&startToken=${startToken}&withMetadata=${withMetadata}`;
+    const res = (await axios.get(url)).data as CollectionNFTsResponse;
+    return res;
   }
+}
+
+interface CollectionNFTsResponse {
+  nextToken: string;
+  nfts: Array<{
+    id: { tokenId: string; tokenMetadata: { tokenType: string } };
+    title?: string;
+    description?: string;
+    tokenUri: { raw: string; gateway: string };
+    metadata?: { tokenId: number; name: string; image: string; attributes: Array<{ value: string; trait_type: string }> };
+  }>;
 }

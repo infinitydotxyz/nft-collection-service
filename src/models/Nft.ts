@@ -15,10 +15,10 @@ import {
   RefreshTokenMintError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
-import { firebase, metadataClient, moralis, logger } from '../container';
-import { createHash } from 'crypto';
+import { metadataClient, moralis, opensea, logger } from '../container';
 import Moralis from '../services/Moralis';
 import PQueue from 'p-queue';
+import OpenSeaClient from './CollectionMetadataProvider';
 
 type ReturnType<E extends RefreshTokenFlow> = E extends RefreshTokenFlow.Mint
   ? MintToken
@@ -37,6 +37,8 @@ export default class Nft {
 
   private readonly moralis: Moralis;
 
+  private readonly opensea: OpenSeaClient;
+
   private readonly tokenUriQueue: PQueue;
 
   private readonly imageUploadQueue: PQueue;
@@ -46,6 +48,8 @@ export default class Nft {
     this.contract = contract;
 
     this.moralis = moralis;
+
+    this.opensea = opensea;
 
     this.tokenUriQueue = tokenUriQueue;
 
@@ -96,9 +100,9 @@ export default class Nft {
     /**
      * validate image token
      */
-    if (!token.image?.url || !token.image.updatedAt || !token.image.contentType) {
+    if (!token.image?.url || !token.image.updatedAt) {
       throw new RefreshTokenImageError(
-        `Invalid image token. Token Id: ${token.tokenId} Image: ${token.image?.url} Updated At: ${token.image?.updatedAt} Content Type: ${token.image?.contentType}`
+        `Invalid image token. Token Id: ${token.tokenId} Image: ${token.image?.url} Updated At: ${token.image?.updatedAt}`
       );
     }
     if (step === RefreshTokenFlow.Image) {
@@ -216,48 +220,15 @@ export default class Nft {
           case RefreshTokenFlow.Image:
             const metadataToken = Nft.validateToken(this.token, RefreshTokenFlow.Metadata);
             try {
-              const imageUrl = metadataToken.metadata.image;
+              const imageUrl = (await this.opensea.getNFTMetadata(this.contract.address, this.token.tokenId ?? '')).image;
 
               if (!imageUrl) {
                 throw new RefreshTokenMetadataError('Invalid image url');
               }
 
-              const response = await metadataClient.get(imageUrl, 1);
-              if (response.statusCode !== 200) {
-                throw new RefreshTokenImageError(`Bad response. Status code: ${response.statusCode}`);
-              }
-
-              const contentType = response.headers['content-type'];
-              const imageBuffer = response.rawBody;
-              const hash = createHash('sha256').update(imageBuffer).digest('hex');
-              const path = `images/${this.contract.chainId}/collections/${this.contract.address}/${hash}`;
-
-              let publicUrl = '';
-
-              if (imageBuffer && contentType) {
-                publicUrl = await this.imageUploadQueue.add(async () => {
-                  const remoteFile = await firebase.uploadBuffer(imageBuffer, path, contentType);
-                  publicUrl = remoteFile.publicUrl();
-                  return publicUrl;
-                });
-              } else if (!imageBuffer) {
-                throw new RefreshTokenImageError(
-                  `Failed to get image for collection: ${this.contract.address} imageUrl: ${imageUrl}`
-                );
-              } else if (!contentType) {
-                throw new RefreshTokenImageError(
-                  `Failed to get content type for image. Collection: ${this.contract.address} imageUrl: ${imageUrl}`
-                );
-              } else if (!publicUrl) {
-                throw new RefreshTokenImageError(
-                  `Failed to get image public url for collection: ${this.contract.address} imageUrl: ${imageUrl}`
-                );
-              }
-
               const now = Date.now();
               const image = {
-                url: publicUrl,
-                contentType,
+                url: imageUrl,
                 updatedAt: now
               };
 

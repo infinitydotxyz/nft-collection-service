@@ -5,7 +5,7 @@ import Collection, { CreationFlow } from '../models/Collection';
 import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { MintToken, Token } from '../types/Token.interface';
+import { ImageToken, MetadataToken, MintToken, Token } from '../types/Token.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import ContractFactory from '../models/contracts/ContractFactory';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -59,6 +59,8 @@ async function createCollection(): Promise<void> {
 
     const emitter = new Emittery<{
       token: Token;
+      metadata: MetadataToken;
+      image: ImageToken;
       mint: MintToken;
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
       progress: { step: string; progress: number };
@@ -74,6 +76,16 @@ async function createCollection(): Promise<void> {
     });
 
     emitter.on('token', (token) => {
+      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    });
+
+    emitter.on('metadata', (token) => {
+      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+      batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    });
+
+    emitter.on('image', (token) => {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
       batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
     });

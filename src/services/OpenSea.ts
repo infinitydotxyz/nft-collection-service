@@ -35,12 +35,23 @@ function formatName(name: string): string {
  */
 export default class OpenSeaClient implements CollectionMetadataProvider {
   private readonly client: Got;
+  private readonly clientNoApiKey: Got;
   constructor() {
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
       headers: {
         'x-api-key': OPENSEA_API_KEY
       },
+      /**
+       * requires us to check status code
+       */
+      throwHttpErrors: false,
+      cache: false,
+      timeout: 20_000
+    });
+
+    this.clientNoApiKey = got.extend({
+      prefixUrl: 'https://api.opensea.io/api/v1/',
       /**
        * requires us to check status code
        */
@@ -142,6 +153,38 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
     return collection;
   }
 
+  async getNFTMetadata(address: string, tokenId: string): Promise<OpenSeaNFTMetadataResponse> {
+    const res: Response<OpenSeaNFTMetadataResponse> = await this.errorHandler(() => {
+      return this.clientNoApiKey.get(`metadata/${address}/${tokenId}`, {
+        responseType: 'json'
+      });
+    });
+
+    return res.body;
+  }
+
+  async getNFTsOfContract(address: string, limit: number, cursor?: string, tokenIds?: string): Promise<OpenSeaAssetsResponse> {
+    const res: Response<OpenSeaAssetsResponse> = await this.errorHandler(() => {
+      const url = `assets?asset_contract_address=${address}&include_orders=false&limit=${limit}&cursor=$${cursor}&${tokenIds}`;
+      return this.client.get(url, {
+        responseType: 'json'
+      });
+    });
+
+    return res.body;
+  }
+
+  async getTokenIdsOfContract(address: string, tokenIds: string): Promise<OpenSeaAssetsResponse> {
+    const res: Response<OpenSeaAssetsResponse> = await this.errorHandler(() => {
+      const url = `assets?asset_contract_address=${address}&include_orders=false&${tokenIds}`;
+      return this.client.get(url, {
+        responseType: 'json'
+      });
+    });
+
+    return res.body;
+  }
+
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
@@ -155,11 +198,14 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
           case 200:
             return res;
 
+          case 400:
+            throw new Error(res.statusMessage);
+
           case 404:
             throw new Error('Not found');
 
           case 429:
-            await sleep(5000);
+            await sleep(2000);
             throw new Error('Rate limited');
 
           case 500:
@@ -188,6 +234,20 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       }
     }
   }
+}
+
+interface OpenSeaAssetsResponse {
+  next: string;
+  previous: string;
+  assets: Array<{ name: string; token_id: string; external_link: string; image_url: string; image_original_url: string }>;
+}
+
+interface OpenSeaNFTMetadataResponse {
+  name: string;
+  description: string;
+  external_link: string;
+  image: string;
+  animation_url: string;
 }
 
 interface OpenSeaContractResponse {

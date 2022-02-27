@@ -2,14 +2,15 @@
 import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
-import { ImageToken, MintToken, RefreshTokenFlow, Token } from '../types/Token.interface';
+import { ImageToken, MetadataToken, MintToken, RefreshTokenFlow, Token, TokenMetadata } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
-import { IMAGE_UPLOAD_CONCURRENCY, NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
+import { NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
+  CollectionCacheImageError,
   CollectionCreatorError,
   CollectionMetadataError,
   CollectionMintsError,
@@ -18,9 +19,8 @@ import {
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
-import { logger } from '../container';
+import { alchemy, logger, opensea } from '../container';
 import PQueue from 'p-queue';
-import { RefreshTokenMintError } from './errors/RefreshTokenFlow';
 
 export enum CreationFlow {
   /**
@@ -51,6 +51,11 @@ export enum CreationFlow {
   AggregateMetadata = 'aggregate-metadata',
 
   /**
+   * cache image
+   */
+  CacheImage = 'cache-image',
+
+  /**
    * at this point we have successfully completed all steps above
    */
   Complete = 'complete'
@@ -78,6 +83,8 @@ export default class Collection {
     initialCollection: Partial<CollectionType>,
     emitter: Emittery<{
       token: Token;
+      metadata: MetadataToken;
+      image: ImageToken;
       mint: MintToken;
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
       progress: { step: string; progress: number };
@@ -89,7 +96,7 @@ export default class Collection {
 
     const ethersQueue = new PQueue({ concurrency: ALCHEMY_CONCURRENCY, interval: 1000, intervalCap: ALCHEMY_CONCURRENCY });
 
-    const allTokens: Token[] = [];
+    let allTokens: Token[] = [];
 
     let step: CreationFlow = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
@@ -227,71 +234,34 @@ export default class Collection {
               }
 
               const numTokens = tokens.length;
-              let progress = 0;
-
-              const tokenPromises: Array<Promise<ImageToken>> = [];
-
-              const uploadImageQueue = new PQueue({ concurrency: IMAGE_UPLOAD_CONCURRENCY });
-              for (const token of tokens) {
-                const nft = new Nft(token as MintToken, this.contract, ethersQueue, uploadImageQueue);
-                const iterator = nft.refreshToken();
-
-                const tokenWithMetadataPromise = new Promise<ImageToken>(async (resolve, reject) => {
-                  let tokenWithMetadata = token;
-                  try {
-                    let prevTokenProgress = 0;
-                    for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {
-                      progress = progress - prevTokenProgress + tokenProgress;
-                      prevTokenProgress = tokenProgress;
-
-                      void emitter.emit('progress', {
-                        step: step,
-                        progress: Math.floor((progress / numTokens) * 100 * 100) / 100
-                      });
-                      if (failed) {
-                        reject(new Error(intermediateToken.state?.metadata.error?.message));
-                      } else {
-                        tokenWithMetadata = intermediateToken;
-                      }
-                    }
-                    if (!tokenWithMetadata) {
-                      throw new Error('Failed to refresh token');
-                    }
-
-                    progress = progress - prevTokenProgress + 1;
-                    void emitter.emit('progress', {
-                      step: step,
-                      progress: Math.floor((progress / numTokens) * 100 * 100) / 100
-                    });
-
-                    void emitter.emit('token', tokenWithMetadata as Token);
-                    resolve(tokenWithMetadata as ImageToken);
-                  } catch (err) {
-                    logger.error(err);
-                    if (err instanceof RefreshTokenMintError) {
-                      reject(new Error('Invalid mint data'));
-                    }
-                    reject(err);
+              const alchemyLimit = 100;
+              const numIters = numTokens / alchemyLimit + 1;
+              let startToken = '';
+              for (let i = 0; i < numIters; i++) {
+                const data = await alchemy.getNFTsOfCollection(this.contract.address, startToken);
+                startToken = data.nextToken;
+                for (const datum of data.nfts) {
+                  const metadata = JSON.parse(JSON.stringify(datum.metadata)) as TokenMetadata;
+                  metadata.description = datum.description ?? '';
+                  metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
+                  const tokenIdStr = datum?.id.tokenId;
+                  let tokenId;
+                  if (tokenIdStr.startsWith('0x')) {
+                    tokenId = String(parseInt(tokenIdStr, 16));
                   }
-                });
-
-                tokenPromises.push(tokenWithMetadataPromise);
-              }
-
-              const results = await Promise.allSettled(tokenPromises);
-              let res = { reason: '', failed: false };
-              for (const result of results) {
-                if (result.status === 'rejected') {
-                  const message = typeof result?.reason === 'string' ? result.reason : 'Failed to refresh token';
-                  res = { reason: message, failed: true };
-                  if (result.reason === 'Invalid mint data') {
-                    throw new CollectionMintsError('Tokens contained invalid mint data');
-                  }
+                  const tokenWithMetadata = {
+                    tokenId: tokenId,
+                    tokenUri: datum.tokenUri?.raw,
+                    numTraitTypes: datum.metadata?.attributes?.length,
+                    metadata,
+                    updatedAt: Date.now()
+                  };
+                  void emitter.emit('metadata', tokenWithMetadata as MetadataToken);
                 }
-              }
-
-              if (res.failed) {
-                throw new Error(res.reason);
+                void emitter.emit('progress', {
+                  step: step,
+                  progress: Math.floor(((i * alchemyLimit) / numTokens) * 100 * 100) / 100
+                });
               }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
@@ -326,13 +296,12 @@ export default class Collection {
                   throw new CollectionAggregateMetadataError('Client failed to inject tokens');
                 }
                 tokens = injectedTokens as Token[];
+                allTokens = tokens;
               }
 
               const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
               const numNfts = tokens.length;
-              const invalidTokens = tokens.filter(
-                (item) => item.state?.metadata.error !== undefined || item.state?.metadata.step !== RefreshTokenFlow.Complete
-              );
+              const invalidTokens = tokens.filter((item) => item.state?.metadata.error !== undefined);
 
               if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
                 throw new CollectionTokenMetadataError(
@@ -358,7 +327,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.Complete
+                    step: CreationFlow.CacheImage
                   }
                 }
               };
@@ -375,6 +344,64 @@ export default class Collection {
               throw new CollectionAggregateMetadataError(message);
             }
             break;
+
+          case CreationFlow.CacheImage:
+            try {
+              let tokens: Token[] = allTokens;
+              if (tokens.length === 0) {
+                const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+                if (!injectedTokens) {
+                  throw new CollectionCacheImageError('Client failed to inject tokens');
+                }
+                tokens = injectedTokens as Token[];
+                allTokens = tokens;
+              }
+              const numTokens = allTokens.length;
+              const openseaLimit = 30;
+              const numIters = numTokens / openseaLimit + 1;
+              for (let i = 0; i < numIters; i++) {
+                const tokenIds = allTokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
+                let tokenIdsConcat = '';
+                for (const tokenId of tokenIds) {
+                  tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
+                }
+                const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, '', tokenIdsConcat);
+                for (const datum of data.assets) {
+                  const imageToken = {
+                    tokenId: datum.token_id,
+                    image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+                  } as ImageToken;
+                  void emitter.emit('image', imageToken);
+                }
+                void emitter.emit('progress', {
+                  step: step,
+                  progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+                });
+              }
+
+              const collectionMetadataCollection: CollectionTokenMetadataType = {
+                ...(collection as CollectionMintsType),
+                numNfts: numTokens,
+                state: {
+                  ...collection.state,
+                  create: {
+                    step: CreationFlow.Complete // update step
+                  }
+                }
+              };
+              collection = collectionMetadataCollection; // update collection
+              yield { collection };
+            } catch (err: any) {
+              logger.error('Failed to cache images', err);
+              if (err instanceof CollectionMintsError) {
+                throw err;
+              }
+              // if any token fails we should throw an error
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
+              throw new CollectionCacheImageError(message);
+            }
+            break;
+
           case CreationFlow.Complete:
             /**
              * validate tokens

@@ -7,7 +7,7 @@ export const tokensDataToFile = async (chainId: string, collection: string): Pro
   for (const token of tokens) {
     // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
     const id = chainId + ':' + collection + ':' + token.tokenId;
-    lines += `${id},${token.rarityScore},${token.rarityRank},${token.image?.url},${token.image?.contentType},${tokens.length}\n`;
+    lines += `${id},${token.rarityScore},${token.rarityRank},${token.image?.url},${tokens.length}\n`;
   }
   writeFileSync(`./${collection}.csv`, lines);
 };

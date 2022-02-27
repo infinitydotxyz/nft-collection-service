@@ -91,14 +91,14 @@ interface BaseToken {
    */
   image: {
     /**
-     * url to the image stored in gcs
+     * cached OS url
      */
     url: string;
 
     /**
-     * mime type for the media
+     * original url
      */
-    contentType: string;
+    originalUrl?: string;
 
     /**
      * unix timestamp (in ms) of when the image was updated
