@@ -135,7 +135,7 @@ ${' '.repeat(Math.abs(margin) / 2)}${chalk.green('NFT Scraper Settings')}
 ${chalk.gray(bar)}
 
 Collection Concurrency: ${COLLECTION_TASK_CONCURRENCY}
-  Concurrency limited by: ${maxConcurrencyObj.message}
+Concurrency limited by: ${maxConcurrencyObj.message}
 Metadata Client Concurrency: ${METADATA_CONCURRENCY} per collection
 Alchemy Concurrency: ${ALCHEMY_CONCURRENCY} per collection
 Image Upload Concurrency: ${IMAGE_UPLOAD_CONCURRENCY} per collection

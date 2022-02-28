@@ -2,9 +2,9 @@
  * Main OpenSea smart contract address.
  *
  * This contract mostly provides the atomicMatch_ method used when a
- * sale is being made on OpenSea martkeplace.
+ * sale is being made on OpenSea marketplace.
  */
-export const WYVERN_EXCHANGE_ADDRESS = '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b';
+export const WYVERN_EXCHANGE_ADDRESS = '0x7f268357a8c2552623316e2562d90e642bb538e5';
 
 /**
  * Librabry used by OpenSea for bundle sales.

@@ -6,7 +6,6 @@ export enum TOKEN_TYPE {
   ERC721 = 'ERC721',
   ERC1155 = 'ERC1155'
 }
-
 export interface SalesOrderType {
   txHash: string;
   blockNumber: number;
