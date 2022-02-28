@@ -365,7 +365,7 @@ export default class Collection {
                 for (const tokenId of tokenIds) {
                   tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
                 }
-                const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, '', tokenIdsConcat);
+                const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
                   const imageToken = {
                     tokenId: datum.token_id,
