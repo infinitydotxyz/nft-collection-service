@@ -18,10 +18,6 @@ export async function sleep(duration: number): Promise<void> {
   });
 }
 
-export function isDev(): boolean {
-  return !!process.env.NODE_ENV;
-}
-
 export enum Env {
   Cli = 'cli',
   Script = 'script',
@@ -30,7 +26,7 @@ export enum Env {
 }
 
 export function getEnv(): Env {
-  switch (process.env.NODE_ENV) {
+  switch (process.env.NODE_ENV_SCRIPT) {
     case Env.Cli:
       return Env.Cli;
     case Env.Script:
@@ -40,7 +36,7 @@ export function getEnv(): Env {
     case Env.Serve: 
       return Env.Serve;
     default:
-      throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
+      throw new Error(`Invalid NODE_ENV_SCRIPT: ${process.env.NODE_ENV_SCRIPT}`);
   }
 }
 

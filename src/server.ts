@@ -10,6 +10,10 @@ export function main(): void {
   // app.use(express.raw({ type: 'application/octet-stream' }));
   app.use(express.json());
 
+  app.get('/', (req, res) => {
+    res.send('hello world').status(200);
+  })
+
   app.post('/enqueue', async (req: Request<any, { chainId: string; address: string }>, res: Response) => {
     const address = req.body.address as string;
     const chainId = req.body.chainId as string;
