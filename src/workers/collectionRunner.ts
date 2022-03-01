@@ -1,37 +1,58 @@
 import { Worker } from 'worker_threads';
 import path from 'path';
 import { firebase, logger, metadataClient, tokenDao } from '../container';
-import CollectionMetadataProvider from 'models/CollectionMetadataProvider';
-import ContractFactory from 'models/contracts/ContractFactory';
-import Collection, { CreationFlow } from 'models/Collection';
-import { Collection as CollectionType} from '../types/Collection.interface';
-import BatchHandler from 'models/BatchHandler';
+import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
+import ContractFactory from '../models/contracts/ContractFactory';
+import Collection, { CreationFlow } from '../models/Collection';
+import { Collection as CollectionType } from '../types/Collection.interface';
+import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { MintToken, Token } from 'types/Token.interface';
+import { MintToken, Token } from '../types/Token.interface';
+import { NULL_ADDR } from '../constants';
 
-export async function createCollection(chainId: string, address: string, hasBlueCheck: boolean, reset = false): Promise<void> {
-  return await new Promise<void>((resolve, reject) => {
-    logger.log('Starting worker thread');
-    const workerFile = path.resolve('./dist/workers/collection.js');
-    const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset] });
+export async function createCollection(
+  chainId: string,
+  address: string,
+  hasBlueCheck: boolean,
+  reset = false,
+  indexInitiator = NULL_ADDR,
+  useWorker = true
+): Promise<void> {
+  if (useWorker) {
+    return await new Promise<void>((resolve, reject) => {
+      logger.log('Starting worker thread');
+      const workerFile = path.resolve('./dist/workers/collection.js');
+      const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator] });
 
-    worker.on('message', (msg) => {
-      logger.log(msg);
+      worker.on('message', (msg) => {
+        logger.log(msg);
+      });
+
+      worker.on('exit', () => {
+        resolve();
+      });
+
+      worker.on('error', (err) => {
+        logger.error(`Collection worker errored. Collection ${chainId}:${address}.`, err);
+        reject(err);
+      });
     });
+  }
 
-    worker.on('exit', () => {
-      resolve();
-    });
-
-    worker.on('error', (err) => {
-      logger.error(`Collection worker errored. Collection ${chainId}:${address}.`, err);
-      reject(err);
-    });
-  });
+  /**
+   * run in main process
+   */
+  return await create(address, chainId, hasBlueCheck, reset, indexInitiator);
 }
 
-
-export async function create(address: string, chainId: string, hasBlueCheck = false, reset = false, log = logger.log.bind(logger)): Promise<void> {
+export async function create(
+  address: string,
+  chainId: string,
+  hasBlueCheck = false,
+  reset = false,
+  indexInitiator: string,
+  log = logger.log.bind(logger)
+): Promise<void> {
   log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset}`);
   const provider = new CollectionMetadataProvider();
   const contractFactory = new ContractFactory();
@@ -44,18 +65,21 @@ export async function create(address: string, chainId: string, hasBlueCheck = fa
   const data = await collectionDoc.get();
   const currentCollection = reset ? {} : data.data() ?? {};
 
-  if(!currentCollection?.state?.queue?.claimedAt || !currentCollection?.state?.queue?.enqueuedAt) {
+  if (!currentCollection?.indexInitiator) {
     const now = Date.now();
-    await collectionDoc.set({
+    const collection: Partial<CollectionType> = {
       ...currentCollection,
+      indexInitiator,
       state: {
         ...currentCollection?.state,
-        queue: {
-          claimedAt: currentCollection?.state?.queue?.claimedAt || now,
-          enqueuedAt: currentCollection?.state?.queue?.enqueuedAt || now,
+        create: {
+          ...currentCollection?.state?.create,
+          updatedAt: now
         }
       }
-    })
+    };
+
+    await collectionDoc.set(collection);
   }
 
   const formatLog = (step: string, progress: number): string => {
@@ -112,7 +136,7 @@ export async function create(address: string, chainId: string, hasBlueCheck = fa
     }
   });
 
-  let iterator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
+  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, hasBlueCheck);
 
   let next: IteratorResult<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
@@ -146,7 +170,7 @@ export async function create(address: string, chainId: string, hasBlueCheck = fa
           }
 
           log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
-          iterator = collection.createCollection(collectionData, emitter, hasBlueCheck);
+          iterator = collection.createCollection(collectionData, emitter, indexInitiator, hasBlueCheck);
           done = false;
         }
       } else {

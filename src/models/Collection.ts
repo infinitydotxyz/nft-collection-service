@@ -58,7 +58,7 @@ export enum CreationFlow {
 
 type CollectionCreatorType = Pick<
   CollectionType,
-  'chainId' | 'address' | 'tokenStandard' | 'hasBlueCheck' | 'deployedAt' | 'deployer' | 'deployedAtBlock' | 'owner' | 'state'
+  'chainId' | 'address' | 'tokenStandard' | 'hasBlueCheck' | 'deployedAt' | 'deployer' | 'deployedAtBlock' | 'owner' | 'state' | "indexInitiator"
 >;
 type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
 type CollectionMintsType = CollectionMetadataType;
@@ -82,6 +82,7 @@ export default class Collection {
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
       progress: { step: string; progress: number };
     }>,
+    indexInitiator: string,
     hasBlueCheck?: boolean
   ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined> {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
@@ -101,6 +102,7 @@ export default class Collection {
             try {
               const creator = await this.getCreator();
               const initialCollection: CollectionCreatorType = {
+                indexInitiator: indexInitiator,
                 chainId: this.contract.chainId,
                 address: this.contract.address,
                 tokenStandard: this.contract.standard,

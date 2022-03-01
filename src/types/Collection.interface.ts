@@ -21,6 +21,12 @@ interface BaseCollection {
   tokenStandard: TokenStandard;
 
   /**
+   * address of the user that queued the index
+   * NULL address if not queued by a user
+   */
+  indexInitiator: string;
+
+  /**
    * whether the collection is verified
    */
   hasBlueCheck: boolean;
@@ -86,10 +92,6 @@ interface BaseCollection {
       updatedAt: number;
       error?: Record<string, any>;
     };
-    queue: {
-      enqueuedAt: number;
-      claimedAt?: number;
-    },
     export: {
       done: boolean;
     };

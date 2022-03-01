@@ -4,6 +4,7 @@ import path from 'path';
 import { buildCollections } from './scripts/buildCollections';
 import { collectionService, logger } from './container';
 import { parseArgs, ModeArgument, setTerminalTitle } from './utils/cli';
+import { NULL_ADDR } from './constants';
 
 enum Task {
   CreateCollection = 'create',
@@ -119,7 +120,7 @@ async function addressMode(): Promise<void> {
 
   try {
     logger.log(`Starting Task: create Address: ${address} Chain Id: ${chainId} `);
-    await collectionService.createCollection(address, chainId, hasBlueCheck, reset);
+    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR);
   } catch (err) {
     logger.log(`Failed to complete task`);
     logger.error(err);

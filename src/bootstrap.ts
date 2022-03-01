@@ -5,7 +5,7 @@ import { main as cli } from './cli';
 import { main as server } from './server';
 import { main as background } from './background';
 import { START_UP_MESSAGE } from './constants';
-import { collectionQueue, logger } from './container';
+import { logger } from './container';
 
 
 async function bootstrap(): Promise<void> {
@@ -23,11 +23,7 @@ async function bootstrap(): Promise<void> {
       await dev();
       return;
     case Env.Serve:
-      server();
-      return;
-    case Env.Queue:
-      // start a collection queue monitor
-      collectionQueue.start();
+      await server();
       return;
     default:
       throw new Error(`Env not bootstrapped ${env}`);

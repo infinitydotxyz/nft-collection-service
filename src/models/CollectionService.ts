@@ -6,7 +6,7 @@ import { COLLECTION_TASK_CONCURRENCY, NULL_ADDR } from '../constants';
 import { createCollection } from '../workers/collectionRunner';
 import { logger } from '../container';
 import { EventEmitter } from 'stream';
-import { normalizeAddress, validateAddress, validateChainId } from 'utils/ethers';
+import { normalizeAddress, validateAddress, validateChainId } from '../utils/ethers';
 
 @singleton()
 export default class CollectionService extends EventEmitter {
@@ -47,6 +47,7 @@ export default class CollectionService extends EventEmitter {
   }
 
   async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false, indexInitiator = NULL_ADDR): Promise<void> {
+
     /**
      * verify that the collection has not been successfully indexed yet
      * 
@@ -58,9 +59,12 @@ export default class CollectionService extends EventEmitter {
     indexInitiator = validateAddress(normalizeAddress(indexInitiator));
     chainId = validateChainId(chainId);
 
+    const isInAppEngine = process.env.GAE_ENV === 'standard';
+    const shouldUseWorkerThreads = !isInAppEngine;
+
     return await this.taskQueue.add(async () => {
       try {
-        await createCollection(address, chainId, hasBlueCheck, reset);
+        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, shouldUseWorkerThreads);
       } catch (err) {
         logger.error('Worker errored...', err);
       }

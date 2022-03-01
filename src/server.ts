@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { collectionQueue, logger } from './container';
+import { collectionService, logger } from './container';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { validateAddress, validateChainId, normalizeAddress } from './utils/ethers';
@@ -21,7 +21,7 @@ export async function main(): Promise<void> {
   });
 
 
-  app.post('/collection', async (req: Request<any, { chainId: string; address: string, indexInitiator: string }>, res: Response) => {
+  app.post('/collection', (req: Request<any, { chainId: string; address: string, indexInitiator: string }>, res: Response) => {
     let address = req.body.address as string;
     let chainId = req.body.chainId as string;
     let indexInitiator = req.body.indexInitiator as string;
@@ -40,7 +40,12 @@ export async function main(): Promise<void> {
     }
 
     try {
-      await collectionQueue.enqueueCollection(address, chainId);
+      collectionService.createCollection(address, chainId, false, false, indexInitiator).then(() => {
+        logger.log('completed collection from task queue')
+      }).catch((err) => {
+        logger.error(err);
+      });
+
       res.sendStatus(202);
     } catch (err) {
       res.sendStatus(500);

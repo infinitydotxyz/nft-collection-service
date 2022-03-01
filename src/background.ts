@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Emittery from 'emittery';
 import { ONE_HOUR } from './constants';
-import { collectionDao, collectionQueue, firebase, logger } from './container';
+import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
 import {migrateToVersion1} from './scripts/migrateToVersion1';
@@ -25,11 +25,6 @@ const tasks: BackgroundTask[] = [
     name: "Migrate collection schema",
     interval: 'ONCE',
     fn: migrateToVersion1
-  },
-  {
-    name: "Enqueue process error collections",
-    interval: 'ONCE',
-    fn: collectionQueue.monitorCollectionsWithProcessErrors.bind(collectionQueue)
   }
 ];
 

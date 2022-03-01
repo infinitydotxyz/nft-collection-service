@@ -1,4 +1,4 @@
-import { COLLECTION_SCHEMA_VERSION } from '../constants';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
 import { firebase } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { CreationFlow } from '../models/Collection';
@@ -19,6 +19,7 @@ export async function migrateToVersion1(): Promise<void> {
     if (collection?.state?.create?.step === CreationFlow.Complete) {
       const completedCollection: Collection = {
         ...(collection as Collection),
+        indexInitiator: collection?.indexInitiator ?? NULL_ADDR,
         state: {
           ...collection.state,
           version: COLLECTION_SCHEMA_VERSION,
@@ -27,16 +28,13 @@ export async function migrateToVersion1(): Promise<void> {
             step: collection?.state?.create?.step ?? CreationFlow.Complete,
             updatedAt: collection?.state?.create?.updatedAt ?? Date.now(),
           },
-          queue: {
-            enqueuedAt: Date.now(),
-            claimedAt: Date.now()
-          }
         }
       };
       batchHandler.add(collectionRef, completedCollection, { merge: true });
     } else {
       const incompleteCollection: Partial<Collection> = {
         ...collection,
+        indexInitiator: collection?.indexInitiator ?? NULL_ADDR,
         state: {
           ...collection?.state,
           version: COLLECTION_SCHEMA_VERSION,
@@ -44,11 +42,6 @@ export async function migrateToVersion1(): Promise<void> {
             step: collection?.state?.create?.step ?? CreationFlow.CollectionCreator,
             updatedAt: collection?.state?.create?.updatedAt ?? Date.now(),
             ...collection?.state?.create
-          },
-          queue: {
-            enqueuedAt: Date.now(),
-            claimedAt: 0,
-            ...collection?.state?.queue
           },
           export: {
             done: collection?.state?.export?.done ?? false

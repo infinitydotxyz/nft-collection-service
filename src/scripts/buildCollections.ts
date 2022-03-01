@@ -1,5 +1,5 @@
 import OpenSeaClient, { Collection as OpenSeaCollection } from '../services/OpenSea';
-import { firebase, logger, collectionQueue } from '../container';
+import { firebase, logger } from '../container';
 import { filterDuplicates, getSearchFriendlyString, sleep } from '../utils';
 import PQueue from 'p-queue';
 import { Collection } from '../types/Collection.interface';
@@ -132,8 +132,12 @@ export async function buildCollections(): Promise<void> {
             if (collection.chainId && collection.address) {
               // const doc = firebase.getCollectionDocRef(contract.chainId, contract.address);
               // batch.add(doc, contract, { merge: true });
-              try {
-                await collectionQueue.enqueueCollection(collection.address, collection.chainId, Date.now(), collection);
+              try { 
+
+                /**
+                 * TODO add to queue
+                 */
+                // await collectionQueue.enqueueCollection(collection.address, collection.chainId, Date.now(), collection);
                 logger.log(
                   chalk.green(`Found collection: ${collection.chainId}:${collection.address} Name: ${collection.metadata?.name}`)
                 );
