@@ -6,9 +6,8 @@ import { Collection } from '../types/Collection.interface';
 import BatchHandler from '../models/BatchHandler';
 import { CreationFlow } from '../models/Collection';
 import chalk from 'chalk';
-import assert, { AssertionError } from 'node:assert';
+import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
-import { write } from 'node:fs';
 
 /**
  * buildCollections gets collections from opensea
