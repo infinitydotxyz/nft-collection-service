@@ -1,5 +1,6 @@
 import { Erc721Metadata } from './Metadata.interface';
 import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
+import { TokenStandard } from '../models/contracts/Contract.interface';
 
 export type TokenMetadata = Erc721Metadata;
 
@@ -120,7 +121,7 @@ interface BaseToken {
 
 export interface Erc721Token extends BaseToken {
   metadata: Erc721Metadata;
-  tokenStandard: 'ERC721';
+  tokenStandard: TokenStandard.ERC721;
 }
 
 export type Token = Erc721Token;
