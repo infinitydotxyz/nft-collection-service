@@ -1,90 +1,46 @@
 import { ethers } from 'ethers';
 import { firestore } from '@base/container';
 
-import { SalesOrderType, SCRAPER_SOURCE, TOKEN_TYPE } from '../types';
+import {
+  SalesOrderType,
+  SCRAPER_SOURCE,
+  TOKEN_TYPE,
+  BASE_TIME,
+  TransactionRepository,
+  SalesRepository,
+  DBN_COLLECTION_HISTORICAL,
+  DBN_COLLECTION_STATUS,
+  DBN_COLLECTION_ALL_TIME,
+  DBN_COLLECTION_TXN,
+  DBN_COLLECTIONS
+} from 'sales-scraper/types';
+import { getDocumentIdByTime } from 'sales-scraper/utils';
 import { getRawAssetFromOpensea } from '../../../services/opensea/assets/getAssetFromOpensea';
-import moment from 'moment';
 
-const HISTORICAL_COLLECTION = 'history';
-interface TransactionReporsitory {
-  txHash: string;
-  tokenId: string;
-  collectionAddr: string;
-  price: number;
-  paymentToken: string;
-  quantity: number;
-  buyer: string;
-  seller: string;
-  source: string;
-  blockNumber: number;
-  blockTimestamp: Date;
-}
-
-interface HistoricalInfo {
-  docId: string;
-  totalVolume: number;
-  totalSales: number;
-  floorPrice: number;
-  ceilPrice: number;
-  avgPrice: number;
-  timestamp: Date;
-}
-
-const getPrice = (_order): number => {
-  return parseFloat(ethers.utils.formatEther(_order.price));
+const getETHPrice = (order: SalesOrderType): number => {
+  return parseFloat(ethers.utils.formatEther(order.price.toString()));
 };
 
-enum BASE_TIME {
-  HOURLY = 'hourly',
-  Q12H = 'q12h',
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
-  QUARTLY = 'quartly',
-  YEARLY = 'yearly'
-}
-
-const getHistoricalDocID = (date: Date, baseTime: BASE_TIME): string => {
-  const fisrtDayOfWeek = date.getDate() - date.getDay();
-  const firstMonthofQuator = Math.floor(date.getMonth() / 3) * 3;
-
-  switch (baseTime) {
-    case BASE_TIME.HOURLY:
-      return moment(date).format('YYYY-MM-DD-HH');
-    case BASE_TIME.Q12H:
-      return moment(date).format('YYYY-MM-DD-A');
-    case BASE_TIME.DAILY:
-      return moment(date).format('YYYY-MM-DD');
-    case BASE_TIME.WEEKLY:
-      return moment(date.setDate(fisrtDayOfWeek)).format('YYYY-MM-DD');
-    case BASE_TIME.MONTHLY:
-      return moment(date).format('YYYY-MM');
-    case BASE_TIME.QUARTLY:
-      return moment(date.setMonth(firstMonthofQuator)).format('YYYY-MM');
-    case BASE_TIME.YEARLY:
-      return moment(date).format('YYYY');
-  }
-};
-
-const updateSalesInfo = async (
+const updateSalesDoc = async (
   docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
-  tx: TransactionReporsitory,
+  tx: TransactionRepository,
   docId: string
-) => {
-  const prevDoc = (await docRef.get())?.data() as HistoricalInfo;
-  if (prevDoc) {
-    const newDoc: HistoricalInfo = {
+): Promise<void> => {
+  const originalDocData = (await docRef.get())?.data() as SalesRepository;
+
+  if (originalDocData) {
+    const newDoc: SalesRepository = {
       docId: docId,
-      totalVolume: prevDoc.totalVolume + tx.price,
-      totalSales: prevDoc.totalSales + 1,
-      floorPrice: prevDoc.floorPrice === 0 ? tx.price : Math.min(prevDoc.floorPrice, tx.price),
-      ceilPrice: prevDoc.ceilPrice === 0 ? tx.price : Math.max(prevDoc.ceilPrice, tx.price),
-      avgPrice: (prevDoc.totalVolume + tx.price) / (prevDoc.totalSales + 1),
+      totalVolume: originalDocData.totalVolume + tx.price,
+      totalSales: originalDocData.totalSales + 1,
+      floorPrice: originalDocData.floorPrice === 0 ? tx.price : Math.min(originalDocData.floorPrice, tx.price),
+      ceilPrice: originalDocData.ceilPrice === 0 ? tx.price : Math.max(preoriginalDocDatavDoc.ceilPrice, tx.price),
+      avgPrice: (originalDocData.totalVolume + tx.price) / (originalDocData.totalSales + 1),
       timestamp: tx.blockTimestamp
     };
     await docRef.set(newDoc);
   } else {
-    const newDoc: HistoricalInfo = {
+    const newDoc: SalesRepository = {
       docId,
       totalVolume: tx.price,
       totalSales: 1,
@@ -97,39 +53,50 @@ const updateSalesInfo = async (
   }
 };
 
-const createNftTransactionHistory = (chainId = '1') => {
-  const _orders: SalesOrderType[] = [
-    {
-      txHash: '0x7a22fe80713bd5be68fc904bffa68c702838a6f94706e521ab74023592822479',
-      blockNumber: 14301134,
-      blockTimestamp: new Date(),
-      price: BigInt('150000000000000000'),
-      paymentToken: '0x0000000000000000000000000000000000000000',
-      buyerAdress: '0xEe3a6b93e140f64953A896367B59FFF4b91514a9',
-      sellerAdress: '0x461bF9d49AAEC8457F5a0772D3CCcEF7fae8A865',
-      collectionAddr: '0x7a4d1b54dd21dde804c18b7a830b5bc6e586a7f6',
-      tokenIdStr: '1428',
-      quantity: 1,
-      source: SCRAPER_SOURCE.OPENSEA,
-      tokenType: TOKEN_TYPE.ERC721
-    }
-  ];
+const createNftTransactionHistory = async (orders: SalesOrderType[], chainId = '1'): Promise<void> => {
+  // const _orders: SalesOrderType[] = [
+  //   {
+  //     txHash: '0x7a22fe80713bd5be68fc904bffa68c702838a6f94706e521ab74023592822479',
+  //     blockNumber: 14301134,
+  //     blockTimestamp: new Date(),
+  //     price: BigInt('150000000000000000'),
+  //     paymentToken: '0x0000000000000000000000000000000000000000',
+  //     buyerAdress: '0xEe3a6b93e140f64953A896367B59FFF4b91514a9',
+  //     sellerAdress: '0x461bF9d49AAEC8457F5a0772D3CCcEF7fae8A865',
+  //     collectionAddr: '0x7a4d1b54dd21dde804c18b7a830b5bc6e586a7f6',
+  //     tokenIdStr: '1428',
+  //     quantity: 1,
+  //     source: SCRAPER_SOURCE.OPENSEA,
+  //     tokenType: TOKEN_TYPE.ERC721
+  //   }
+  // ];
 
-  const txns: TransactionReporsitory[] = _orders.map((_order: SalesOrderType) => {
-    const tx: TransactionReporsitory = {
-      txHash: _order.txHash.toLocaleLowerCase(),
-      tokenId: _order.tokenIdStr,
-      collectionAddr: _order.collectionAddr.toLocaleLowerCase(),
-      price: getPrice(_order),
-      paymentToken: _order.paymentToken,
-      quantity: _order.quantity,
-      buyer: _order.buyerAdress.toLocaleLowerCase(),
-      seller: _order.sellerAdress.toLocaleLowerCase(),
-      source: _order.source,
-      blockNumber: _order.blockNumber,
-      blockTimestamp: _order.blockTimestamp
+  const txns: TransactionRepository[] = orders.map((order: SalesOrderType) => {
+    const tx: TransactionRepository = {
+      txHash: order.txHash.toLocaleLowerCase(),
+      tokenId: order.tokenIdStr,
+      collectionAddr: order.collectionAddr.toLocaleLowerCase(),
+      price: getETHPrice(order) / order.quantity,
+      paymentToken: order.paymentToken,
+      quantity: order.quantity,
+      buyer: order.buyerAdress.toLocaleLowerCase(),
+      seller: order.sellerAdress.toLocaleLowerCase(),
+      source: order.source,
+      blockNumber: order.blockNumber,
+      blockTimestamp: order.blockTimestamp
     };
     return tx;
+  });
+
+  const collectionDocRef = firestore.collection(DBN_COLLECTIONS).doc(`${chainId}:${txns[0].collectionAddr}`);
+
+  /*
+    Insert Txns to Collection/Nft/Txns
+  */
+
+  txns.forEach(async (tx) => {
+    const txId = new Date(tx.blockTimestamp).getTime().toString();
+    await collectionDocRef.collection('nfts').doc(tx.tokenId).collection('txns').doc(txId).set(tx);
   });
 
   txns.forEach(async (tx) => {
@@ -159,7 +126,7 @@ const createNftTransactionHistory = (chainId = '1') => {
 
         for (const key in BASE_TIME) {
           const baseTime = BASE_TIME[key];
-          const docId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME[key]);
+          const docId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME[key]);
           console.log({ docId });
           const docRef = collectionDocRef.collection('status').doc(HISTORICAL_COLLECTION).collection(baseTime).doc(docId);
           await updateSalesInfo(docRef, tx, docId);
@@ -177,7 +144,7 @@ const createNftTransactionHistory = (chainId = '1') => {
         };
         await allTimeDocRef.set(newDoc);
 
-        const yearlyDocId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME.YEARLY);
+        const yearlyDocId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME.YEARLY);
         const yearlDocId = collectionDocRef
           .collection('status')
           .doc(HISTORICAL_COLLECTION)
@@ -186,7 +153,7 @@ const createNftTransactionHistory = (chainId = '1') => {
 
         await yearlDocId.set({ ...newDoc, docId: yearlDocId });
 
-        const dailyDocId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME.DAILY);
+        const dailyDocId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME.DAILY);
         const dailyDoc = {
           docId: dailyDocId,
           totalVolume: collectionStats.one_day_volume,
@@ -205,7 +172,7 @@ const createNftTransactionHistory = (chainId = '1') => {
         await dailyDocRef.set(dailyDoc);
 
         // --- Store Weekly Info
-        const weeklyDocId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME.WEEKLY);
+        const weeklyDocId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME.WEEKLY);
         const weeklyDoc = {
           docId: weeklyDocId,
           totalVolume: collectionStats.seven_day_volume,
@@ -225,7 +192,7 @@ const createNftTransactionHistory = (chainId = '1') => {
 
         // --- Store monthly Info ----
 
-        const monthlyDocId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME.MONTHLY);
+        const monthlyDocId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME.MONTHLY);
         const montlyDoc = {
           docId: monthlyDocId,
           totalVolume: collectionStats.thirty_day_volume,
@@ -244,7 +211,7 @@ const createNftTransactionHistory = (chainId = '1') => {
         await monthlyDocRef.set(montlyDoc);
 
         // --- Store Quartly Info ---
-        const quarltyDocId = getHistoricalDocID(tx.blockTimestamp, BASE_TIME.QUARTLY);
+        const quarltyDocId = getDocumentIdByTime(tx.blockTimestamp, BASE_TIME.QUARTLY);
         const quarltyDocRef = collectionDocRef
           .collection('status')
           .doc(HISTORICAL_COLLECTION)
