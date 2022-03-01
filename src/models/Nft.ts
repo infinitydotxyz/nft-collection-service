@@ -258,7 +258,6 @@ export default class Nft {
             : "Failed to refresh metadata. It's likely errors are not being handled correctly.";
         stepToSave = RefreshTokenFlow.Uri; // restart
         error = new RefreshTokenError(stepToSave, message);
-        logger.error(err);
       }
 
       const token: Partial<TokenType> = {

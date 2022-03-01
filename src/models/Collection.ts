@@ -102,8 +102,6 @@ export default class Collection {
 
     const ethersQueue = new PQueue({ concurrency: ALCHEMY_CONCURRENCY, interval: 1000, intervalCap: ALCHEMY_CONCURRENCY });
 
-    let allTokens: Token[] = [];
-
     let step: CreationFlow = collection?.state?.create?.step || CreationFlow.CollectionCreator;
 
     try {
@@ -428,14 +426,13 @@ export default class Collection {
 
           case CreationFlow.AggregateMetadata:
             try {
-              let tokens: Token[] = allTokens;
+              let tokens: Token[] = [];
               if (tokens.length === 0) {
                 const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
                 if (!injectedTokens) {
                   throw new CollectionAggregateMetadataError('Client failed to inject tokens');
                 }
                 tokens = injectedTokens as Token[];
-                allTokens = tokens;
               }
 
               const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
@@ -486,37 +483,53 @@ export default class Collection {
 
           case CreationFlow.CacheImage:
             try {
-              let tokens: Token[] = allTokens;
-              if (tokens.length === 0) {
-                const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-                if (!injectedTokens) {
-                  throw new CollectionCacheImageError('Client failed to inject tokens');
-                }
-                tokens = injectedTokens as Token[];
-                allTokens = tokens;
+              let tokens: Token[] = [];
+
+              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+              if (!injectedTokens) {
+                throw new CollectionCacheImageError('Client failed to inject tokens');
               }
+              tokens = injectedTokens as Token[];
+
+              const tokenMap = tokens.reduce<Record<string, Partial<Token>>>((acc, item) => {
+                if (item.tokenId) {
+                  acc[item.tokenId] = item;
+                  return acc;
+                }
+                return acc;
+              }, {});
 
               // fetch which tokens don't have images
-              const imageLessTokens= [];
-              for (const tokenId of allTokens) {
+              const imageLessTokens = [];
+              for (const tokenId of tokens) {
                 if (!tokenId.image || !tokenId.image.originalUrl || !tokenId.image.url || !tokenId.image.updatedAt) {
                   imageLessTokens.push(tokenId);
                 }
               }
               const numTokens = imageLessTokens.length;
-              const openseaLimit = 30;
-              const numIters = numTokens / openseaLimit + 1;
+              const openseaLimit = 20;
+              const numIters = Math.ceil(numTokens / openseaLimit);
               for (let i = 0; i < numIters; i++) {
-                const tokenIds = allTokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
+                const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
                 let tokenIdsConcat = '';
                 for (const tokenId of tokenIds) {
                   tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
                 }
                 const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
-                  const imageToken = {
+                  const imageToken: ImageToken = {
+                    ...tokenMap[datum.token_id],
                     tokenId: datum.token_id,
-                    image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+                    image: {
+                      url: datum.image_url,
+                      originalUrl: datum.image_original_url,
+                      updatedAt: Date.now()
+                    },
+                    state: {
+                      metadata: {
+                        step: RefreshTokenFlow.Complete
+                      }
+                    }
                   } as ImageToken;
                   void emitter.emit('image', imageToken);
                 }
@@ -528,7 +541,7 @@ export default class Collection {
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
                 ...(collection as CollectionMintsType),
-                numNfts: allTokens.length,
+                numNfts: tokens.length,
                 state: {
                   ...collection.state,
                   create: {
@@ -567,6 +580,7 @@ export default class Collection {
               try {
                 Nft.validateToken(token, RefreshTokenFlow.Complete);
               } catch (err) {
+                logger.error(err);
                 invalidTokens += 1;
               }
             }
