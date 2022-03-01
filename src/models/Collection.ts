@@ -356,7 +356,15 @@ export default class Collection {
                 tokens = injectedTokens as Token[];
                 allTokens = tokens;
               }
-              const numTokens = allTokens.length;
+
+              // fetch which tokens don't have images
+              const imageLessTokens= [];
+              for (const tokenId of allTokens) {
+                if (!tokenId.image || !tokenId.image.originalUrl || !tokenId.image.url || !tokenId.image.updatedAt) {
+                  imageLessTokens.push(tokenId);
+                }
+              }
+              const numTokens = imageLessTokens.length;
               const openseaLimit = 30;
               const numIters = numTokens / openseaLimit + 1;
               for (let i = 0; i < numIters; i++) {
@@ -381,7 +389,7 @@ export default class Collection {
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
                 ...(collection as CollectionMintsType),
-                numNfts: numTokens,
+                numNfts: allTokens.length,
                 state: {
                   ...collection.state,
                   create: {
