@@ -413,7 +413,6 @@ export class CollectionQueue {
       // collection complete
     } else if (hasBeenClaimed && hasMadeProgress && !errored) {
       logger.log(`Attempted to enqueue a collection that has been claimed, has made progress and has not errored`);
-      logger.log(hasHadTimeToMakeProgress, step);
       // collection is being created
     } else if (hasBeenClaimed && (!hasMadeProgress || errored)) {
       // collection failed to be created

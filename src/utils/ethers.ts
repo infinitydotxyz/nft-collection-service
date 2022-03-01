@@ -1,9 +1,31 @@
 import { sleep } from './';
 import { logger, providers } from '../container';
 import { JsonRpcProvider } from '@ethersproject/providers';
+import { ethers } from 'ethers';
 
 export function getProviderByChainId(chainId: string): JsonRpcProvider {
   return providers.getProviderByChainId(chainId);
+}
+
+export function validateChainId(chainId: string): string {
+  try{ 
+    getProviderByChainId(chainId);
+    return chainId;
+  }catch(err) {
+    throw new Error(`ChainId ${chainId} is not supported`);
+  }
+}
+
+export function normalizeAddress(address: string): string {
+  return address?.trim()?.toLowerCase?.();
+}
+
+export function validateAddress(address: string): string {
+  if(!ethers.utils.isAddress(address)) {
+    throw new Error(`Invalid address. ${address}`)
+  }
+
+  return address;
 }
 
 enum JsonRpcError {
