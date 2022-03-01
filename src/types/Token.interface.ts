@@ -1,5 +1,6 @@
 import { Erc721Metadata } from './Metadata.interface';
 import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
+import { TokenStandard } from '../models/contracts/Contract.interface';
 
 export type TokenMetadata = Erc721Metadata;
 
@@ -34,6 +35,10 @@ export enum RefreshTokenFlow {
 }
 
 interface BaseToken {
+  chainId: string;
+
+  slug: string;
+
   /**
    * original minter of the token
    */
@@ -116,6 +121,7 @@ interface BaseToken {
 
 export interface Erc721Token extends BaseToken {
   metadata: Erc721Metadata;
+  tokenStandard: TokenStandard.ERC721;
 }
 
 export type Token = Erc721Token;
