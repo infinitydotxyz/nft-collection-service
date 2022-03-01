@@ -36,6 +36,8 @@ export enum RefreshTokenFlow {
 interface BaseToken {
   chainId: string;
 
+  slug: string;
+
   /**
    * original minter of the token
    */
