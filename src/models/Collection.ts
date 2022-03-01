@@ -28,7 +28,7 @@ import {
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
-import { alchemy, logger, opensea, moralis } from '../container';
+import { alchemy, logger, opensea } from '../container';
 import PQueue from 'p-queue';
 import { RefreshTokenImageError, RefreshTokenMetadataError } from './errors/RefreshTokenFlow';
 
