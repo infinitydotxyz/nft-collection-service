@@ -2,7 +2,15 @@
 import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
-import { ImageToken, MetadataToken, MintToken, RefreshTokenFlow, Token, TokenMetadata } from '../types/Token.interface';
+import {
+  Erc721Token,
+  ImageToken,
+  MetadataToken,
+  MintToken,
+  RefreshTokenFlow,
+  Token,
+  TokenMetadata
+} from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
@@ -15,12 +23,14 @@ import {
   CollectionMetadataError,
   CollectionMintsError,
   CollectionTokenMetadataError,
+  CollectionTokenValidationError,
   CreationFlowError,
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
-import { alchemy, logger, opensea } from '../container';
+import { alchemy, logger, opensea, moralis } from '../container';
 import PQueue from 'p-queue';
+import { RefreshTokenImageError, RefreshTokenMetadataError } from './errors/RefreshTokenFlow';
 
 export enum CreationFlow {
   /**
@@ -54,6 +64,11 @@ export enum CreationFlow {
    * cache image
    */
   CacheImage = 'cache-image',
+
+  /**
+   * validate data
+   */
+  Validate = 'validate',
 
   /**
    * at this point we have successfully completed all steps above
@@ -170,7 +185,9 @@ export default class Collection {
               const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number } }>();
 
               mintEmitter.on('mint', (mintToken) => {
-                void emitter.emit('mint', mintToken);
+                const token = mintToken as Token;
+                token.chainId = this.contract.chainId;
+                void emitter.emit('mint', token);
               });
 
               mintEmitter.on('progress', ({ progress }) => {
@@ -213,16 +230,16 @@ export default class Collection {
 
           case CreationFlow.TokenMetadata:
             try {
-              const tokens: Array<Partial<Token>> | undefined = yield {
+              const mintTokens: Array<Partial<Token>> | undefined = yield {
                 collection: collection,
                 action: 'tokenRequest'
               };
-              if (!tokens) {
+              if (!mintTokens) {
                 throw new CollectionMintsError('Token metadata received undefined tokens');
               }
 
               let tokensValid = true;
-              for (const token of tokens) {
+              for (const token of mintTokens) {
                 try {
                   Nft.validateToken(token, RefreshTokenFlow.Mint);
                 } catch (err) {
@@ -233,40 +250,64 @@ export default class Collection {
                 throw new CollectionMintsError('Received invalid tokens');
               }
 
-              const numTokens = tokens.length;
-              const alchemyLimit = 100;
-              const numIters = numTokens / alchemyLimit + 1;
-              let startToken = '';
-              for (let i = 0; i < numIters; i++) {
-                const data = await alchemy.getNFTsOfCollection(this.contract.address, startToken);
-                startToken = data.nextToken;
-                for (const datum of data.nfts) {
-                  const metadata = JSON.parse(JSON.stringify(datum.metadata)) as TokenMetadata;
-                  metadata.description = datum.description ?? '';
-                  metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
-                  const tokenIdStr = datum?.id.tokenId;
-                  let tokenId;
-                  if (tokenIdStr.startsWith('0x')) {
-                    tokenId = String(parseInt(tokenIdStr, 16));
-                  }
-                  const tokenWithMetadata = {
-                    tokenId: tokenId,
-                    tokenUri: datum.tokenUri?.raw,
-                    numTraitTypes: datum.metadata?.attributes?.length,
-                    metadata,
-                    updatedAt: Date.now()
-                  };
-                  void emitter.emit('metadata', tokenWithMetadata as MetadataToken);
+              // metadata less tokens
+              const metadataLessTokens = [];
+              for (const token of mintTokens) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Metadata);
+                } catch (err) {
+                  metadataLessTokens.push(token);
                 }
-                void emitter.emit('progress', {
-                  step: step,
-                  progress: Math.floor(((i * alchemyLimit) / numTokens) * 100 * 100) / 100
-                });
+              }
+              const percentFailed = Math.floor(((metadataLessTokens.length / mintTokens.length) * 100 * 100) / 100);
+              if (percentFailed < 30) {
+                let i = 0;
+                for (const token of metadataLessTokens) {
+                  i++;
+                  await this.fetchSingleTokenMetadata(token, step, emitter);
+                  void emitter.emit('progress', {
+                    step: step,
+                    progress: Math.floor(((i / metadataLessTokens.length) * 100 * 100) / 100)
+                  });
+                }
+              } else {
+                const alchemyLimit = 100;
+                const numIters = mintTokens.length / alchemyLimit + 1;
+                let startToken = '';
+                for (let i = 0; i < numIters; i++) {
+                  const data = await alchemy.getNFTsOfCollection(this.contract.address, startToken);
+                  startToken = data.nextToken;
+                  for (const datum of data.nfts) {
+                    const metadata = JSON.parse(JSON.stringify(datum.metadata)) as TokenMetadata;
+                    metadata.description = datum.description ?? '';
+                    metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
+                    const tokenIdStr = datum?.id?.tokenId;
+                    let tokenId;
+                    if (tokenIdStr?.startsWith('0x')) {
+                      tokenId = String(parseInt(tokenIdStr, 16));
+                    }
+                    if (tokenId) {
+                      const tokenWithMetadata = {
+                        slug: getSearchFriendlyString(metadata.name ?? metadata.title),
+                        tokenId,
+                        tokenUri: datum.tokenUri?.raw,
+                        numTraitTypes: datum.metadata?.attributes?.length,
+                        metadata,
+                        updatedAt: Date.now()
+                      };
+                      void emitter.emit('metadata', tokenWithMetadata as Token);
+                    }
+                  }
+                  void emitter.emit('progress', {
+                    step: step,
+                    progress: Math.floor(((i * alchemyLimit) / mintTokens.length) * 100 * 100) / 100
+                  });
+                }
               }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
                 ...(collection as CollectionMintsType),
-                numNfts: numTokens,
+                numNfts: mintTokens.length,
                 state: {
                   ...collection.state,
                   create: {
@@ -301,7 +342,14 @@ export default class Collection {
 
               const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
               const numNfts = tokens.length;
-              const invalidTokens = tokens.filter((item) => item.state?.metadata.error !== undefined);
+              const invalidTokens = [];
+              for (const token of tokens) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Metadata);
+                } catch (err) {
+                  invalidTokens.push(token);
+                }
+              }
 
               if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
                 throw new CollectionTokenMetadataError(
@@ -358,7 +406,7 @@ export default class Collection {
               }
 
               // fetch which tokens don't have images
-              const imageLessTokens= [];
+              const imageLessTokens = [];
               for (const tokenId of allTokens) {
                 if (!tokenId.image || !tokenId.image.originalUrl || !tokenId.image.url || !tokenId.image.updatedAt) {
                   imageLessTokens.push(tokenId);
@@ -388,12 +436,12 @@ export default class Collection {
               }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
-                ...(collection as CollectionMintsType),
+                ...(collection as CollectionTokenMetadataType),
                 numNfts: allTokens.length,
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.Complete // update step
+                    step: CreationFlow.Validate // update step
                   }
                 }
               };
@@ -410,30 +458,109 @@ export default class Collection {
             }
             break;
 
+          case CreationFlow.Validate:
+            try {
+              /**
+               * validate tokens
+               */
+              const tokens: Array<Partial<Token>> | undefined = yield {
+                collection: collection,
+                action: 'tokenRequest'
+              };
+
+              if (!tokens) {
+                throw new CollectionMintsError('Token metadata received undefined tokens');
+              }
+
+              const invalidMetadataTokens = [];
+              const invalidImageTokens = [];
+              for (const token of tokens) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Complete);
+                } catch (err) {
+                  if (err instanceof RefreshTokenMetadataError) {
+                    invalidMetadataTokens.push(token);
+                  } else if (err instanceof RefreshTokenImageError) {
+                    invalidImageTokens.push(token);
+                  }
+                }
+              }
+
+              // try invalid metadata image tokens
+              let i = 0;
+              for (const token of invalidMetadataTokens) {
+                i++;
+                await this.fetchSingleTokenMetadata(token, CreationFlow.TokenMetadata, emitter);
+                void emitter.emit('progress', {
+                  step: CreationFlow.TokenMetadata,
+                  progress: Math.floor(((i / invalidMetadataTokens.length) * 100 * 100) / 100)
+                });
+              }
+
+              // try invalid image tokens
+              let j = 0;
+              for (const token of invalidImageTokens) {
+                j++;
+                const metadata = await opensea.getNFTMetadata(this.contract.address, token.tokenId ?? '');
+                const imageToken = {
+                  tokenId: token.tokenId,
+                  image: { url: metadata.image, originalUrl: token.metadata?.image, updatedAt: Date.now() }
+                } as ImageToken;
+                void emitter.emit('image', imageToken);
+                void emitter.emit('progress', {
+                  step: CreationFlow.CacheImage,
+                  progress: Math.floor(((j / invalidImageTokens.length) * 100 * 100) / 100)
+                });
+              }
+
+              const collectionMetadataCollection: CollectionTokenMetadataType = {
+                ...(collection as CollectionTokenMetadataType),
+                numNfts: tokens.length,
+                state: {
+                  ...collection.state,
+                  create: {
+                    step: CreationFlow.Complete // update step
+                  }
+                }
+              };
+              collection = collectionMetadataCollection; // update collection
+              yield { collection };
+            } catch (err: any) {
+              logger.error('Failed to validate tokens', err);
+              if (err instanceof CollectionTokenMetadataError || err instanceof CollectionCacheImageError) {
+                throw err;
+              }
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
+              throw new CollectionTokenValidationError(message);
+            }
+
+            break;
+
           case CreationFlow.Complete:
             /**
              * validate tokens
              */
-            const tokens: Array<Partial<Token>> | undefined = yield {
+            const finalTokens: Array<Partial<Token>> | undefined = yield {
               collection: collection,
               action: 'tokenRequest'
             };
 
-            if (!tokens) {
+            if (!finalTokens) {
               throw new CollectionMintsError('Token metadata received undefined tokens');
             }
 
-            let invalidTokens = 0;
-            for (const token of tokens) {
+            const invalidTokens = [];
+            for (const token of finalTokens) {
               try {
                 Nft.validateToken(token, RefreshTokenFlow.Complete);
               } catch (err) {
-                invalidTokens += 1;
+                invalidTokens.push(token);
               }
             }
 
-            if (invalidTokens > 0) {
-              throw new CollectionMintsError(`Received ${invalidTokens} invalid tokens`);
+            if (invalidTokens.length > 0) {
+              logger.error('Final invalid tokens', JSON.stringify(invalidTokens));
+              throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
             }
 
             return;
@@ -472,6 +599,40 @@ export default class Collection {
       };
       yield { collection };
     }
+  }
+
+  private async fetchSingleTokenMetadata(
+    token: Partial<Erc721Token>,
+    step: CreationFlow,
+    emitter?: Emittery<{
+      token: Token;
+      metadata: MetadataToken;
+      image: ImageToken;
+      mint: MintToken;
+      tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
+      progress: { step: string; progress: number };
+    }>
+  ): Promise<void> {
+    // check if tokenUri exists
+    if (!token.tokenUri) {
+      const tokenUri = await this.contract.getTokenUri(token.tokenId ?? '');
+      token.tokenUri = tokenUri;
+    }
+    const nft = new Nft(token, this.contract);
+    const metadata = await nft.getTokenMetadata();
+    const tokenWithMetadata = {
+      slug: getSearchFriendlyString(metadata.name ?? metadata.title),
+      tokenId: token.tokenId,
+      tokenUri: token.tokenUri,
+      numTraitTypes: metadata?.attributes?.length,
+      metadata,
+      updatedAt: Date.now()
+    };
+    void emitter?.emit('metadata', tokenWithMetadata as Token);
+    void emitter?.emit('progress', {
+      step: step,
+      progress: 1 // todo: needs better logic
+    });
   }
 
   private async getCreator(): Promise<{

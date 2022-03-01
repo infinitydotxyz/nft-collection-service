@@ -39,11 +39,11 @@ export default class Nft {
 
   private readonly opensea: OpenSeaClient;
 
-  private readonly tokenUriQueue: PQueue;
+  private readonly tokenUriQueue?: PQueue;
 
-  private readonly imageUploadQueue: PQueue;
+  private readonly imageUploadQueue?: PQueue;
 
-  constructor(token: MintToken & Partial<TokenType>, contract: Contract, tokenUriQueue: PQueue, imageUploadQueue: PQueue) {
+  constructor(token: Partial<TokenType>, contract: Contract, tokenUriQueue?: PQueue, imageUploadQueue?: PQueue) {
     this.token = token;
     this.contract = contract;
 
@@ -139,11 +139,11 @@ export default class Nft {
             const mintToken = Nft.validateToken(this.token, RefreshTokenFlow.Mint);
             try {
               let attempt = 0;
-              let tokenUri: string;
+              let tokenUri: string | undefined;
               while (true) {
                 attempt += 1;
                 try {
-                  tokenUri = await this.tokenUriQueue.add(async () => {
+                  tokenUri = await this.tokenUriQueue?.add(async () => {
                     return await this.contract.getTokenUri(mintToken.tokenId);
                   });
                   break;
@@ -333,7 +333,7 @@ export default class Nft {
   /**
    * attempts to get token metadata from multiple sources
    */
-  private async getTokenMetadata(): Promise<TokenMetadata> {
+  async getTokenMetadata(): Promise<TokenMetadata> {
     const tokenUri = this.token.tokenUri;
     let errorMessage = '';
 
