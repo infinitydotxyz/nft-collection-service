@@ -7,7 +7,6 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
-import { logger } from '../../container';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -52,7 +51,7 @@ export default class Erc721Contract extends AbstractContract {
     const updatedTokens: Erc721Token[] = [];
 
     for (const token of tokens) {
-      const tokenRarityScore = token.metadata.attributes.reduce((raritySum, attribute) => {
+      const tokenRarityScore = token?.metadata?.attributes?.reduce((raritySum, attribute) => {
         const traitType = attribute.trait_type ?? attribute.value;
         const attributeRarityScore = getRarityScore(traitType, attribute.value);
         return raritySum + attributeRarityScore;
@@ -120,7 +119,7 @@ export default class Erc721Contract extends AbstractContract {
     };
 
     for (const metadata of tokenMetadata) {
-      const attributes = metadata.attributes;
+      const attributes = metadata?.attributes ?? [];
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {

@@ -79,6 +79,7 @@ interface BaseCollection {
     create: {
       step: CreationFlow;
       error?: Record<string, any>;
+      updatedAt?: number;
     };
     export: {
       done: boolean;

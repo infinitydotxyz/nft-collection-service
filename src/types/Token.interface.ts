@@ -84,12 +84,12 @@ interface BaseToken {
    *
    * should not be changed until all tokens are ready to be updated
    */
-  rarityScore?: number;
+  rarityScore: number;
 
   /**
    * rank relative to other items in the collection
    */
-  rarityRank?: number;
+  rarityRank: number;
 
   /**
    * cached token image
