@@ -34,6 +34,8 @@ export enum RefreshTokenFlow {
 }
 
 interface BaseToken {
+  chainId: string;
+
   /**
    * original minter of the token
    */
@@ -116,6 +118,7 @@ interface BaseToken {
 
 export interface Erc721Token extends BaseToken {
   metadata: Erc721Metadata;
+  tokenStandard: 'ERC721';
 }
 
 export type Token = Erc721Token;
