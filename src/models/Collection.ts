@@ -6,7 +6,7 @@ import { ImageToken, MetadataToken, MintToken, RefreshTokenFlow, Token, TokenMet
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import Emittery from 'emittery';
-import { NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
+import { NULL_ADDR, ALCHEMY_CONCURRENCY, IMAGE_UPLOAD_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
@@ -21,6 +21,7 @@ import {
 import Nft from './Nft';
 import { alchemy, logger, opensea } from '../container';
 import PQueue from 'p-queue';
+import { RefreshTokenMintError } from './errors/RefreshTokenFlow';
 
 export enum CreationFlow {
   /**
@@ -39,6 +40,11 @@ export enum CreationFlow {
    * and minter
    */
   CollectionMints = 'collection-mints',
+
+  /**
+   * attempt to get metadata for every token from alchemy
+   */
+  TokenMetadataOptimization = 'token-metadata-optimization',
 
   /**
    * get metadata for every token
@@ -194,7 +200,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.TokenMetadata
+                    step: CreationFlow.TokenMetadataOptimization
                   }
                 }
               };
@@ -211,7 +217,7 @@ export default class Collection {
             }
             break;
 
-          case CreationFlow.TokenMetadata:
+          case CreationFlow.TokenMetadataOptimization:
             try {
               const tokens: Array<Partial<Token>> | undefined = yield {
                 collection: collection,
@@ -234,6 +240,18 @@ export default class Collection {
               }
 
               const numTokens = tokens.length;
+
+              const tokenMap = tokens.reduce<Record<string, Partial<Token>>>((acc, item) => {
+                if (item.tokenId) {
+                  acc[item.tokenId] = item;
+                  return acc;
+                }
+                return acc;
+              }, {});
+
+              /**
+               * attempt to use alchemy to get all metadata
+               */
               const alchemyLimit = 100;
               const numIters = numTokens / alchemyLimit + 1;
               let startToken = '';
@@ -244,24 +262,144 @@ export default class Collection {
                   const metadata = JSON.parse(JSON.stringify(datum.metadata)) as TokenMetadata;
                   metadata.description = datum.description ?? '';
                   metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
-                  const tokenIdStr = datum?.id.tokenId;
-                  let tokenId;
-                  if (tokenIdStr.startsWith('0x')) {
-                    tokenId = String(parseInt(tokenIdStr, 16));
+                  let tokenId = datum?.id.tokenId;
+                  if (tokenId.startsWith('0x')) {
+                    tokenId = String(parseInt(tokenId, 16));
                   }
-                  const tokenWithMetadata = {
+
+                  const metadataToken: MetadataToken = {
+                    ...(tokenMap[tokenId] as MintToken),
                     tokenId: tokenId,
                     tokenUri: datum.tokenUri?.raw,
-                    numTraitTypes: datum.metadata?.attributes?.length,
+                    numTraitTypes: datum.metadata?.attributes?.length ?? 0,
                     metadata,
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
+                    state: {
+                      metadata: {
+                        step: RefreshTokenFlow.Image
+                      }
+                    }
                   };
-                  void emitter.emit('metadata', tokenWithMetadata as MetadataToken);
+                  void emitter.emit('metadata', metadataToken);
                 }
                 void emitter.emit('progress', {
                   step: step,
                   progress: Math.floor(((i * alchemyLimit) / numTokens) * 100 * 100) / 100
                 });
+              }
+              const collectionMetadataCollection: CollectionTokenMetadataType = {
+                ...(collection as CollectionMintsType),
+                numNfts: numTokens,
+                state: {
+                  ...collection.state,
+                  create: {
+                    step: CreationFlow.TokenMetadata, // update step
+                    updatedAt: Date.now()
+                  }
+                }
+              };
+              collection = collectionMetadataCollection; // update collection
+              yield { collection };
+            } catch (err: any) {
+              logger.error('Failed to get collection tokens', err);
+              if (err instanceof CollectionMintsError) {
+                throw err;
+              }
+              // if any token fails we should throw an error
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
+              throw new CollectionTokenMetadataError(message); // move on to token metadata if this fails
+            }
+            break;
+
+          case CreationFlow.TokenMetadata:
+            let progress = 0;
+            try {
+              const tokens: Array<Partial<Token>> | undefined = yield {
+                collection: collection,
+                action: 'tokenRequest'
+              };
+              if (!tokens) {
+                throw new CollectionMintsError('Token metadata received undefined tokens');
+              }
+
+              let tokensValid = true;
+              for (const token of tokens) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Mint);
+                } catch (err) {
+                  tokensValid = false;
+                }
+              }
+              if (!tokensValid) {
+                throw new CollectionMintsError('Received invalid tokens');
+              }
+
+              const numTokens = tokens.length;
+
+              /**
+               * validate tokens and fallback to getting metadata from the tokenUri if alchemy fails
+               */
+              const tokenPromises: Array<Promise<ImageToken>> = [];
+              const uploadImageQueue = new PQueue({ concurrency: IMAGE_UPLOAD_CONCURRENCY });
+              for (const token of tokens) {
+                const nft = new Nft(token as MintToken, this.contract, ethersQueue, uploadImageQueue);
+                const iterator = nft.refreshToken();
+                const tokenWithMetadataPromise = new Promise<ImageToken>(async (resolve, reject) => {
+                  let tokenWithMetadata = token;
+                  try {
+                    let prevTokenProgress = 0;
+                    for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {
+                      progress = progress - prevTokenProgress + tokenProgress;
+                      prevTokenProgress = tokenProgress;
+
+                      void emitter.emit('progress', {
+                        step: step,
+                        progress: Math.floor((progress / numTokens) * 100 * 100) / 100
+                      });
+                      if (failed) {
+                        reject(new Error(intermediateToken.state?.metadata.error?.message));
+                      } else {
+                        tokenWithMetadata = intermediateToken;
+                      }
+                    }
+                    if (!tokenWithMetadata) {
+                      throw new Error('Failed to refresh token');
+                    }
+
+                    progress = progress - prevTokenProgress + 1;
+                    void emitter.emit('progress', {
+                      step: step,
+                      progress: Math.floor((progress / numTokens) * 100 * 100) / 100
+                    });
+
+                    void emitter.emit('token', tokenWithMetadata as Token);
+                    resolve(tokenWithMetadata as ImageToken);
+                  } catch (err) {
+                    logger.error(err);
+                    if (err instanceof RefreshTokenMintError) {
+                      reject(new Error('Invalid mint data'));
+                    }
+                    reject(err);
+                  }
+                });
+
+                tokenPromises.push(tokenWithMetadataPromise);
+              }
+
+              const results = await Promise.allSettled(tokenPromises);
+              let res = { reason: '', failed: false };
+              for (const result of results) {
+                if (result.status === 'rejected') {
+                  const message = typeof result?.reason === 'string' ? result.reason : 'Failed to refresh token';
+                  res = { reason: message, failed: true };
+                  if (result.reason === 'Invalid mint data') {
+                    throw new CollectionMintsError('Tokens contained invalid mint data');
+                  }
+                }
+              }
+
+              if (res.failed) {
+                throw new Error(res.reason);
               }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
@@ -270,7 +408,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.AggregateMetadata // update step
+                    step: CreationFlow.AggregateMetadata, // update step
+                    updatedAt: Date.now()
                   }
                 }
               };

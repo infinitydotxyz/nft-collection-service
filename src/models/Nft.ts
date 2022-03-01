@@ -218,45 +218,46 @@ export default class Nft {
             break;
 
           case RefreshTokenFlow.Image:
-            const metadataToken = Nft.validateToken(this.token, RefreshTokenFlow.Metadata);
-            try {
-              const imageUrl = (await this.opensea.getNFTMetadata(this.contract.address, this.token.tokenId ?? '')).image;
+            Nft.validateToken(this.token, RefreshTokenFlow.Metadata);
+            return;
+            // try {
+            //   const imageUrl = (await this.opensea.getNFTMetadata(this.contract.address, this.token.tokenId ?? '')).image;
 
-              if (!imageUrl) {
-                throw new RefreshTokenMetadataError('Invalid image url');
-              }
+            //   if (!imageUrl) {
+            //     throw new RefreshTokenMetadataError('Invalid image url');
+            //   }
 
-              const now = Date.now();
-              const image = {
-                url: imageUrl,
-                updatedAt: now
-              };
+            //   const now = Date.now();
+            //   const image = {
+            //     url: imageUrl,
+            //     updatedAt: now
+            //   };
 
-              const imageToken = Nft.validateToken(
-                {
-                  ...metadataToken,
-                  image,
-                  state: {
-                    metadata: {
-                      step: RefreshTokenFlow.Complete
-                    }
-                  }
-                },
-                RefreshTokenFlow.Image
-              );
-              this.token = imageToken;
+            //   const imageToken = Nft.validateToken(
+            //     {
+            //       ...metadataToken,
+            //       image,
+            //       state: {
+            //         metadata: {
+            //           step: RefreshTokenFlow.Complete
+            //         }
+            //       }
+            //     },
+            //     RefreshTokenFlow.Image
+            //   );
+            //   this.token = imageToken;
 
-              yield { token: this.token, progress: 1 };
-            } catch (err: RefreshTokenMetadataError | any) {
-              logger.error('Failed to get token image', err);
-              if (err instanceof RefreshTokenMetadataError) {
-                throw err;
-              }
-              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to upload token image';
-              throw new RefreshTokenImageError(message);
-            }
+            //   yield { token: this.token, progress: 1 };
+            // } catch (err: RefreshTokenMetadataError | any) {
+            //   logger.error('Failed to get token image', err);
+            //   if (err instanceof RefreshTokenMetadataError) {
+            //     throw err;
+            //   }
+            //   const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to upload token image';
+            //   throw new RefreshTokenImageError(message);
+            // }
 
-            break;
+            // break;
 
           case RefreshTokenFlow.Complete:
             Nft.validateToken(this.token, RefreshTokenFlow.Complete);
