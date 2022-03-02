@@ -2,6 +2,12 @@ import { BASE_TIME, SalesOrderType } from 'sales-scraper/types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 
+/**
+ * Retrive firestore historical sales document id by data and base time.
+ * @param date
+ * @param baseTime
+ * @returns
+ */
 export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => {
   const firstDayOfWeek = date.getDate() - date.getDay();
   const firstMonthofQuator = Math.floor(date.getMonth() / 3) * 3;

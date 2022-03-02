@@ -1,10 +1,19 @@
-import { ethers } from 'ethers';
 import { firebase, logger } from '../../container';
 import { getDocumentIdByTime, getETHPrice } from 'sales-scraper/utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from 'sales-scraper/types';
 import { DBN_HISTORICAL_DOC, DBN_STATUS_COLLECTION, DBN_ALL_TIME_DOC, DBN_TXN_COLLECTION } from 'sales-scraper/constants';
 import { getRawAssetFromOpensea } from '../../../services/opensea/assets/getAssetFromOpensea';
 
+/**
+ *
+ * @param docRef Reference to firestore doc needs to be updated
+ * @param docId  Firestore document id based on timestamp
+ * @param txns  Incoming order transactions
+ * @param totalPrice Total price of the above transactions
+ * @description This function is used to create/update sales document on firestore
+ *              based on new orders.
+ *
+ */
 const updateSalesDoc = async (
   docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
   docId: string,
@@ -13,10 +22,11 @@ const updateSalesDoc = async (
 ): Promise<void> => {
   const numSales = txns.length;
   const itemPrice = txns[0].price;
-
   const data = (await docRef.get())?.data() as SalesRepository;
-
   if (data) {
+    /**
+     * Needs to update the previous info
+     */
     const updatedDoc: SalesRepository = {
       docId: docId,
       totalVolume: data.totalVolume + itemPrice,
@@ -28,6 +38,9 @@ const updateSalesDoc = async (
     };
     await docRef.set(updatedDoc);
   } else {
+    /**
+     * Create new doc
+     */
     const newDoc: SalesRepository = {
       docId,
       totalVolume: totalPrice,
@@ -92,16 +105,26 @@ const createNftTransactionHistory = async (orders: SalesOrderType[], chainId = '
 
     const data = (await allTimeDocRef.get())?.data() as SalesRepository;
     if (data) {
-      // --- update all time sales info ---
+      /**
+       * Update all-time info
+       */
       await updateSalesDoc(allTimeDocRef, DBN_ALL_TIME_DOC, txns, totalPrice);
 
-      // --- update hourly,daily,... sales info ----
+      /**
+       *  Loop all the historical sales info by baseTime
+       *  Update all the docs ( hourly, daily, .... )
+       */
       Object.values(BASE_TIME).forEach(async (baseTime) => {
         const docId = getDocumentIdByTime(txns[0].blockTimestamp, baseTime as BASE_TIME);
         const docRef = collectionDocRef.collection('status').doc(DBN_HISTORICAL_DOC).collection(baseTime).doc(docId);
         await updateSalesDoc(docRef, docId, txns, totalPrice);
       });
     } else {
+      /**
+       * There is no info for this collection
+       * Grab the sales from opensea
+       * Init all the historical info based on opensea stats
+       */
       await initCollectionSalesInfoFromOpensea(chainId, txns, totalPrice);
     }
   } catch (err) {
@@ -121,7 +144,9 @@ const initCollectionSalesInfoFromOpensea = async (
   const historicalDocRef = collectionDocRef.collection('status').doc(DBN_HISTORICAL_DOC);
   const timestamp = txns[0].blockTimestamp;
 
-  // --- set all time info ----
+  /**
+   * All-Time
+   */
   const allTimeDoc: SalesRepository = {
     docId: DBN_ALL_TIME_DOC,
     totalVolume: osCollectionStats.market_cap,
@@ -134,7 +159,9 @@ const initCollectionSalesInfoFromOpensea = async (
   const allTimeDocRef = collectionDocRef.collection(DBN_STATUS_COLLECTION).doc(DBN_ALL_TIME_DOC);
   await allTimeDocRef.set(allTimeDoc);
 
-  // --- yearly ---
+  /**
+   * Yearly
+   */
   const yearlyDocId = getDocumentIdByTime(timestamp, BASE_TIME.YEARLY);
   await historicalDocRef
     .collection(BASE_TIME.YEARLY)
@@ -144,7 +171,9 @@ const initCollectionSalesInfoFromOpensea = async (
       docId: yearlyDocId
     });
 
-  // --- monthly ---
+  /**
+   * Montly
+   */
   const monthlyDocId = getDocumentIdByTime(timestamp, BASE_TIME.MONTHLY);
   const montlyDoc = {
     docId: monthlyDocId,
@@ -157,15 +186,18 @@ const initCollectionSalesInfoFromOpensea = async (
   };
   await historicalDocRef.collection(BASE_TIME.MONTHLY).doc(monthlyDocId).set(montlyDoc);
 
-  // --- quartly ---
+  /**
+   * Quartly
+   */
   const quarltyDocId = getDocumentIdByTime(timestamp, BASE_TIME.QUARTLY);
   await historicalDocRef
     .collection(BASE_TIME.QUARTLY)
     .doc(quarltyDocId)
     .set({ ...montlyDoc, docId: quarltyDocId });
 
-  // --- daily ---
-
+  /**
+   * Daily
+   */
   const dailyDocId = getDocumentIdByTime(timestamp, BASE_TIME.DAILY);
   const dailyDoc = {
     docId: dailyDocId,
@@ -176,9 +208,20 @@ const initCollectionSalesInfoFromOpensea = async (
     avgPrice: osCollectionStats.one_day_average_price,
     timestamp
   };
-  await historicalDocRef.collection(BASE_TIME.DAILY).doc(dailyDocId).set({ dailyDoc });
+  await historicalDocRef.collection(BASE_TIME.DAILY).doc(dailyDocId).set(dailyDoc);
 
-  // --- Weekly ---
+  /**
+   * Q12H
+   */
+  const q12HDocId = getDocumentIdByTime(timestamp, BASE_TIME.Q12H);
+  await historicalDocRef
+    .collection(BASE_TIME.Q12H)
+    .doc(q12HDocId)
+    .set({ ...dailyDoc, docId: q12HDocId });
+
+  /**
+   * Weekly
+   */
   const weeklyDocId = getDocumentIdByTime(timestamp, BASE_TIME.WEEKLY);
   const weeklyDoc = {
     docId: weeklyDocId,
@@ -189,7 +232,22 @@ const initCollectionSalesInfoFromOpensea = async (
     avgPrice: osCollectionStats.seven_day_average_price,
     timestamp
   };
-  await historicalDocRef.collection(BASE_TIME.WEEKLY).doc(weeklyDocId).set({ weeklyDoc });
+  await historicalDocRef.collection(BASE_TIME.WEEKLY).doc(weeklyDocId).set(weeklyDoc);
+
+  /**
+   * Hourly
+   */
+  const hourlyDocId = getDocumentIdByTime(timestamp, BASE_TIME.HOURLY);
+  const hourlyDoc: SalesRepository = {
+    docId: hourlyDocId,
+    totalVolume: totalPrice,
+    totalSales: txns.length,
+    floorPrice: txns[0].price,
+    ceilPrice: txns[0].price,
+    avgPrice: txns[0].price,
+    timestamp
+  };
+  await historicalDocRef.collection(BASE_TIME.HOURLY).doc(hourlyDocId).set(hourlyDoc);
 };
 
 const initCollectionBaseVolume = async (chainId: string, collectionAddr: string, tokenId: string) => {
