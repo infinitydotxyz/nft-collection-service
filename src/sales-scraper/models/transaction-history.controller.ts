@@ -24,7 +24,7 @@ const updateSalesDoc = async (
     const data = (await docRef.get())?.data() as SalesRepository;
     if (data) {
       /**
-       * Needs to update the previous info
+       * Update Original Doc
        */
       const updatedDoc: SalesRepository = {
         docId: docId,
@@ -79,7 +79,7 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
     });
 
     /**
-     * Add txns to the nft
+     * Add Traction History to the nft
      */
     const collectionDocRef = firestore.collection('collections').doc(`${chainId}:${txns[0].collectionAddr}`);
     txns.forEach(async (tx: TransactionRepository) => {
