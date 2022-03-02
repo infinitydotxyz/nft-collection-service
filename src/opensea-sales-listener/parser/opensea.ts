@@ -136,13 +136,13 @@ function handleSingleSale(inputs: any): TokenInfo {
 function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrderType[] | undefined {
   try {
     const addrs = inputs.addrs;
-    const saleAdress: string = addrs[11];
+    const saleAddress: string = addrs[11];
 
     const uints: BigInt[] = inputs.uints;
     // TODO: The price should be retrieved from the calculateMatchPrice_ method of OpenSea Smart Contract
     const price: BigInt = uints[4];
     const buyerAddress = addrs[1]; // Buyer.maker
-    const sellerAddress = addrs[8]; // Saler.maker
+    const sellerAddress = addrs[8]; // Seller.maker
     const paymentTokenErc20Address = addrs[6];
 
     const res: SalesOrderType = {
@@ -159,7 +159,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
       source: SCRAPER_SOURCE.OPENSEA,
       tokenType: TOKEN_TYPE.ERC721
     };
-    if (saleAdress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
+    if (saleAddress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
       const token = handleSingleSale(inputs);
       res.collectionAddr = token.collectionAddr;
       res.tokenIdStr = token.tokenIdStr;
