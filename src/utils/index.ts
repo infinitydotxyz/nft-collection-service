@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
   const hashes = new Set();
   return items.filter((item: T) => {
@@ -63,4 +65,14 @@ export function randomInt(min: number, max: number): number {
 export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
+}
+
+/**
+ *
+ * @description  tokenIds can be big in some cases and we might run into firestore doc name length limit
+ *
+ */
+export function getHashByNftAddress(chainId: string, tokenAddress: string, tokenId: string): string {
+  const data = chainId + tokenAddress.trim() + tokenId.trim();
+  return crypto.createHash('sha256').update(data).digest('hex').trim().toLowerCase();
 }

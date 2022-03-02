@@ -3,6 +3,7 @@ import OpenSeaClient, { CollectionStats } from '../../services/OpenSea';
 import { getDocumentIdByTime, getETHPrice } from '../utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from '../types';
 import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY } from '../constants';
+import { getHashByNftAddress } from '../../utils';
 
 /**
  * @param docRef Reference to firestore doc needs to be updated
@@ -84,12 +85,8 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
     const curStatsDocRef = firestore.collection(DBN_COLLECTION_STATS).doc(`${chainId}:${txns[0].collectionAddr}`);
     txns.forEach(async (tx: TransactionRepository) => {
       const txDocId = new Date(tx.blockTimestamp).getTime().toString();
-      await firestore
-        .collection(DBN_NFT_STATS)
-        .doc(`${chainId}:${txns[0].collectionAddr}:${txns[0].tokenId}`)
-        .collection(DBN_HISTORY)
-        .doc(txDocId)
-        .set(tx);
+      const nftDocId = getHashByNftAddress(chainId, txns[0].collectionAddr, txns[0].tokenId);
+      await firestore.collection(DBN_NFT_STATS).doc(nftDocId).collection(DBN_HISTORY).doc(txDocId).set(tx);
     });
 
     const allTimeDocRef = curStatsDocRef;
