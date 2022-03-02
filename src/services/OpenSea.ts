@@ -163,9 +163,9 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
     return res.body;
   }
 
-  async getNFTsOfContract(address: string, limit: number, cursor?: string, tokenIds?: string): Promise<OpenSeaAssetsResponse> {
+  async getNFTsOfContract(address: string, limit: number, cursor: string): Promise<OpenSeaAssetsResponse> {
     const res: Response<OpenSeaAssetsResponse> = await this.errorHandler(() => {
-      const url = `assets?asset_contract_address=${address}&include_orders=false&limit=${limit}&cursor=$${cursor}&${tokenIds}`;
+      const url = `assets?asset_contract_address=${address}&include_orders=false&limit=${limit}&cursor=$${cursor}`;
       return this.client.get(url, {
         responseType: 'json'
       });

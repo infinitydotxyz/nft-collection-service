@@ -562,6 +562,10 @@ export default class Collection {
                 throw new CollectionCacheImageError('Client failed to inject tokens');
               }
               tokens = injectedTokens as Token[];
+
+              const openseaLimit = 50;
+              const openseaTokenIdsLimit = 20;
+
               // fetch tokens that don't have images
               const imageLessTokens = [];
               for (const token of tokens) {
@@ -569,27 +573,49 @@ export default class Collection {
                   imageLessTokens.push(token);
                 }
               }
-              const numTokens = imageLessTokens.length;
-              const openseaLimit = 20;
-              const numIters = Math.ceil(numTokens / openseaLimit);
-              for (let i = 0; i < numIters; i++) {
-                const tokenSlice = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
-                let tokenIdsConcat = '';
-                for (const token of tokenSlice) {
-                  tokenIdsConcat += `token_ids=${token.tokenId}&`;
+              const numImagelessTokens = imageLessTokens.length;
+              const numTokens = tokens.length;
+              const percenFailed = Math.floor((numImagelessTokens / numTokens) * 100);
+              if (percenFailed < 40) {
+                const numIters = Math.ceil(numImagelessTokens / openseaTokenIdsLimit);
+                for (let i = 0; i < numIters; i++) {
+                  const tokenSlice = tokens.slice(i * openseaTokenIdsLimit, (i + 1) * openseaTokenIdsLimit);
+                  let tokenIdsConcat = '';
+                  for (const token of tokenSlice) {
+                    tokenIdsConcat += `token_ids=${token.tokenId}&`;
+                  }
+                  const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
+                  for (const datum of data.assets) {
+                    const imageToken: ImageData & Partial<Token> = {
+                      tokenId: datum.token_id,
+                      image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+                    } as ImageToken;
+                    void emitter.emit('image', imageToken);
+                  }
+                  void emitter.emit('progress', {
+                    step: step,
+                    progress: Math.floor(((i * openseaTokenIdsLimit) / numImagelessTokens) * 100 * 100) / 100
+                  });
                 }
-                const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
-                for (const datum of data.assets) {
-                  const imageToken: ImageData & Partial<Token> = {
-                    tokenId: datum.token_id,
-                    image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
-                  } as ImageToken;
-                  void emitter.emit('image', imageToken);
+              } else {
+                const numIters = Math.ceil(numTokens / openseaLimit);
+                let cursor = '';
+                for (let i = 0; i < numIters; i++) {
+                  const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, cursor);
+                  // update cursor
+                  cursor = data.next;
+                  for (const datum of data.assets) {
+                    const imageToken: ImageData & Partial<Token> = {
+                      tokenId: datum.token_id,
+                      image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+                    } as ImageToken;
+                    void emitter.emit('image', imageToken);
+                  }
+                  void emitter.emit('progress', {
+                    step: step,
+                    progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+                  });
                 }
-                void emitter.emit('progress', {
-                  step: step,
-                  progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
-                });
               }
 
               const collectionMetadataCollection: CollectionTokenMetadataType = {
