@@ -2,7 +2,7 @@ import { firebase, logger } from '../../container';
 import OpenSeaClient, { CollectionStats } from '../../services/OpenSea';
 import { getDocumentIdByTime, getETHPrice } from '../utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from '../types';
-import { DBN_HISTORICAL_DOC, DBN_STATUS_COLLECTION, DBN_ALL_TIME_DOC, DBN_TXN_COLLECTION } from '../constants';
+import { DBN_HISTORICAL_DOC, DBN_STATS_COLLECTION, DBN_ALL_TIME_DOC, DBN_TXN_COLLECTION } from '../constants';
 
 /**
  * @param docRef Reference to firestore doc needs to be updated
@@ -63,14 +63,14 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
     const totalPrice = getETHPrice(orders[0]);
     const txns: TransactionRepository[] = orders.map((order: SalesOrderType) => {
       const tx: TransactionRepository = {
-        txHash: order.txHash.toLocaleLowerCase(),
+        txHash: order.txHash.trim().toLowerCase(),
         tokenId: order.tokenIdStr,
-        collectionAddr: order.collectionAddr.toLocaleLowerCase(),
+        collectionAddr: order.collectionAddr.trim().toLowerCase(),
         price: getETHPrice(order) / orders.length,
         paymentToken: order.paymentToken,
         quantity: order.quantity,
-        buyer: order.buyerAdress.toLocaleLowerCase(),
-        seller: order.sellerAdress.toLocaleLowerCase(),
+        buyer: order.buyerAdress.trim().toLowerCase(),
+        seller: order.sellerAdress.trim().toLowerCase(),
         source: order.source,
         blockNumber: order.blockNumber,
         blockTimestamp: order.blockTimestamp
@@ -87,7 +87,7 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
       await collectionDocRef.collection('nfts').doc(tx.tokenId).collection(DBN_TXN_COLLECTION).doc(txDocId).set(tx);
     });
 
-    const allTimeDocRef = collectionDocRef.collection(DBN_STATUS_COLLECTION).doc(DBN_ALL_TIME_DOC);
+    const allTimeDocRef = collectionDocRef.collection(DBN_STATS_COLLECTION).doc(DBN_ALL_TIME_DOC);
     const data = (await allTimeDocRef.get())?.data() as SalesRepository;
     if (data) {
       /**
@@ -154,7 +154,7 @@ const initCollectionSalesInfoFromOpensea = async (
       avgPrice: osCollectionStats.average_price,
       timestamp
     };
-    const allTimeDocRef = collectionDocRef.collection(DBN_STATUS_COLLECTION).doc(DBN_ALL_TIME_DOC);
+    const allTimeDocRef = collectionDocRef.collection(DBN_STATS_COLLECTION).doc(DBN_ALL_TIME_DOC);
     await allTimeDocRef.set(allTimeDoc);
 
     /**
@@ -185,15 +185,6 @@ const initCollectionSalesInfoFromOpensea = async (
     await historicalDocRef.collection(BASE_TIME.MONTHLY).doc(monthlyDocId).set(montlyDoc);
 
     /**
-     * Quartly
-     */
-    const quarltyDocId = getDocumentIdByTime(timestamp, BASE_TIME.QUARTLY);
-    await historicalDocRef
-      .collection(BASE_TIME.QUARTLY)
-      .doc(quarltyDocId)
-      .set({ ...montlyDoc, docId: quarltyDocId });
-
-    /**
      * Daily
      */
     const dailyDocId = getDocumentIdByTime(timestamp, BASE_TIME.DAILY);
@@ -207,15 +198,6 @@ const initCollectionSalesInfoFromOpensea = async (
       timestamp
     };
     await historicalDocRef.collection(BASE_TIME.DAILY).doc(dailyDocId).set(dailyDoc);
-
-    /**
-     * Q12H
-     */
-    const q12HDocId = getDocumentIdByTime(timestamp, BASE_TIME.Q12H);
-    await historicalDocRef
-      .collection(BASE_TIME.Q12H)
-      .doc(q12HDocId)
-      .set({ ...dailyDoc, docId: q12HDocId });
 
     /**
      * Weekly

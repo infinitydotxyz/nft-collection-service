@@ -9,11 +9,9 @@ export enum TOKEN_TYPE {
 
 export enum BASE_TIME {
   HOURLY = 'hourly',
-  Q12H = 'q12h',
   DAILY = 'daily',
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
-  QUARTLY = 'quartly',
   YEARLY = 'yearly'
 }
 export interface SalesOrderType {
