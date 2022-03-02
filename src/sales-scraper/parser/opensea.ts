@@ -218,7 +218,7 @@ const execute = (): void => {
       const block: Block = await event.getBlock();
       const decodedResponse = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike);
       const orders = handleAtomicMatch_(decodedResponse, txHash, block);
-      console.log({ orders });
+      logger.log({ orders });
     } catch (err) {
       logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
     }
