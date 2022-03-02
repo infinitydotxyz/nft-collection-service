@@ -11,7 +11,6 @@ import moment from 'moment';
  */
 export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => {
   const firstDayOfWeek = date.getDate() - date.getDay();
-  const firstMonthofQuator = Math.floor(date.getMonth() / 3) * 3;
 
   switch (baseTime) {
     case BASE_TIME.HOURLY:
