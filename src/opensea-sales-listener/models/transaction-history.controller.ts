@@ -2,7 +2,7 @@ import { firebase, logger } from '../../container';
 import OpenSeaClient, { CollectionStats } from '../../services/OpenSea';
 import { getDocumentIdByTime, getETHPrice } from '../utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from '../types';
-import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_TXN } from '../constants';
+import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY } from '../constants';
 
 /**
  * @param docRef Reference to firestore doc needs to be updated
@@ -87,7 +87,7 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
       await firestore
         .collection(DBN_NFT_STATS)
         .doc(`${chainId}:${txns[0].collectionAddr}:${txns[0].tokenId}`)
-        .collection(DBN_TXN)
+        .collection(DBN_HISTORY)
         .doc(txDocId)
         .set(tx);
     });
