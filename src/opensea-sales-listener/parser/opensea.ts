@@ -141,8 +141,8 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
     const uints: BigInt[] = inputs.uints;
     // TODO: The price should be retrieved from the calculateMatchPrice_ method of OpenSea Smart Contract
     const price: BigInt = uints[4];
-    const buyerAdress = addrs[1]; // Buyer.maker
-    const sellerAdress = addrs[8]; // Saler.maker
+    const buyerAddress = addrs[1]; // Buyer.maker
+    const sellerAddress = addrs[8]; // Saler.maker
     const paymentTokenErc20Address = addrs[6];
 
     const res: SalesOrderType = {
@@ -151,8 +151,8 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
       blockTimestamp: new Date(block.timestamp * 1000),
       price,
       paymentToken: paymentTokenErc20Address,
-      buyerAdress,
-      sellerAdress,
+      buyerAddress,
+      sellerAddress,
       collectionAddr: '',
       tokenIdStr: '',
       quantity: 0,

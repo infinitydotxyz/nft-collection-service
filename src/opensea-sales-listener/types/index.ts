@@ -20,8 +20,8 @@ export interface SalesOrderType {
   blockTimestamp: Date;
   price: BigInt;
   paymentToken: string;
-  buyerAdress: string;
-  sellerAdress: string;
+  buyerAddress: string;
+  sellerAddress: string;
   collectionAddr: string;
   tokenIdStr: string;
   quantity: number;
