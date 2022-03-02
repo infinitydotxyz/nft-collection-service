@@ -239,7 +239,14 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
 interface OpenSeaAssetsResponse {
   next: string;
   previous: string;
-  assets: Array<{ name: string; token_id: string; external_link: string; image_url: string; image_original_url: string }>;
+  assets: Array<{
+    name: string;
+    token_id: string;
+    external_link: string;
+    image_url: string;
+    image_original_url: string;
+    traits: Array<{ trait_type: string; value: string | number }>;
+  }>;
 }
 
 interface OpenSeaNFTMetadataResponse {
