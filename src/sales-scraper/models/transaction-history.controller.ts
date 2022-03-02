@@ -1,18 +1,16 @@
 import { firebase, logger } from '../../container';
+import OpenSeaClient, { CollectionStats } from 'services/OpenSea';
 import { getDocumentIdByTime, getETHPrice } from 'sales-scraper/utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from 'sales-scraper/types';
 import { DBN_HISTORICAL_DOC, DBN_STATUS_COLLECTION, DBN_ALL_TIME_DOC, DBN_TXN_COLLECTION } from 'sales-scraper/constants';
-import { getRawAssetFromOpensea } from '../../../services/opensea/assets/getAssetFromOpensea';
 
 /**
- *
  * @param docRef Reference to firestore doc needs to be updated
  * @param docId  Firestore document id based on timestamp
  * @param txns  Incoming order transactions
  * @param totalPrice Total price of the above transactions
  * @description This function is used to create/update sales document on firestore
  *              based on new orders.
- *
  */
 const updateSalesDoc = async (
   docRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
@@ -20,37 +18,41 @@ const updateSalesDoc = async (
   txns: TransactionRepository[],
   totalPrice: number
 ): Promise<void> => {
-  const numSales = txns.length;
-  const itemPrice = txns[0].price;
-  const data = (await docRef.get())?.data() as SalesRepository;
-  if (data) {
-    /**
-     * Needs to update the previous info
-     */
-    const updatedDoc: SalesRepository = {
-      docId: docId,
-      totalVolume: data.totalVolume + itemPrice,
-      totalSales: data.totalSales + numSales,
-      floorPrice: data.floorPrice === 0 ? itemPrice : Math.min(data.floorPrice, itemPrice),
-      ceilPrice: data.ceilPrice === 0 ? itemPrice : Math.max(data.ceilPrice, itemPrice),
-      avgPrice: (data.totalVolume + totalPrice) / (data.totalSales + numSales),
-      timestamp: txns[0].blockTimestamp
-    };
-    await docRef.set(updatedDoc);
-  } else {
-    /**
-     * Create new doc
-     */
-    const newDoc: SalesRepository = {
-      docId,
-      totalVolume: totalPrice,
-      totalSales: numSales,
-      floorPrice: itemPrice,
-      ceilPrice: itemPrice,
-      avgPrice: itemPrice,
-      timestamp: txns[0].blockTimestamp
-    };
-    await docRef.set(newDoc);
+  try {
+    const numSales = txns.length;
+    const itemPrice = txns[0].price;
+    const data = (await docRef.get())?.data() as SalesRepository;
+    if (data) {
+      /**
+       * Needs to update the previous info
+       */
+      const updatedDoc: SalesRepository = {
+        docId: docId,
+        totalVolume: data.totalVolume + itemPrice,
+        totalSales: data.totalSales + numSales,
+        floorPrice: data.floorPrice === 0 ? itemPrice : Math.min(data.floorPrice, itemPrice),
+        ceilPrice: data.ceilPrice === 0 ? itemPrice : Math.max(data.ceilPrice, itemPrice),
+        avgPrice: (data.totalVolume + totalPrice) / (data.totalSales + numSales),
+        timestamp: txns[0].blockTimestamp
+      };
+      await docRef.set(updatedDoc);
+    } else {
+      /**
+       * Create new doc
+       */
+      const newDoc: SalesRepository = {
+        docId,
+        totalVolume: totalPrice,
+        totalSales: numSales,
+        floorPrice: itemPrice,
+        ceilPrice: itemPrice,
+        avgPrice: itemPrice,
+        timestamp: txns[0].blockTimestamp
+      };
+      await docRef.set(newDoc);
+    }
+  } catch (err) {
+    logger.error('Sales-scraper: updateSalesDoc', err);
   }
 };
 
@@ -102,7 +104,6 @@ const createNftTransactionHistory = async (orders: SalesOrderType[], chainId = '
 
   try {
     const allTimeDocRef = collectionDocRef.collection(DBN_STATUS_COLLECTION).doc(DBN_ALL_TIME_DOC);
-
     const data = (await allTimeDocRef.get())?.data() as SalesRepository;
     if (data) {
       /**
@@ -121,7 +122,7 @@ const createNftTransactionHistory = async (orders: SalesOrderType[], chainId = '
       });
     } else {
       /**
-       * There is no info for this collection
+       * There is no sales info for this collection yet
        * Grab the sales from opensea
        * Init all the historical info based on opensea stats
        */
@@ -132,12 +133,22 @@ const createNftTransactionHistory = async (orders: SalesOrderType[], chainId = '
   }
 };
 
+/**
+ *
+ * @param chainId
+ * @param txns Incomming order transactions
+ * @param totalPrice Total Price of the above txns
+ * @description We don't have the sales info yet for the collection in the incoming txns
+ *              Grab the sales info from opensea and init all the historical docs
+ */
 const initCollectionSalesInfoFromOpensea = async (
   chainId: string,
   txns: TransactionRepository[],
   totalPrice: number
 ): Promise<void> => {
-  const osCollectionStats = await initCollectionBaseVolume(chainId, txns[0].collectionAddr, txns[0].tokenId);
+  const osCollectionStats = await initCollectionBaseVolume(txns[0].collectionAddr, txns[0].tokenId);
+
+  if (!osCollectionStats) return;
 
   const firestore = firebase.db;
   const collectionDocRef = firestore.collection('collections').doc(`${chainId}:${txns[0].collectionAddr}`);
@@ -250,14 +261,13 @@ const initCollectionSalesInfoFromOpensea = async (
   await historicalDocRef.collection(BASE_TIME.HOURLY).doc(hourlyDocId).set(hourlyDoc);
 };
 
-const initCollectionBaseVolume = async (chainId: string, collectionAddr: string, tokenId: string) => {
+const initCollectionBaseVolume = async (collectionAddr: string, tokenId: string): Promise<CollectionStats | undefined> => {
   try {
-    // const data = await getRawAssetFromOpensea(chainId, collectionAddr, tokenId);
-    //const osCollectionStats = data?.collection?.stats;
-    //return osCollectionStats;
-    // console.log(info?.collection?.status);
+    const opensea = new OpenSeaClient();
+    const data = await opensea.getCollectionStatsByCollectionAddr(collectionAddr, tokenId);
+    return data;
   } catch (err) {
-    logger.error('Sales Scraper: [Opensea API] Failed to retrieve token info');
+    logger.error('Sales-scraper: initCollectionBaseVolume', err);
   }
 };
 

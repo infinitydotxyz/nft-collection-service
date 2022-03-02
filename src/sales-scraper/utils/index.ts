@@ -3,10 +3,11 @@ import { ethers } from 'ethers';
 import moment from 'moment';
 
 /**
- * Retrive firestore historical sales document id by data and base time.
+ *
  * @param date
  * @param baseTime
- * @returns
+ * @returns Firestore historical document id ( sales info ) based on date and basetime
+ *
  */
 export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => {
   const firstDayOfWeek = date.getDate() - date.getDay();
