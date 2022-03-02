@@ -30,7 +30,7 @@ import {
 import Nft from './Nft';
 import { alchemy, logger, opensea } from '../container';
 import PQueue from 'p-queue';
-import { RefreshTokenImageError, RefreshTokenMetadataError, RefreshTokenMintError } from './errors/RefreshTokenFlow';
+import { RefreshTokenImageError, RefreshTokenMintError } from './errors/RefreshTokenFlow';
 
 export enum CreationFlow {
   /**
