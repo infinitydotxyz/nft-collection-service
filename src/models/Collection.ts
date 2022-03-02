@@ -391,14 +391,14 @@ export default class Collection {
               tokens = injectedTokens as Token[];
 
               // metadata less tokens
-              const metadataLessTokens = tokens;
-              // for (const token of tokens) {
-              //   try {
-              //     Nft.validateToken(token, RefreshTokenFlow.Metadata);
-              //   } catch (err) {
-              //     metadataLessTokens.push(token);
-              //   }
-              // }
+              const metadataLessTokens = [];
+              for (const token of tokens) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Metadata);
+                } catch (err) {
+                  metadataLessTokens.push(token);
+                }
+              }
 
               const tokenPromises: Array<Promise<MetadataToken>> = [];
               for (const token of metadataLessTokens) {
@@ -552,22 +552,21 @@ export default class Collection {
                 throw new CollectionCacheImageError('Client failed to inject tokens');
               }
               tokens = injectedTokens as Token[];
-
-              // fetch which tokens don't have images
+              // fetch tokens that don't have images
               const imageLessTokens = [];
-              for (const tokenId of tokens) {
-                if (!tokenId.image || !tokenId.image.originalUrl || !tokenId.image.url || !tokenId.image.updatedAt) {
-                  imageLessTokens.push(tokenId);
+              for (const token of tokens) {
+                if (!token.image || !token.image.originalUrl || !token.image.url || !token.image.updatedAt) {
+                  imageLessTokens.push(token);
                 }
               }
               const numTokens = imageLessTokens.length;
               const openseaLimit = 30;
               const numIters = Math.ceil(numTokens / openseaLimit);
               for (let i = 0; i < numIters; i++) {
-                const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
+                const tokenSlice = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
                 let tokenIdsConcat = '';
-                for (const tokenId of tokenIds) {
-                  tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
+                for (const token of tokenSlice) {
+                  tokenIdsConcat += `token_ids=${token.tokenId}&`;
                 }
                 const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
@@ -620,31 +619,16 @@ export default class Collection {
                 throw new CollectionMintsError('Token metadata received undefined tokens');
               }
 
-              // const invalidMetadataTokens = [];
               const invalidImageTokens = [];
               for (const token of tokens) {
                 try {
                   Nft.validateToken(token, RefreshTokenFlow.Complete);
                 } catch (err) {
-                  if (err instanceof RefreshTokenMetadataError) {
-                    // invalidMetadataTokens.push(token);
-                  } else if (err instanceof RefreshTokenImageError) {
-                    logger.error('invalid image', token);
+                  if (err instanceof RefreshTokenImageError) {
                     invalidImageTokens.push(token);
                   }
                 }
               }
-
-              // // try invalid metadata tokens
-              // let i = 0;
-              // for (const token of invalidMetadataTokens) {
-              //   i++;
-              //   await this.fetchSingleTokenMetadata(token, CreationFlow.TokenMetadata, emitter);
-              //   void emitter.emit('progress', {
-              //     step: CreationFlow.TokenMetadata,
-              //     progress: Math.floor(((i / invalidMetadataTokens.length) * 100 * 100) / 100)
-              //   });
-              // }
 
               // try invalid image tokens
               let j = 0;

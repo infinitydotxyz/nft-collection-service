@@ -16,7 +16,7 @@ export async function main(): Promise<void> {
     // await buildCollections();
     // await collectionDao.getCollectionsSummary();
     const tokenIds =
-      'token_ids=0&token_ids=1&token_ids=10&token_ids=100';
+      'token_ids=0&token_ids=1&token_ids=10&token_ids=1003';
     const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds);
     logger.log(resp);
   } catch (err) {
