@@ -5,7 +5,7 @@ import Collection, { CreationFlow } from '../models/Collection';
 import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { ImageData, ImageToken, MetadataData, MetadataToken, MintToken, Token, UriToken } from '../types/Token.interface';
+import { ImageData, MetadataData, MintToken, Token } from '../types/Token.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import ContractFactory from '../models/contracts/ContractFactory';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -106,7 +106,6 @@ async function createCollection(): Promise<void> {
       }
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     let iterator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
 
     let next: IteratorResult<

@@ -6,16 +6,16 @@ export type TokenMetadata = Erc721Metadata;
 
 export type MintToken = Pick<Token, 'chainId' | 'mintedAt' | 'minter' | 'tokenId' | 'state' | 'mintTxHash' | 'mintPrice'>;
 
-export type UriData =  Pick<Token, 'tokenUri'>;
+export type UriData = Pick<Token, 'tokenUri'>;
 export type UriToken = MintToken & UriData;
 
 export type MetadataData = Pick<Token, 'slug' | 'metadata' | 'numTraitTypes' | 'updatedAt' | 'tokenId'>;
 export type MetadataToken = UriToken & MetadataData;
 
-export type ImageData = Pick<Token, 'image' | 'tokenId'>
+export type ImageData = Pick<Token, 'image' | 'tokenId'>;
 export type ImageToken = MetadataToken & ImageData;
 
-export type AggregatedData =  Pick<Token, 'rarityScore' | 'rarityRank'>;
+export type AggregatedData = Pick<Token, 'rarityScore' | 'rarityRank'>;
 export type AggregatedToken = ImageToken & AggregatedData;
 
 export enum RefreshTokenFlow {
@@ -32,7 +32,7 @@ export enum RefreshTokenFlow {
 
   /**
    * upload the image to gcs
-  */
+   */
   Image = 'token-image',
 
   Complete = 'complete'
@@ -42,7 +42,7 @@ interface BaseToken {
   chainId: string;
 
   /**
-   * search friendly name for this token 
+   * search friendly name for this token
    * not the same as the collection slug
    */
   slug: string;

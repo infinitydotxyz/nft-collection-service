@@ -88,8 +88,7 @@ export default class Nft {
     /**
      * validate metadata token
      */
-    if (!token.metadata || typeof token.numTraitTypes !== 'number'
-         || typeof token.updatedAt !== 'number') {
+    if (!token.metadata || typeof token.numTraitTypes !== 'number' || typeof token.updatedAt !== 'number') {
       throw new RefreshTokenMetadataError(
         `Invalid metadata token. Token Id: ${token.tokenId} Metadata: ${token.metadata} Trait Types: ${token.numTraitTypes} Updated At: ${token.updatedAt}`
       );

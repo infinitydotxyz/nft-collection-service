@@ -11,8 +11,7 @@ import {
   MintToken,
   RefreshTokenFlow,
   Token,
-  TokenMetadata,
-  UriToken
+  TokenMetadata
 } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
@@ -342,7 +341,7 @@ export default class Collection {
                 }
                 const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
-                  const metaToken: MetadataData & Partial<Token> = { 
+                  const metaToken: MetadataData & Partial<Token> = {
                     updatedAt: Date.now(),
                     tokenId: datum.token_id,
                     slug: getSearchFriendlyString(datum.name),
@@ -357,7 +356,7 @@ export default class Collection {
                       attributes: datum.traits,
                       background_color: datum.background_color ?? '',
                       animation_url: datum?.animation_url ?? '',
-                      youtube_url: '',
+                      youtube_url: ''
                     },
                     image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
                   };
