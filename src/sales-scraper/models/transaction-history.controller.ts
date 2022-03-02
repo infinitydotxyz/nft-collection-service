@@ -101,7 +101,7 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
        */
       Object.values(BASE_TIME).forEach(async (baseTime) => {
         const docId = getDocumentIdByTime(txns[0].blockTimestamp, baseTime as BASE_TIME);
-        const docRef = collectionDocRef.collection('status').doc(DBN_HISTORICAL_DOC).collection(baseTime).doc(docId);
+        const docRef = collectionDocRef.collection(DBN_STATS_COLLECTION).doc(DBN_HISTORICAL_DOC).collection(baseTime).doc(docId);
         await updateSalesDoc(docRef, docId, txns, totalPrice);
       });
     } else {
@@ -139,7 +139,7 @@ const initCollectionSalesInfoFromOpensea = async (
 
     const firestore = firebase.db;
     const collectionDocRef = firestore.collection('collections').doc(`${chainId}:${txns[0].collectionAddr}`);
-    const historicalDocRef = collectionDocRef.collection('status').doc(DBN_HISTORICAL_DOC);
+    const historicalDocRef = collectionDocRef.collection(DBN_STATS_COLLECTION).doc(DBN_HISTORICAL_DOC);
     const timestamp = txns[0].blockTimestamp;
 
     /**
