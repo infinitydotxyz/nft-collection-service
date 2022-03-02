@@ -3,7 +3,7 @@ import { AssertionError } from 'node:assert';
 import { collectionDao, firebase, logger } from './container';
 
 import { buildCollections } from './scripts/buildCollections';
-import { execute as runScraper } from './sales-scraper/index';
+import { execute as runOpenSeaListener } from './opensea-sales-listener';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
@@ -16,7 +16,7 @@ export async function main(): Promise<void> {
     //await buildCollections();
     // await collectionDao.getCollectionsSummary();
 
-    runScraper();
+    runOpenSeaListener();
   } catch (err) {
     logger.error(err);
   }
