@@ -331,7 +331,7 @@ export default class Collection {
                 }
               }
               const numTokens = metadataLessTokens.length;
-              const openseaLimit = 30;
+              const openseaLimit = 20;
               const numIters = Math.ceil(numTokens / openseaLimit);
               for (let i = 0; i < numIters; i++) {
                 const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
@@ -560,7 +560,7 @@ export default class Collection {
                 }
               }
               const numTokens = imageLessTokens.length;
-              const openseaLimit = 30;
+              const openseaLimit = 20;
               const numIters = Math.ceil(numTokens / openseaLimit);
               for (let i = 0; i < numIters; i++) {
                 const tokenSlice = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);

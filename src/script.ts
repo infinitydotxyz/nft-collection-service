@@ -15,10 +15,16 @@ export async function main(): Promise<void> {
     // await addNumOwnersUpdatedAtAndDataExportedFields();
     // await buildCollections();
     // await collectionDao.getCollectionsSummary();
-    const tokenIds =
-      'token_ids=0&token_ids=1&token_ids=10&token_ids=1003';
-    const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds);
+  const tokenIds: string[] = [];
+  const openseaLimit = 30;
+  while(tokenIds.length < openseaLimit) {
+    tokenIds.push(`token_ids=${tokenIds.length + 1}`);
+  }
+
+
+    const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds.join('&'));
     logger.log(resp);
+    logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`)
   } catch (err) {
     logger.error(err);
   }
