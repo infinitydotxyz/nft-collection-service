@@ -1,4 +1,5 @@
-import { BASE_TIME } from 'sales-scraper/types';
+import { BASE_TIME, SalesOrderType } from 'sales-scraper/types';
+import { ethers } from 'ethers';
 import moment from 'moment';
 
 export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => {
@@ -21,4 +22,8 @@ export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => 
     case BASE_TIME.YEARLY:
       return moment(date).format('YYYY');
   }
+};
+
+export const getETHPrice = (order: SalesOrderType): number => {
+  return parseFloat(ethers.utils.formatEther(order.price.toString()));
 };
