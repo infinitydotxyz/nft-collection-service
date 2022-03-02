@@ -240,12 +240,27 @@ interface OpenSeaAssetsResponse {
   next: string;
   previous: string;
   assets: Array<{
+    /**
+     * opensea id
+     */
+    id: number,
+    num_sales: number,
     name: string;
     token_id: string;
-    external_link: string;
+    external_link?: string;
     image_url: string;
     image_original_url: string;
     traits: Array<{ trait_type: string; value: string | number }>;
+    background_color?: string,
+    animation_url?: string,
+    animation_original_url?: string,
+    description?: string,
+    permalink: string,
+    decimals?: number,
+    /**
+     * link to the token metadata
+     */
+    token_metadata?: string,
   }>;
 }
 

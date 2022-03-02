@@ -20,8 +20,6 @@ export async function main(): Promise<void> {
   while(tokenIds.length < openseaLimit) {
     tokenIds.push(`token_ids=${tokenIds.length + 1}`);
   }
-
-
     const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds.join('&'));
     logger.log(resp);
     logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`)

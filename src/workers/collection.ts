@@ -5,7 +5,7 @@ import Collection, { CreationFlow } from '../models/Collection';
 import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { ImageToken, MetadataToken, MintToken, Token } from '../types/Token.interface';
+import { ImageData, ImageToken, MetadataData, MetadataToken, MintToken, Token, UriToken } from '../types/Token.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import ContractFactory from '../models/contracts/ContractFactory';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -59,8 +59,8 @@ async function createCollection(): Promise<void> {
 
     const emitter = new Emittery<{
       token: Token;
-      metadata: MetadataToken;
-      image: ImageToken;
+      metadata: MetadataData & Partial<Token>;
+      image: ImageData & Partial<Token>;
       mint: MintToken;
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
       progress: { step: string; progress: number };
@@ -106,6 +106,7 @@ async function createCollection(): Promise<void> {
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     let iterator = collection.createCollection(currentCollection, emitter, hasBlueCheck);
 
     let next: IteratorResult<
@@ -140,6 +141,7 @@ async function createCollection(): Promise<void> {
             }
 
             log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             iterator = collection.createCollection(collectionData, emitter, hasBlueCheck);
             done = false;
           }

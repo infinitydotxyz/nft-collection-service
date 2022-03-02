@@ -4,12 +4,15 @@ import MetadataClient from '../services/Metadata';
 import { ethers } from 'ethers';
 import {
   Erc721Token,
+  ImageData,
   ImageToken,
+  MetadataData,
   MetadataToken,
   MintToken,
   RefreshTokenFlow,
   Token,
-  TokenMetadata
+  TokenMetadata,
+  UriToken
 } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import { Collection as CollectionType } from '../types/Collection.interface';
@@ -108,8 +111,8 @@ export default class Collection {
     initialCollection: Partial<CollectionType>,
     emitter: Emittery<{
       token: Token;
-      metadata: MetadataToken;
-      image: ImageToken;
+      metadata: MetadataData & Partial<Token>;
+      image: ImageData & Partial<Token>;
       mint: MintToken;
       tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
       progress: { step: string; progress: number };
@@ -193,9 +196,7 @@ export default class Collection {
               const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number } }>();
 
               mintEmitter.on('mint', (mintToken) => {
-                const token = mintToken as Token;
-                token.chainId = this.contract.chainId;
-                void emitter.emit('mint', token);
+                void emitter.emit('mint', mintToken);
               });
 
               mintEmitter.on('progress', ({ progress }) => {
@@ -273,7 +274,7 @@ export default class Collection {
                     tokenId = String(parseInt(tokenIdStr, 16));
                   }
                   if (tokenId) {
-                    const tokenWithMetadata = {
+                    const tokenWithMetadata: MetadataData & Partial<Token> = {
                       slug: getSearchFriendlyString(datum.title ?? metadata.name ?? metadata.title),
                       tokenId,
                       tokenUri: datum.tokenUri?.raw,
@@ -281,7 +282,7 @@ export default class Collection {
                       metadata,
                       updatedAt: Date.now()
                     };
-                    void emitter.emit('metadata', tokenWithMetadata as Token);
+                    void emitter.emit('metadata', tokenWithMetadata);
                   }
                 }
                 void emitter.emit('progress', {
@@ -341,15 +342,25 @@ export default class Collection {
                 }
                 const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
-                  const metaToken = {
+                  const metaToken: MetadataData & Partial<Token> = { 
+                    updatedAt: Date.now(),
                     tokenId: datum.token_id,
                     slug: getSearchFriendlyString(datum.name),
                     numTraitTypes: datum.traits?.length,
                     metadata: {
-                      attributes: datum.traits
+                      name: datum.name ?? null,
+                      title: datum.name ?? null,
+                      image: datum.image_url ?? '',
+                      image_data: '',
+                      external_url: datum?.external_link ?? '',
+                      description: datum.description ?? '',
+                      attributes: datum.traits,
+                      background_color: datum.background_color ?? '',
+                      animation_url: datum?.animation_url ?? '',
+                      youtube_url: '',
                     },
                     image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
-                  } as Token;
+                  };
                   void emitter.emit('metadata', metaToken);
                 }
                 void emitter.emit('progress', {
@@ -570,7 +581,7 @@ export default class Collection {
                 }
                 const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
                 for (const datum of data.assets) {
-                  const imageToken = {
+                  const imageToken: ImageData & Partial<Token> = {
                     tokenId: datum.token_id,
                     image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
                   } as ImageToken;
@@ -635,7 +646,7 @@ export default class Collection {
               for (const token of invalidImageTokens) {
                 j++;
                 const metadata = await opensea.getNFTMetadata(this.contract.address, token.tokenId ?? '');
-                const imageToken = {
+                const imageToken: ImageData & Partial<Token> = {
                   tokenId: token.tokenId,
                   image: { url: metadata.image, originalUrl: token.metadata?.image, updatedAt: Date.now() }
                 } as ImageToken;
@@ -913,6 +924,7 @@ export default class Collection {
 
       const tokenId = transfer.tokenId;
       const token: MintToken = {
+        chainId: this.contract.chainId,
         tokenId,
         mintedAt,
         minter: transfer.to.toLowerCase(),
