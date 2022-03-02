@@ -12,7 +12,7 @@ const ethProvider = getProviderByChainId(ETH_CHAIN_ID);
 
 interface TokenInfo {
   collectionAddr: string;
-  tokendIdStr: string;
+  tokenIdStr: string;
   quantity: number;
   tokenType: string;
 }
@@ -71,7 +71,7 @@ function handleBundleSale(inputs: any): TokenInfo[] {
 
   return collectionAddrs.map((val, index) => ({
     collectionAddr: collectionAddrs[index],
-    tokendIdStr: tokenIdsList[index],
+    tokenIdStr: tokenIdsList[index],
     quantity: 1,
     tokenType: 'ERC721'
   }));
@@ -93,7 +93,7 @@ function handleSingleSale(inputs: any): TokenInfo {
   const nftAddrs: string = addrs[4];
 
   let collectionAddr;
-  let tokendIdStr;
+  let tokenIdStr;
   let quantity = 1;
   let tokenType = 'ERC721';
   const calldataBuy: string = inputs.calldataBuy;
@@ -102,7 +102,7 @@ function handleSingleSale(inputs: any): TokenInfo {
   if (nftAddrs.toLowerCase() === MERKLE_VALIDATOR_ADDRESS) {
     collectionAddr = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toHexString();
     offset += UINT_256_LENGTH;
-    tokendIdStr = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toString();
+    tokenIdStr = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toString();
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 458) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
@@ -111,7 +111,7 @@ function handleSingleSale(inputs: any): TokenInfo {
   } else {
     // Token minted on Opensea
     collectionAddr = nftAddrs.toLowerCase();
-    tokendIdStr = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toString();
+    tokenIdStr = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toString();
     offset += UINT_256_LENGTH;
     if (calldataBuy.length > 202) {
       quantity = ethers.BigNumber.from('0x' + calldataBuy.slice(offset, offset + UINT_256_LENGTH)).toNumber();
@@ -121,7 +121,7 @@ function handleSingleSale(inputs: any): TokenInfo {
 
   return {
     collectionAddr,
-    tokendIdStr,
+    tokenIdStr,
     quantity,
     tokenType
   };
@@ -162,7 +162,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
     if (saleAdress.toLowerCase() !== WYVERN_ATOMICIZER_ADDRESS) {
       const token = handleSingleSale(inputs);
       res.collectionAddr = token.collectionAddr;
-      res.tokenIdStr = token.tokendIdStr;
+      res.tokenIdStr = token.tokenIdStr;
       res.tokenType = token.tokenType === 'ERC721' ? TOKEN_TYPE.ERC721 : TOKEN_TYPE.ERC1155;
       res.quantity = token.quantity;
 
@@ -171,7 +171,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
       const tokens = handleBundleSale(inputs);
       const response: SalesOrderType[] = tokens.map((token: TokenInfo) => {
         res.collectionAddr = token.collectionAddr;
-        res.tokenIdStr = token.tokendIdStr;
+        res.tokenIdStr = token.tokenIdStr;
         res.tokenType = TOKEN_TYPE.ERC721;
         res.quantity = token.quantity;
         return res;
