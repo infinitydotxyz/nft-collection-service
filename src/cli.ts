@@ -184,10 +184,10 @@ async function fileMode(): Promise<void> {
   const contents = await readFile(filePath, 'utf-8');
   const data = JSON.parse(contents);
 
-  const hasBlueCheck = args.hasBlueCheck === 'true';
+  const hasBlueCheck = args.hasBlueCheck === 'true' ? true : undefined;
   const reset = args.reset === 'true';
 
-  logger.log(`Creating ${data.length} collections. hasBlueCheck: ${hasBlueCheck}`);
+  logger.log(`Creating ${data.length} collections`);
 
   const promises: Array<Promise<void>> = [];
   for (const item of data) {
