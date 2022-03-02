@@ -1,4 +1,4 @@
-import { BASE_TIME, SalesOrderType } from 'sales-scraper/types';
+import { BASE_TIME, SalesOrderType } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 

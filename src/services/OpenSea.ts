@@ -143,11 +143,11 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
   }
 
   async getCollectionStatsByCollectionAddr(collectionAddr: string, tokenId: string): Promise<CollectionStats> {
-    const res: Response<{ collection: Collection }> = await this.errorHandler(() => {
-      return this.client.get(`assert/${collectionAddr}/${tokenId}`, {
-        responseType: 'json'
-      });
-    });
+    // const res: Response<{ collection: Collection }> = await this.errorHandler(() => {
+    //   return this.client.get(`assert/${collectionAddr}/${tokenId}`, {
+    //     responseType: 'json'
+    //   });
+    // });
 
     const x: CollectionStats = {
       one_day_volume: 3,
@@ -172,7 +172,6 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       market_cap: 3,
       floor_price: 3
     };
-    console.log({ res });
 
     return x;
   }
