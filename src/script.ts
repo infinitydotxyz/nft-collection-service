@@ -3,6 +3,7 @@ import { AssertionError } from 'node:assert';
 import { collectionDao, firebase, logger } from './container';
 
 import { buildCollections } from './scripts/buildCollections';
+import { execute as runScraper } from './sales-scraper/index';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
@@ -14,6 +15,8 @@ export async function main(): Promise<void> {
     // await addNumOwnersUpdatedAtAndDataExportedFields();
     //await buildCollections();
     // await collectionDao.getCollectionsSummary();
+
+    runScraper();
   } catch (err) {
     logger.error(err);
   }

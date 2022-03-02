@@ -15,6 +15,7 @@ interface TokenInfo {
   quantity: number;
   tokenType: string;
 }
+
 /**
  *
  * @param inputs inputs AtomicMatch call that triggered the handleAtomicMatch_ call handler.
@@ -218,6 +219,7 @@ const execute = (): void => {
       const block: Block = await event.getBlock();
       const decodedResponse = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike);
       const orders = handleAtomicMatch_(decodedResponse, txHash, block);
+      logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
       logger.log({ orders });
     } catch (err) {
       logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
