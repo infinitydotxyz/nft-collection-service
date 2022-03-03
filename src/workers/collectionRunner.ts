@@ -11,8 +11,8 @@ import { MintToken, Token } from '../types/Token.interface';
 import { NULL_ADDR } from '../constants';
 
 export async function createCollection(
-  chainId: string,
   address: string,
+  chainId: string,
   hasBlueCheck: boolean,
   reset = false,
   indexInitiator = NULL_ADDR,

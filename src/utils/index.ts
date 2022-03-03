@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
   const hashes = new Set();
   return items.filter((item: T) => {
@@ -61,4 +63,9 @@ export function randomInt(min: number, max: number): number {
 export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
+}
+
+
+export function hash(data: string): string {
+  return createHash('sha256').update(data).digest('hex').trim().toLowerCase()
 }

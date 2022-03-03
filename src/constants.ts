@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import v8 from 'v8';
-import os from 'os';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
@@ -17,9 +16,14 @@ export const COLLECTION_SCHEMA_VERSION = 1;
 export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
-export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
+export const PROJECT = 'nftc-dev';
+export const PROJECT_LOCATION = 'us-east1';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
+export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
 export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json'
+export const COLLECTION_QUEUE = 'collection-scraping-queue';
+export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com'
+
 
 const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
@@ -84,8 +88,7 @@ const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
-// export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
-export const COLLECTION_TASK_CONCURRENCY = 1;
+export const COLLECTION_TASK_CONCURRENCY = 5;
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;

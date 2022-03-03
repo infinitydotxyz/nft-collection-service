@@ -59,14 +59,11 @@ export default class CollectionService extends EventEmitter {
     indexInitiator = validateAddress(normalizeAddress(indexInitiator));
     chainId = validateChainId(chainId);
 
-    const isInAppEngine = process.env.GAE_ENV === 'standard';
-    const shouldUseWorkerThreads = !isInAppEngine;
-
     return await this.taskQueue.add(async () => {
       try {
-        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, shouldUseWorkerThreads);
+        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, false);
       } catch (err) {
-        logger.error('Worker errored...', err);
+        logger.error('Collection errored...', err);
       }
     });
   }

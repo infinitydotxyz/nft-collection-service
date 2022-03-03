@@ -7,10 +7,11 @@ import { buildCollections } from './scripts/buildCollections';
 
 import {CloudTasksClient, protos } from '@google-cloud/tasks';
 import Logger from './utils/Logger';
-import { resolve } from 'path';
+import { join, resolve } from 'path';
 import { FIREBASE_SERVICE_ACCOUNT, TASK_QUEUE_SERVICE_ACCOUNT } from './constants';
 import { readFileSync } from 'fs';
 import { ServiceAccount } from 'firebase-admin';
+import { hash } from 'utils';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
@@ -29,45 +30,19 @@ export async function main(): Promise<void> {
 
 
 // Instantiates a client.
-
+    const address = '0xce25e60a89f200b1fa40f6c313047ffe386992c3';
+    const chainId = '1';
 
   // TODO(developer): Uncomment these lines and replace with your values.
   const project = 'nftc-dev';
   const queue = 'collection-scraping-queue';
   const location = 'us-east1';
-  const url = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection'
+  const url = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/queue/collection';
   // const payload = 'Hello, World!';
   const payload = JSON.stringify({
-    chainId: '1',
-    address: '0xce25e60a89f200b1fa40f6c313047ffe386992c3',
+    chainId,
+    address,
   });
-
-
-  const serviceAccountFile = resolve(`./creds/${TASK_QUEUE_SERVICE_ACCOUNT}`);
-  process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountFile;
-
-  const client = new CloudTasksClient();
-  // Construct the fully qualified queue name.
-  const parent = client.queuePath(project, location, queue);
-
-  const request: protos.google.cloud.tasks.v2.ICreateTaskRequest = {
-    parent,
-    task: {
-      httpRequest: {
-        httpMethod: 'POST',
-        url,
-        body: Buffer.from(payload).toString('base64')
-      },
-    }
-  };
-
-  logger.log('Sending task:');
-  logger.log(request)
-  // Send create task request.
-  const [response] = await client.createTask(request);
-  const name = response.name;
-  logger.log(`Created task ${name}`);
-
 
 
   } catch (err) {
