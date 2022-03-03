@@ -72,6 +72,18 @@ export class CollectionAggregateMetadataError extends CreationFlowError {
   }
 }
 
+export class CollectionCacheImageError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.CacheImage, message);
+  }
+}
+
+export class CollectionTokenValidationError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.CacheImage, message);
+  }
+}
+
 export class UnknownError extends CreationFlowError {
   constructor(message?: string) {
     super('unknown', message);

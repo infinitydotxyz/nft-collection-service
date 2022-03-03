@@ -20,7 +20,9 @@
     "cli:server": "npm run cli-server",
     "queue": "npm run build && cross-env NODE_ENV_SCRIPT=queue node -r dotenv/config ./dist/bootstrap.js",
     "deploy:server:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
-    "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity"
+    "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
+    "fmt:check": "prettier -c ./src",
+    "fmt:write": "prettier -w ./src"
   },
   "repository": {
     "type": "git",
@@ -45,6 +47,8 @@
   },
   "dependencies": {
     "@google-cloud/tasks": "^2.5.0",
+    "@alch/alchemy-web3": "^1.2.4",
+    "axios": "^0.26.0",
     "bl": "^5.0.0",
     "chalk": "^4.1.2",
     "dotenv": "^16.0.0",

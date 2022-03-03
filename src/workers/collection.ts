@@ -8,7 +8,7 @@ import assert from 'assert';
  * createCollection parses the arguments passed to the worker thread and calls 
  * a function to handle creating the collection
  */
-async function createCollection(): Promise<void> {
+export async function createCollection(): Promise<void> {
   assert(!isMainThread, 'Attempted to create collection via a worker thread method in the main thread');
   const [, , address, chainId, hasBlueCheckArg, resetArg, indexInitiator] = process.argv;
   const hasBlueCheck = hasBlueCheckArg === 'true';
@@ -25,5 +25,3 @@ async function createCollection(): Promise<void> {
 
   await create(address, chainId, hasBlueCheck, reset, indexInitiator, log);
 }
-
-void createCollection();

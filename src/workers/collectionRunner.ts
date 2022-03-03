@@ -7,7 +7,7 @@ import Collection, { CreationFlow } from '../models/Collection';
 import { Collection as CollectionType } from '../types/Collection.interface';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { MintToken, Token } from '../types/Token.interface';
+import { ImageData, MetadataData, MintToken, Token } from '../types/Token.interface';
 import { NULL_ADDR } from '../constants';
 
 export async function createCollection(
@@ -101,6 +101,8 @@ export async function create(
 
   const emitter = new Emittery<{
     token: Token;
+    metadata: MetadataData & Partial<Token>;
+    image: ImageData & Partial<Token>;
     mint: MintToken;
     tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
     progress: { step: string; progress: number };

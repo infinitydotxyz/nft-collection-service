@@ -1,7 +1,6 @@
 import { CreationFlow } from '../models/Collection';
 import { TokenStandard } from '../models/contracts/Contract.interface';
 import { DisplayType } from './Metadata.interface';
-import {COLLECTION_SCHEMA_VERSION} from '../constants';
 
 export type Collection = Erc721Collection | Erc1155Collection;
 export interface Erc721Collection extends BaseCollection {
