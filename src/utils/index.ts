@@ -23,7 +23,6 @@ export async function sleep(duration: number): Promise<void> {
 export enum Env {
   Cli = 'cli',
   Script = 'script',
-  Queue = 'queue',
   Serve = 'serve'
 }
 
@@ -33,8 +32,6 @@ export function getEnv(): Env {
       return Env.Cli;
     case Env.Script:
       return Env.Script;
-    case Env.Queue:
-      return Env.Queue;
     case Env.Serve:
       return Env.Serve;
     default:
