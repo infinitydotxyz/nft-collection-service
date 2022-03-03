@@ -61,7 +61,7 @@ export async function main(): Promise<void> {
       }
 
       try {
-        const url = join(COLLECTION_SERVICE_URL, '/queue/collection');
+        const url = new URL(join(COLLECTION_SERVICE_URL, '/queue/collection')).toString();
         const payload = JSON.stringify({
           chainId,
           address,
