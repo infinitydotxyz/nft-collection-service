@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import v8 from 'v8';
-import os from 'os';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
