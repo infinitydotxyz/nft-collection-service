@@ -82,7 +82,7 @@ interface BaseCollection {
    *
    */
   state: {
-    version: number, // provides a way to query and migrate previous version of collections
+    version: number; // provides a way to query and migrate previous version of collections
     create: {
       step: CreationFlow;
       /**

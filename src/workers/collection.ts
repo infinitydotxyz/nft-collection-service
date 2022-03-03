@@ -5,7 +5,7 @@ import { create } from './collectionRunner';
 import assert from 'assert';
 
 /**
- * createCollection parses the arguments passed to the worker thread and calls 
+ * createCollection parses the arguments passed to the worker thread and calls
  * a function to handle creating the collection
  */
 export async function createCollection(): Promise<void> {

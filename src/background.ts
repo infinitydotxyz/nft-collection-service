@@ -4,15 +4,15 @@ import { ONE_HOUR } from './constants';
 import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
-import {migrateToVersion1} from './scripts/migrateToVersion1';
+import { migrateToVersion1 } from './scripts/migrateToVersion1';
 import { Collection } from './types/Collection.interface';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
 
 interface BackgroundTask {
   name: string;
-  interval: number | "ONCE";
-  fn: (emitter: BackgroundTaskEmitter) => (Promise<void> | void);
+  interval: number | 'ONCE';
+  fn: (emitter: BackgroundTaskEmitter) => Promise<void> | void;
 }
 
 const tasks: BackgroundTask[] = [
@@ -22,12 +22,11 @@ const tasks: BackgroundTask[] = [
     fn: updateCollectionNumOwners
   },
   {
-    name: "Migrate collection schema",
+    name: 'Migrate collection schema',
     interval: 'ONCE',
     fn: migrateToVersion1
   }
 ];
-
 
 /**
  * register background tasks
@@ -61,7 +60,7 @@ export function main(): void {
 
     void run();
 
-    if(typeof task.interval === 'number') {
+    if (typeof task.interval === 'number') {
       setInterval(() => {
         void run();
       }, task.interval);

@@ -8,8 +8,8 @@ export interface ModeArgument {
 }
 
 export function setTerminalTitle(title: string): void {
-    process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
-  }
+  process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
+}
 
 export function parseArgs(modeArgs: ModeArgument[]): { [key: string]: string } {
   const parseArg = (arg: string): string => {
@@ -34,7 +34,7 @@ export function parseArgs(modeArgs: ModeArgument[]): { [key: string]: string } {
     if (typeof desc.validate === 'function') {
       const result = desc.validate(arg);
       if (typeof result === 'string' || !result) {
-        throw new Error(result );
+        throw new Error(result);
       }
     }
 

@@ -1,15 +1,12 @@
-import { logger } from "./container";
-import path from "path";
+import { logger } from './container';
+import path from 'path';
 import fs from 'fs';
-
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
     const address = '0xce25e60a89f200b1fa40f6c313047ffe386992c3';
     const chainId = '1';
-
-
   } catch (err) {
     logger.error(err);
   }

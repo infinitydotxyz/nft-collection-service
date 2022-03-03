@@ -9,7 +9,6 @@
 // import { singleton } from 'tsyringe';
 // import { isMainThread } from 'worker_threads';
 
-
 // interface CollectionErrorQuery {name: string, type: "error" | 'process', step: 'any' | 'unknown' | CreationFlow, query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>}
 // @singleton()
 // export class CollectionQueue {
@@ -433,7 +432,6 @@
 //   //       snapshot.docs.forEach((doc) => {
 //   //         logger.log(`Collection Errored: ${errorQuery.name} [${doc.id}]`);
 //   //         const [chainId, address] = doc.id.split(":");
-
 
 //   //         // this.enqueueCollection(address,chainId, Date.now()).catch((err) => {
 //   //         //   logger.error(`Failed to enqueue collection`, err);

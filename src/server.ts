@@ -3,7 +3,14 @@ import { collectionService, logger } from './container';
 import { readFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { validateAddress, validateChainId, normalizeAddress } from './utils/ethers';
-import { COLLECTION_QUEUE, COLLECTION_SERVICE_URL, NULL_ADDR, PROJECT, PROJECT_LOCATION, TASK_QUEUE_SERVICE_ACCOUNT } from './constants';
+import {
+  COLLECTION_QUEUE,
+  COLLECTION_SERVICE_URL,
+  NULL_ADDR,
+  PROJECT,
+  PROJECT_LOCATION,
+  TASK_QUEUE_SERVICE_ACCOUNT
+} from './constants';
 import { CloudTasksClient, protos } from '@google-cloud/tasks';
 import { hash } from './utils';
 
@@ -75,7 +82,7 @@ export async function main(): Promise<void> {
                 'Content-Type': 'application/octet-stream'
               },
               body: Buffer.from(payload).toString('base64')
-            },
+            }
           }
         };
 
@@ -84,8 +91,8 @@ export async function main(): Promise<void> {
 
         res.sendStatus(202); // queued
         return;
-      }catch(err: any) {
-        if(err.code === 6) {
+      } catch (err: any) {
+        if (err.code === 6) {
           res.sendStatus(200); // already queued
           return;
         }
@@ -101,7 +108,7 @@ export async function main(): Promise<void> {
     const str = Buffer.from((req.body as Buffer).toString(), 'base64').toString('ascii');
     logger.log(str);
     res.send(200);
-  })
+  });
 
   /**
    * endpoint used by the task queue to create the collection
@@ -113,7 +120,7 @@ export async function main(): Promise<void> {
       let chainId: string;
       let indexInitiator: string;
       try {
-        const buffer: Buffer = req.body;  
+        const buffer: Buffer = req.body;
         const data = JSON.parse(buffer.toString());
         address = data.address as string;
         chainId = data.chainId as string;

@@ -35,7 +35,7 @@ export function getEnv(): Env {
       return Env.Script;
     case Env.Queue:
       return Env.Queue;
-    case Env.Serve: 
+    case Env.Serve:
       return Env.Serve;
     default:
       throw new Error(`Invalid NODE_ENV_SCRIPT: ${process.env.NODE_ENV_SCRIPT}`);
@@ -65,7 +65,6 @@ export function randomItem<T>(array: T[]): T {
   return array[index];
 }
 
-
 export function hash(data: string): string {
-  return createHash('sha256').update(data).digest('hex').trim().toLowerCase()
+  return createHash('sha256').update(data).digest('hex').trim().toLowerCase();
 }

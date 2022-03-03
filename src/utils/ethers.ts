@@ -8,10 +8,10 @@ export function getProviderByChainId(chainId: string): JsonRpcProvider {
 }
 
 export function validateChainId(chainId: string): string {
-  try{ 
+  try {
     getProviderByChainId(chainId);
     return chainId;
-  }catch(err) {
+  } catch (err) {
     throw new Error(`ChainId ${chainId} is not supported`);
   }
 }
@@ -21,8 +21,8 @@ export function normalizeAddress(address: string): string {
 }
 
 export function validateAddress(address: string): string {
-  if(!ethers.utils.isAddress(address)) {
-    throw new Error(`Invalid address. ${address}`)
+  if (!ethers.utils.isAddress(address)) {
+    throw new Error(`Invalid address. ${address}`);
   }
 
   return address;

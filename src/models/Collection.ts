@@ -100,7 +100,16 @@ export enum CreationFlow {
 
 type CollectionCreatorType = Pick<
   CollectionType,
-  'chainId' | 'address' | 'tokenStandard' | 'hasBlueCheck' | 'deployedAt' | 'deployer' | 'deployedAtBlock' | 'owner' | 'state' | "indexInitiator"
+  | 'chainId'
+  | 'address'
+  | 'tokenStandard'
+  | 'hasBlueCheck'
+  | 'deployedAt'
+  | 'deployer'
+  | 'deployedAtBlock'
+  | 'owner'
+  | 'state'
+  | 'indexInitiator'
 >;
 type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
 type CollectionMintsType = CollectionMetadataType;
@@ -289,7 +298,7 @@ export default class Collection {
                   }
                   if (tokenId) {
                     const tokenWithMetadata: MetadataData & Partial<Token> = {
-                      slug: getSearchFriendlyString((datum.title ?? metadata.name ?? metadata.title ?? '')),
+                      slug: getSearchFriendlyString(datum.title ?? metadata.name ?? metadata.title ?? ''),
                       tokenId,
                       tokenUri: datum.tokenUri?.raw,
                       numTraitTypes: metadata?.attributes?.length,
@@ -328,7 +337,7 @@ export default class Collection {
               throw new CollectionTokenMetadataError(message);
             }
             break;
-          
+
           // leave this code commented; might use in the future
           // case CreationFlow.TokenMetadataOS:
           //   try {

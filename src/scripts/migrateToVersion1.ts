@@ -6,8 +6,8 @@ import { Collection } from '../types/Collection.interface';
 
 /**
  * added queue properties, updateAt and version
- * 
- * requires we get every collection since this is the first 
+ *
+ * requires we get every collection since this is the first
  * collection schema with a version
  */
 export async function migrateToVersion1(): Promise<void> {
@@ -26,8 +26,8 @@ export async function migrateToVersion1(): Promise<void> {
           create: {
             ...(collection?.state?.create ?? {}),
             step: collection?.state?.create?.step ?? CreationFlow.Complete,
-            updatedAt: collection?.state?.create?.updatedAt ?? Date.now(),
-          },
+            updatedAt: collection?.state?.create?.updatedAt ?? Date.now()
+          }
         }
       };
       batchHandler.add(collectionRef, completedCollection, { merge: true });

@@ -26,7 +26,6 @@ export default class CollectionService extends EventEmitter {
       concurrency: this.concurrency // number of collections to run at once
     });
 
-
     this.taskQueue.on('add', () => {
       this.emit('sizeChange', {
         size: this.taskQueue.size,
@@ -42,17 +41,22 @@ export default class CollectionService extends EventEmitter {
 
       this.emit('collectionCompleted', () => {
         this.emit('collectionCompleted');
-      })
+      });
     });
   }
 
-  async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false, indexInitiator = NULL_ADDR): Promise<void> {
-
+  async createCollection(
+    address: string,
+    chainId: string,
+    hasBlueCheck = false,
+    reset = false,
+    indexInitiator = NULL_ADDR
+  ): Promise<void> {
     /**
      * verify that the collection has not been successfully indexed yet
-     * 
+     *
      * don't update indexInitiator
-     * 
+     *
      * validate address and chain id
      */
     address = validateAddress(normalizeAddress(address));

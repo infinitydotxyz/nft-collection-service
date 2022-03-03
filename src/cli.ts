@@ -54,13 +54,11 @@ function getTask(): Task {
   }
 }
 
-
-
 export async function main(): Promise<void> {
   const task = getTask();
-  collectionService.on('sizeChange', (data: { size: number, pending: number}) => {
+  collectionService.on('sizeChange', (data: { size: number; pending: number }) => {
     setTerminalTitle(`Collection Queue Size: ${data.size} Pending: ${data.pending}  Total: ${data.size + data.pending}`);
-  })
+  });
 
   switch (task) {
     case Task.CreateCollection:
@@ -70,8 +68,6 @@ export async function main(): Promise<void> {
   }
 }
 
-
-
 async function create(): Promise<void> {
   const mode = getMode();
 
@@ -79,13 +75,11 @@ async function create(): Promise<void> {
     case Mode.File:
       return await fileMode();
     case Mode.Address:
-      return await addressMode(); 
+      return await addressMode();
     default:
       throw new Error('Mode not yet implemented');
   }
 }
-
-
 
 async function addressMode(): Promise<void> {
   const addressModeArgs: ModeArgument[] = [
@@ -173,5 +167,3 @@ async function fileMode(): Promise<void> {
 
   await Promise.allSettled(promises);
 }
-
-

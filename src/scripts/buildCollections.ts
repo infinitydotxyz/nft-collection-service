@@ -132,8 +132,7 @@ export async function buildCollections(): Promise<void> {
             if (collection.chainId && collection.address) {
               // const doc = firebase.getCollectionDocRef(contract.chainId, contract.address);
               // batch.add(doc, contract, { merge: true });
-              try { 
-
+              try {
                 /**
                  * TODO add to queue
                  */

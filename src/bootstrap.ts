@@ -7,7 +7,6 @@ import { main as background } from './background';
 import { START_UP_MESSAGE } from './constants';
 import { logger } from './container';
 
-
 async function bootstrap(): Promise<void> {
   const env = getEnv();
 
