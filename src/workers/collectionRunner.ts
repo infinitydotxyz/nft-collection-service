@@ -116,10 +116,9 @@ export async function create(
       lastLogAt = now;
       log(formatLog(step, progress));
     }
-
     if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
       lastProgressUpdateAt = now;
-      collectionDoc.update({'state.create.progress': progress}).catch((err) => {
+      collectionDoc.update({'state.create.progress': progress, 'state.create.step': step}).catch((err) => {
         logger.error('Failed to update collection progress');
         logger.error(err);
       })
