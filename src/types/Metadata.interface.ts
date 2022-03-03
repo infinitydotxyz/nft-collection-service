@@ -1,5 +1,15 @@
 export interface Erc721Metadata {
   /**
+   * name of the item
+   */
+  name: string;
+
+  /**
+   * title of the item
+   */
+  title: string;
+
+  /**
    * URL to the image of the item
    */
   image: string;

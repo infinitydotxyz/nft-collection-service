@@ -1,17 +1,22 @@
 import { Erc721Metadata } from './Metadata.interface';
 import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
+import { TokenStandard } from '../models/contracts/Contract.interface';
 
 export type TokenMetadata = Erc721Metadata;
 
-export type MintToken = Pick<Token, 'mintedAt' | 'minter' | 'tokenId' | 'state' | 'mintTxHash' | 'mintPrice'>;
+export type MintToken = Pick<Token, 'chainId' | 'mintedAt' | 'minter' | 'tokenId' | 'state' | 'mintTxHash' | 'mintPrice'>;
 
-export type UriToken = MintToken & Pick<Token, 'tokenUri'>;
+export type UriData = Pick<Token, 'tokenUri'>;
+export type UriToken = MintToken & UriData;
 
-export type MetadataToken = UriToken & Pick<Token, 'metadata' | 'numTraitTypes' | 'updatedAt'>;
+export type MetadataData = Pick<Token, 'slug' | 'metadata' | 'numTraitTypes' | 'updatedAt' | 'tokenId'>;
+export type MetadataToken = UriToken & MetadataData;
 
-export type ImageToken = MetadataToken & Pick<Token, 'image'>;
+export type ImageData = Pick<Token, 'image' | 'tokenId'>;
+export type ImageToken = MetadataToken & ImageData;
 
-export type AggregatedToken = ImageToken & Pick<Token, 'rarityScore' | 'rarityRank'>;
+export type AggregatedData = Pick<Token, 'rarityScore' | 'rarityRank'>;
+export type AggregatedToken = ImageToken & AggregatedData;
 
 export enum RefreshTokenFlow {
   Mint = 'mint',
@@ -34,6 +39,14 @@ export enum RefreshTokenFlow {
 }
 
 interface BaseToken {
+  chainId: string;
+
+  /**
+   * search friendly name for this token
+   * not the same as the collection slug
+   */
+  slug: string;
+
   /**
    * original minter of the token
    */
@@ -79,26 +92,26 @@ interface BaseToken {
    *
    * should not be changed until all tokens are ready to be updated
    */
-  rarityScore?: number;
+  rarityScore: number;
 
   /**
    * rank relative to other items in the collection
    */
-  rarityRank?: number;
+  rarityRank: number;
 
   /**
    * cached token image
    */
   image: {
     /**
-     * url to the image stored in gcs
+     * cached OS url
      */
     url: string;
 
     /**
-     * mime type for the media
+     * original url
      */
-    contentType: string;
+    originalUrl?: string;
 
     /**
      * unix timestamp (in ms) of when the image was updated
@@ -116,6 +129,7 @@ interface BaseToken {
 
 export interface Erc721Token extends BaseToken {
   metadata: Erc721Metadata;
+  tokenStandard: TokenStandard.ERC721;
 }
 
 export type Token = Erc721Token;

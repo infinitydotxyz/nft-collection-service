@@ -6,9 +6,8 @@ import { Collection } from '../types/Collection.interface';
 import BatchHandler from '../models/BatchHandler';
 import { CreationFlow } from '../models/Collection';
 import chalk from 'chalk';
-import assert, { AssertionError } from 'node:assert';
+import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
-import { write } from 'node:fs';
 
 /**
  * buildCollections gets collections from opensea
@@ -70,15 +69,15 @@ export async function buildCollections(): Promise<void> {
     try {
       const collection = await opensea.getCollection(openseaSlug);
       if (collection?.primary_asset_contracts && collection?.primary_asset_contracts.length > 0) {
-        if(collection?.primary_asset_contracts.length > 1) {
+        if (collection?.primary_asset_contracts.length > 1) {
           logger.log(JSON.stringify(collection));
-          await writeFile('./multiplePrimaryAssetContracts',JSON.stringify(collection))
+          await writeFile('./multiplePrimaryAssetContracts', JSON.stringify(collection));
           throw new AssertionError({ message: 'collection has multiple primary asset contracts' });
         }
 
         const contracts: Array<Partial<Collection>> = [];
         for (const contract of collection?.primary_asset_contracts) {
-          const address = (contract.address ?? '').trim().toLowerCase()
+          const address = (contract.address ?? '').trim().toLowerCase();
           const openseaStorefront = '0x495f947276749ce646f68ac8c248420045cb7b5e';
           if (contract.name && contract.schema_name && address && address !== openseaStorefront) {
             try {
@@ -88,7 +87,7 @@ export async function buildCollections(): Promise<void> {
               if (!slug) {
                 throw new Error('Failed to find collection slug');
               }
-              
+
               // ensure we don't yet have this document
               const doc = await firebase.getCollectionDocRef('1', address).get();
               if (!doc.exists) {

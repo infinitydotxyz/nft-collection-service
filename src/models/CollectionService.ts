@@ -3,7 +3,7 @@ import CollectionMetadataProvider from './CollectionMetadataProvider';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import { COLLECTION_TASK_CONCURRENCY } from '../constants';
-import { createCollection } from '../workers/collectionRunner';
+import { createCollection } from '../workers/collection';
 import { logger } from '../container';
 
 @singleton()
