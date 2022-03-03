@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import v8 from 'v8';
-import os from 'os';
 
 function getEnvironmentVariable(name: string, required = true): string {
   const variable = process.env[name] ?? '';
@@ -79,7 +78,8 @@ const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
-export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
+// export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
+export const COLLECTION_TASK_CONCURRENCY = 5; // due to OpenSea
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
