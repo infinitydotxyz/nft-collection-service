@@ -90,6 +90,7 @@ interface BaseCollection {
        */
       updatedAt: number;
       error?: Record<string, any>;
+      progress: number;
     };
     export: {
       done: boolean;

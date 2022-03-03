@@ -39,6 +39,7 @@ export async function migrateToVersion1(): Promise<void> {
           ...collection?.state,
           version: COLLECTION_SCHEMA_VERSION,
           create: {
+            progress: collection?.state?.create?.progress ?? 0,
             step: collection?.state?.create?.step ?? CreationFlow.CollectionCreator,
             updatedAt: collection?.state?.create?.updatedAt ?? Date.now(),
             ...collection?.state?.create

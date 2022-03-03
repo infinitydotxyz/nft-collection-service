@@ -109,11 +109,20 @@ export async function create(
   }>();
 
   let lastLogAt = 0;
+  let lastProgressUpdateAt = 0;
   emitter.on('progress', ({ step, progress }) => {
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
       log(formatLog(step, progress));
+    }
+
+    if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
+      lastProgressUpdateAt = now;
+      collectionDoc.update({'state.create.progress': progress}).catch((err) => {
+        logger.error('Failed to update collection progress');
+        logger.error(err);
+      })
     }
   });
 

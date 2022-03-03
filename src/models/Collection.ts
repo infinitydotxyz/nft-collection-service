@@ -162,6 +162,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.CollectionMetadata, // update step
                     updatedAt: Date.now()
                   }
@@ -192,6 +193,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.CollectionMints, // update step
                     updatedAt: Date.now()
                   },
@@ -242,6 +244,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.TokenMetadata,
                     updatedAt: Date.now()
                   }
@@ -320,6 +323,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.TokenMetadataUri, // update step
                     updatedAt: Date.now()
                   }
@@ -505,6 +509,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.AggregateMetadata, // update step
                     updatedAt: Date.now()
                   }
@@ -562,7 +567,8 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.Complete,
+                    progress: 0,
+                    step: CreationFlow.CacheImage,
                     updatedAt: Date.now()
                   }
                 }
@@ -651,6 +657,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.Validate, // update step
                     updatedAt: Date.now()
                   }
@@ -716,6 +723,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
+                    progress: 0,
                     step: CreationFlow.Complete, // update step
                     updatedAt: Date.now()
                   }
@@ -770,6 +778,7 @@ export default class Collection {
                 throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
               }
             }
+            void emitter.emit('progress', { step, progress: 100 });
             return;
         }
         void emitter.emit('progress', { step, progress: 100 });
@@ -798,6 +807,7 @@ export default class Collection {
         state: {
           ...collection.state,
           create: {
+            ...collection.state?.create,
             step: stepToSave,
             updatedAt: Date.now(),
             error: error.toJSON()

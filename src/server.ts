@@ -56,7 +56,7 @@ export async function main(): Promise<void> {
         address = validateAddress(normalizeAddress(address));
         indexInitiator = validateAddress(normalizeAddress(indexInitiator));
       } catch (err) {
-        res.status(400);
+        res.sendStatus(400);
         return;
       }
 
@@ -135,7 +135,7 @@ export async function main(): Promise<void> {
         indexInitiator = validateAddress(normalizeAddress(indexInitiator));
       } catch (err) {
         logger.error(err);
-        res.send(err).status(400);
+        res.sendStatus(400);
         return;
       }
 
@@ -144,7 +144,7 @@ export async function main(): Promise<void> {
         res.sendStatus(200);
       } catch (err) {
         logger.error(err);
-        res.send(err).status(500);
+        res.sendStatus(500);
       }
     }
   );
