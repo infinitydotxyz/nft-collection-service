@@ -23,10 +23,13 @@ export async function main(): Promise<void> {
     //   tokenIds.push(`token_ids=${tokenIds.length + 1}`);
     // }
     // const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds.join('&'));
-    // // const resp = await opensea.getNFTsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', 50, '');
+    // const resp = await opensea.getNFTsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', 50, '');
     // logger.log(resp);
     // logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`);
     // flattener();
+    // const resp = await opensea.getCollectionMetadata('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d');
+    const resp = await opensea.getCollection('boredapeyachtclub');
+    logger.log(resp);
   } catch (err) {
     logger.error(err);
   }
