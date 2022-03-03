@@ -13,42 +13,47 @@ export async function main(): Promise<void> {
 
   app.enable('trust proxy');
 
-  app.use(express.raw({ type: 'application/octet-stream' }));
   app.use(express.json());
+  app.use(express.raw({ type: 'application/octet-stream' }));
 
   app.get('/', (req, res) => {
     res.send(`NFT Collection Service Version: ${version}`).status(200);
   });
 
 
-  app.post('/collection', (req: Request<any, { chainId: string; address: string, indexInitiator: string }>, res: Response) => {
-    let address = req.body.address as string;
-    let chainId = req.body.chainId as string;
-    let indexInitiator = req.body.indexInitiator as string;
-
-    if(!indexInitiator) {
-      indexInitiator = NULL_ADDR;
-    }
-
-    try{
+  app.post('/collection', async (req: Request<any, { chainId: string; address: string, indexInitiator: string }>, res: Response) => {
+    let address: string;
+    let chainId: string;
+    let indexInitiator: string;
+    console.log("receive request with payload", req.body);
+    try{  
+      const str = Buffer.from((req.body as Buffer).toString(), 'base64').toString('ascii');
+      const data = JSON.parse(str);
+      address = data.address as string;
+      chainId = data.chainId as string;
+      indexInitiator = data.indexInitiator as string;
+  
+      if(!indexInitiator) {
+        indexInitiator = NULL_ADDR;
+      }
       chainId = validateChainId(chainId);
       address = validateAddress(normalizeAddress(address));
       indexInitiator = validateAddress(normalizeAddress(indexInitiator));
     }catch(err) {
-      res.sendStatus(400);
+      res.send(err).status(400);
       return;
     }
 
     try {
-      collectionService.createCollection(address, chainId, false, false, indexInitiator).then(() => {
-        logger.log('completed collection from task queue')
-      }).catch((err) => {
-        logger.error(err);
-      });
-
-      res.sendStatus(202);
+      // collectionService.createCollection(address, chainId, false, false, indexInitiator).then(() => {
+      //   logger.log('completed collection from task queue');
+      // }).catch((err) => {
+      //   logger.error(err);
+      // });
+      await collectionService.createCollection(address, chainId, false, false, indexInitiator);
+      res.sendStatus(200);
     } catch (err) {
-      res.sendStatus(500);
+      res.send(err).status(500);
     }
   });
 
