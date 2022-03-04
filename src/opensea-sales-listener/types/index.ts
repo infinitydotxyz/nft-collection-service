@@ -42,7 +42,6 @@ export interface TransactionRepository {
   blockNumber: number;
   blockTimestamp: Date;
 }
-
 export interface SalesRepository {
   docId: string;
   totalVolume: number;
@@ -51,4 +50,22 @@ export interface SalesRepository {
   ceilPrice: number;
   avgPrice: number;
   timestamp: Date;
+}
+
+export interface CollectionStatsRepository {
+  floorPrice: number;
+  ceilPrice: number;
+  totalVolume: number;
+  totalNumSales: number;
+  avgPrice: number;
+  updateAt: number;
+}
+
+export interface NftStatsRepository {
+  floorPrice: number;
+  ceilPrice: number;
+  totalVolume: number;
+  totalNumSales: number;
+  avgPrice: number;
+  updateAt: number;
 }

@@ -2,7 +2,7 @@ import { firebase, logger } from '../../container';
 import OpenSeaClient, { CollectionStats } from '../../services/OpenSea';
 import { getDocumentIdByTime, getETHPrice } from '../utils';
 import { SalesOrderType, BASE_TIME, TransactionRepository, SalesRepository } from '../types';
-import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY } from '../constants';
+import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY, NULL_ADDRESS } from '../constants';
 import { getHashByNftAddress } from '../../utils';
 
 /**
@@ -57,7 +57,12 @@ const updateSalesDoc = async (
   }
 };
 
-export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainId = '1'): Promise<void> => {
+export const handleNewOrders = async (orders: SalesOrderType[], chainId = '1'): Promise<void> => {
+  /** Skip the orders with custom tokens not ether */
+  if (orders[0].paymentToken !== NULL_ADDRESS) {
+    return;
+  }
+
   logger.log(`Start parsing orders ${orders[0].collectionAddr} [tokenId:] ${orders[0].tokenIdStr} .... `);
   try {
     const firestore = firebase.db;
@@ -112,7 +117,6 @@ export const updateCollectionSalesInfo = async (orders: SalesOrderType[], chainI
        * Grab the sales from opensea
        * Init all the historical info based on opensea stats
        */
-      logger.log('Init sales info from opensea...');
       await initCollectionSalesInfoFromOpensea(chainId, txns, totalPrice);
     }
     logger.log(`... Finished parsing order ${orders[0].collectionAddr} [tokenId:] ${orders[0].tokenIdStr} `);

@@ -9,7 +9,8 @@ import moment from 'moment';
  * @returns Firestore historical document id ( sales info ) based on date and basetime
  *
  */
-export const getDocumentIdByTime = (date: Date, baseTime: BASE_TIME): string => {
+export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): string => {
+  const date = new Date(timestamp);
   const firstDayOfWeek = date.getDate() - date.getDay();
 
   switch (baseTime) {

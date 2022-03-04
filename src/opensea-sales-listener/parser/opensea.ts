@@ -4,7 +4,7 @@ import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_AD
 import WyvernExchangeABI from '.././abi/wyvernExchange.json';
 import { getProviderByChainId } from '../../utils/ethers';
 import { SCRAPER_SOURCE, TOKEN_TYPE, SalesOrderType } from '../types/index';
-import { updateCollectionSalesInfo } from '../models/transaction-history.controller';
+import { handleNewOrders } from '../models/transaction-history.controller';
 import { logger } from '../../container';
 
 const ETH_CHAIN_ID = '1';
@@ -148,7 +148,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
     const res: SalesOrderType = {
       txHash,
       blockNumber: block.number,
-      blockTimestamp: new Date(block.timestamp * 1000),
+      blockTimestamp: block.timestamp * 1000,
       price,
       paymentToken: paymentTokenErc20Address,
       buyerAddress,
@@ -221,7 +221,7 @@ const execute = (): void => {
       const orders = handleAtomicMatch_(decodedResponse, txHash, block);
       if (orders) {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
-        await updateCollectionSalesInfo(orders);
+        await handleNewOrders(orders);
       }
     } catch (err) {
       logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
