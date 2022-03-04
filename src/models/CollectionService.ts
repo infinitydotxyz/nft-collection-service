@@ -52,7 +52,6 @@ export default class CollectionService extends EventEmitter {
     reset = false,
     indexInitiator = NULL_ADDR
   ): Promise<void> {
-    
     address = validateAddress(normalizeAddress(address));
     indexInitiator = validateAddress(normalizeAddress(indexInitiator));
     chainId = validateChainId(chainId);

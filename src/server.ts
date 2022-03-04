@@ -99,7 +99,7 @@ export async function main(): Promise<void> {
                 'Content-Type': 'application/octet-stream'
               },
               body: Buffer.from(payload).toString('base64')
-            },
+            }
           }
         };
 
@@ -130,10 +130,10 @@ export async function main(): Promise<void> {
       let indexInitiator: string;
       try {
         const authHeader = req.headers['x-api-key'];
-        if(authHeader !== COLLECTION_QUEUE_API_KEY) {
+        if (authHeader !== COLLECTION_QUEUE_API_KEY) {
           res.sendStatus(403);
           return;
-        } 
+        }
 
         logger.log(req.headers);
         logger.log(req.body);
@@ -161,7 +161,7 @@ export async function main(): Promise<void> {
         const collection = await collectionDao.get(chainId, address);
         const recentlyUpdated = collection?.state?.create?.updatedAt > Date.now() - 10 * ONE_MIN;
         if (recentlyUpdated) {
-          res.sendStatus(200); 
+          res.sendStatus(200);
           return;
         }
 

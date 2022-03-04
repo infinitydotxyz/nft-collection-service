@@ -60,7 +60,10 @@ export default class Nft {
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Mint): ReturnType<RefreshTokenFlow.Mint>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Uri): ReturnType<RefreshTokenFlow.Uri>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Metadata): ReturnType<RefreshTokenFlow.Metadata>;
-  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.CacheImage): ReturnType<RefreshTokenFlow.CacheImage>;
+  public static validateToken(
+    token: Partial<TokenType>,
+    step: RefreshTokenFlow.CacheImage
+  ): ReturnType<RefreshTokenFlow.CacheImage>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Image): ReturnType<RefreshTokenFlow.Image>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Complete): ReturnType<RefreshTokenFlow.Complete>;
   public static validateToken<T extends RefreshTokenFlow>(token: Partial<TokenType>, step: T): ReturnType<T> {

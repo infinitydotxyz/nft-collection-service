@@ -9,15 +9,14 @@ import Nft from './Nft';
 import { logger } from '../container';
 import { Collection as CollectionType } from '../types/Collection.interface';
 
-
 export type CollectionEmitter = Emittery<{
-    token: Token;
-    metadata: MetadataData & Partial<Token>;
-    image: ImageData & Partial<Token>;
-    mint: MintToken;
-    tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-    progress: { step: string; progress: number };
-  }>
+  token: Token;
+  metadata: MetadataData & Partial<Token>;
+  image: ImageData & Partial<Token>;
+  mint: MintToken;
+  tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
+  progress: { step: string; progress: number };
+}>;
 
 export default abstract class Collection {
   protected readonly contract: Contract;
@@ -64,7 +63,6 @@ export default abstract class Collection {
     };
   }
 
-
   protected async getDeployer(attempts = 0): Promise<{ createdAt: number; address: string; block: number }> {
     attempts += 1;
     const maxAttempts = 3;
@@ -85,8 +83,6 @@ export default abstract class Collection {
       return await this.getDeployer(attempts);
     }
   }
-
-
 
   protected async getMints<T extends { mint: MintToken; progress: { progress: number } }>(
     emitter: Emittery<T>,
@@ -260,6 +256,4 @@ export default abstract class Collection {
       lastSuccessfulBlock
     };
   }
-
-
 }
