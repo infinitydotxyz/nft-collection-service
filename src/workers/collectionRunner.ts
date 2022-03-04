@@ -1,6 +1,6 @@
 import { Worker } from 'worker_threads';
 import path from 'path';
-import { firebase, logger, metadataClient, tokenDao } from '../container';
+import { firebase, logger, tokenDao } from '../container';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 import ContractFactory from '../models/contracts/ContractFactory';
 import Collection, { CreationFlow } from '../models/Collection';
@@ -57,7 +57,7 @@ export async function create(
   const provider = new CollectionMetadataProvider();
   const contractFactory = new ContractFactory();
   const contract = await contractFactory.create(address, chainId);
-  const collection = new Collection(contract, metadataClient, provider);
+  const collection = new Collection(contract, provider);
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
 
   const batch = new BatchHandler();
