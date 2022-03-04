@@ -22,6 +22,7 @@ import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
   CollectionCreatorError,
+  CollectionIndexingError,
   CollectionMetadataError,
   CollectionMintsError,
   CollectionTokenMetadataError,
@@ -91,6 +92,11 @@ export enum CreationFlow {
    * at this point we have successfully completed all steps above
    */
   Complete = 'complete',
+
+  /**
+   * at this point we have successfully completed all steps but some data is missing
+   */
+  Incomplete = 'incomplete',
 
   /**
    * at this point you give up
@@ -322,7 +328,7 @@ export default class Collection {
               throw new CollectionTokenMetadataError(message);
             }
             break;
-          
+
           // leave this code commented; might use in the future
           // case CreationFlow.TokenMetadataOS:
           //   try {
@@ -739,7 +745,7 @@ export default class Collection {
             }
 
             if (invalidTokens.length > 0) {
-              logger.error('Final invalid tokens', JSON.stringify(invalidTokens));
+              logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
               if (invalidTokens[0].err instanceof RefreshTokenMintError) {
                 throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenUriError) {
@@ -749,10 +755,15 @@ export default class Collection {
               } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
                 throw new CollectionCacheImageError(`Received ${invalidTokens.length} invalid tokens`);
               } else {
-                throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
+                throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
               }
             }
             return;
+
+            case CreationFlow.Incomplete:
+            case CreationFlow.Unknown:
+            default:
+              return;
         }
         void emitter.emit('progress', { step, progress: 100 });
       }
@@ -760,7 +771,10 @@ export default class Collection {
       logger.error(err);
       let error;
       let stepToSave: CreationFlow = step;
-      if (err instanceof CreationFlowError) {
+      if (err instanceof CreationFlowError && stepToSave === CreationFlow.Complete) {
+        error = err;
+        stepToSave = CreationFlow.Incomplete;
+      } else if (err instanceof CreationFlowError) {
         error = err;
         if (err.discriminator === 'unknown') {
           stepToSave = CreationFlow.CollectionCreator;
@@ -775,6 +789,7 @@ export default class Collection {
         error = new UnknownError(message);
         stepToSave = CreationFlow.Unknown;
       }
+
       collection = {
         ...collection,
         state: {

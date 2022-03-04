@@ -133,8 +133,16 @@ export async function createCollection(address: string, chainId: string, hasBlue
 
       if (done) {
         const successful = collectionData?.state?.create?.step === CreationFlow.Complete;
+        const indexerRan = collectionData?.state?.create?.step === CreationFlow.Incomplete;
+        const unknownError = collectionData?.state?.create?.step === CreationFlow.Unknown;
         if (successful) {
           log(`Collection Completed: ${chainId}:${address}`);
+          return;
+        } else if (indexerRan) {
+          log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+          return;
+        } else if (unknownError) {
+          log(`Unknown error occured for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else {
           attempt += 1;
