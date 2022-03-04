@@ -27,6 +27,6 @@ export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): str
   }
 };
 
-export const getETHPrice = (transaction: NftTransaction): number => {
-  return parseFloat(ethers.utils.formatEther(transaction.price.toString()));
+export const convertWeiToEther = (price: BigInt): number => {
+  return parseFloat(ethers.utils.formatEther(price.toString()));
 };

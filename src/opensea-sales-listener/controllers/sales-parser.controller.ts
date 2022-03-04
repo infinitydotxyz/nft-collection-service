@@ -1,85 +1,83 @@
 import { firebase, logger } from '../../container';
 import OpenSeaClient, { CollectionStats } from '../../services/OpenSea';
-import { getDocumentIdByTime, getETHPrice } from '../utils';
+import { getDocumentIdByTime, convertWeiToEther } from '../utils';
 import { NftTransaction, BASE_TIME, NftSalesRepository, CollectionStatsRepository, NftStatsRepository } from '../types';
 import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY, NULL_ADDRESS, DBN_SALES } from '../constants';
 import { getHashByNftAddress } from '../../utils';
 
-/**
- *
- * @description extract order info from transactions
- * @returns
- */
-const extractOrders = (transactions: NftTransaction[]): NftSalesRepository[] =>
-  transactions.map((tx: NftTransaction) => {
-    const order: NftSalesRepository = {
-      txHash: tx.txHash.trim().toLowerCase(),
-      tokenId: tx.tokenIdStr,
-      collectionAddress: tx.collectionAddr.trim().toLowerCase(),
-      price: getETHPrice(tx) / transactions.length,
-      paymentTokenType: tx.paymentToken,
-      quantity: tx.quantity,
-      buyer: tx.buyerAddress.trim().toLowerCase(),
-      seller: tx.sellerAddress.trim().toLowerCase(),
-      source: tx.source,
-      blockNumber: tx.blockNumber,
-      blockTimestamp: tx.blockTimestamp
-    };
-    return order;
-  });
+// /**
+//  *
+//  * @description extract order info from transactions
+//  * @returns
+//  */
+// const extractOrders = (transactions: NftTransaction[]): NftSalesRepository[] =>
+//
 
-/**
- * @description create new records on <sales> collection
- */
-const createNftSales = async (orders: NftSalesRepository[], chainId = '1'): Promise<void> => {
-  try {
-    const firestore = firebase.db;
-    const batch = firestore.batch();
-    const SalesCollectionRef = firestore.collection(DBN_SALES);
-    orders.forEach((order) => {
-      const docRef = SalesCollectionRef.doc();
-      batch.create(docRef, order);
-    });
-    await batch.commit();
-  } catch (err) {
-    logger.error('SALES-LISTENER:[createNftSales]', err);
-    throw err;
-  }
-};
+// /**
+//  * @description create new records on <sales> collection
+//  */
+// const createNftSales = async (orders: NftSalesRepository[], chainId = '1'): Promise<void> => {
+//   try {
+//     const firestore = firebase.db;
+//     const batch = firestore.batch();
+//     const SalesCollectionRef = firestore.collection(DBN_SALES);
+//     orders.forEach((order) => {
+//       const docRef = SalesCollectionRef.doc();
+//       batch.create(docRef, order);
+//     });
+//     await batch.commit();
+//   } catch (err) {
+//     logger.error('SALES-LISTENER:[createNftSales]', err);
+//     throw err;
+//   }
+// };
 
-/**
- * @description update nft-stats collection with new orders
- */
-const updateNftStats = async (orders: NftSalesRepository[], totalPrice: number, chainId = '1'): Promise<void> => {
-  try {
-    const firestore = firebase.db;
-    const batch = firestore.batch();
+// /**
+//  * @description update nft-stats collection with new orders
+//  */
+// const updateNftStats = async (orders: NftSalesRepository[], totalPrice: number, chainId = '1'): Promise<void> => {
+//   try {
+//     const firestore = firebase.db;
+//     const batch = firestore.batch();
 
-    const NftStatsCollectionRef = firestore.collection(DBN_NFT_STATS);
-    orders.forEach((order) => {
-      const docRef = SalesCollectionRef.doc();
-      batch.create(docRef, order);
-    });
-    await batch.commit();
-  } catch (err) {
-    logger.error('SALES-LISTENER:[updateNftStats]', err);
-    throw err;
-  }
-};
+//     const NftStatsCollectionRef = firestore.collection(DBN_NFT_STATS);
+//     orders.forEach((order) => {
+//       const docRef = SalesCollectionRef.doc();
+//       batch.create(docRef, order);
+//     });
+//     await batch.commit();
+//   } catch (err) {
+//     logger.error('SALES-LISTENER:[updateNftStats]', err);
+//     throw err;
+//   }
+// };
 
 export const handleNftTransactions = async (transactions: NftTransaction[], chainId = '1'): Promise<void> => {
   /** Skip the transactions without ether as the payment. ex: usd, matic ... */
   if (transactions[0].paymentToken !== NULL_ADDRESS) {
     return;
   }
-
-  logger.log(`Process new transactions for [collection:] ${orders[0].collectionAddress}`);
   try {
-    const orders: NftSalesRepository[] = extractOrders(transactions);
-    const totalPrice = getETHPrice(transactions[0]);
+    const totalPrice = convertWeiToEther(transactions[0].price);
+    const orders: NftSalesRepository[] = transactions.map((tx: NftTransaction) => {
+      const order: NftSalesRepository = {
+        txHash: tx.txHash.trim().toLowerCase(),
+        tokenId: tx.tokenIdStr,
+        collectionAddress: tx.collectionAddr.trim().toLowerCase(),
+        price: totalPrice / transactions.length,
+        paymentTokenType: tx.paymentToken,
+        quantity: tx.quantity,
+        buyer: tx.buyerAddress.trim().toLowerCase(),
+        seller: tx.sellerAddress.trim().toLowerCase(),
+        source: tx.source,
+        blockNumber: tx.blockNumber,
+        blockTimestamp: tx.blockTimestamp
+      };
+      return order;
+    });
 
-    await createNftSales(orders);
-    await updateNftStats(orders, totalPrice);
+    // await createNftSales(orders);
+    // await updateNftStats(orders, totalPrice);
 
     // const firestore = firebase.db;
 

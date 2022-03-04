@@ -1,10 +1,10 @@
 import { ethers } from 'ethers';
 import { Block } from '@ethersproject/abstract-provider';
 import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
-import WyvernExchangeABI from '.././abi/wyvernExchange.json';
+import WyvernExchangeABI from '../abi/wyvernExchange.json';
 import { getProviderByChainId } from '../../utils/ethers';
 import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
-import { handleNftTransactions } from '../models/transaction-history.controller';
+import { handleNftTransactions } from './sales-parser.controller';
 import { logger } from '../../container';
 
 const ETH_CHAIN_ID = '1';
