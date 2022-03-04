@@ -84,6 +84,12 @@ export class CollectionTokenValidationError extends CreationFlowError {
   }
 }
 
+export class CollectionIndexingError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.Incomplete, message);
+  }
+}
+
 export class UnknownError extends CreationFlowError {
   constructor(message?: string) {
     super('unknown', message);
