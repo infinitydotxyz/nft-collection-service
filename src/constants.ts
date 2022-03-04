@@ -79,7 +79,7 @@ const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
 // export const COLLECTION_TASK_CONCURRENCY = os.cpus().length - 1;
-export const COLLECTION_TASK_CONCURRENCY = 5; // due to OpenSea
+export const COLLECTION_TASK_CONCURRENCY = 1; // due to OpenSea
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
