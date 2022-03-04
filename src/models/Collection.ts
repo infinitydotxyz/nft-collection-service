@@ -21,19 +21,22 @@ import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
   CollectionCreatorError,
+  CollectionIndexingError,
   CollectionMetadataError,
   CollectionMintsError,
+  CollectionOriginalImageError,
   CollectionTokenMetadataError,
-  CollectionTokenValidationError,
+  CollectionImageValidationError,
   CreationFlowError,
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
 import { alchemy, logger, opensea } from '../container';
 import {
-  RefreshTokenImageError,
+  RefreshTokenCacheImageError,
   RefreshTokenMetadataError,
   RefreshTokenMintError,
+  RefreshTokenOriginalImageError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
@@ -101,14 +104,19 @@ export enum CreationFlow {
   CacheImage = 'cache-image',
 
   /**
-   * validate data
+   * validate images
    */
-  Validate = 'validate',
+  ValidateImage = 'validate-image',
 
   /**
    * at this point we have successfully completed all steps above
    */
   Complete = 'complete',
+
+  /**
+   * at this point we have successfully completed all steps but some data is missing
+   */
+  Incomplete = 'incomplete',
 
   /**
    * at this point you give up
@@ -184,13 +192,13 @@ export default class Collection extends AbstractCollection {
                 action: 'tokenRequest'
               };
               if (!mintTokens) {
-                throw new CollectionMintsError('Token metadata received undefined tokens');
+                throw new CollectionMintsError('Token metadata received undefined mint tokens');
               }
 
               collection = await this.getCollectionTokenMetadata(mintTokens, collection as CollectionMetadataType, emitter, CreationFlow.TokenMetadataUri);
               yield { collection };
             } catch (err: any) {
-              logger.error('Failed to get collection tokens', err);
+              logger.error('Failed to get collection mint tokens', err);
               if (err instanceof CollectionMintsError) {
                 throw err;
               }
@@ -292,16 +300,13 @@ export default class Collection extends AbstractCollection {
               yield { collection };
             } catch (err: any) {
               logger.error('Failed to cache images', err);
-              if (err instanceof CollectionMintsError) {
-                throw err;
-              }
               // if any token fails we should throw an error
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
               throw new CollectionCacheImageError(message);
             }
             break;
 
-          case CreationFlow.Validate:
+          case CreationFlow.ValidateImage:
             try {
               /**
                * validate tokens
@@ -312,7 +317,7 @@ export default class Collection extends AbstractCollection {
               };
 
               if (!tokens) {
-                throw new CollectionMintsError('Token metadata received undefined tokens');
+                throw new CollectionTokenMetadataError('Client failed to inject tokens');
               }
 
               collection = await this.validateCollection(tokens, collection as CollectionTokenMetadataType, emitter, CreationFlow.Complete);
@@ -322,8 +327,8 @@ export default class Collection extends AbstractCollection {
               if (err instanceof CollectionTokenMetadataError || err instanceof CollectionCacheImageError) {
                 throw err;
               }
-              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
-              throw new CollectionTokenValidationError(message);
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to validate tokens';
+              throw new CollectionImageValidationError(message);
             }
             break;
 
@@ -350,20 +355,28 @@ export default class Collection extends AbstractCollection {
             }
 
             if (invalidTokens.length > 0) {
-              logger.error('Final invalid tokens', JSON.stringify(invalidTokens));
+              logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
               if (invalidTokens[0].err instanceof RefreshTokenMintError) {
                 throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenUriError) {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenMetadataError) {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
+              } else if (invalidTokens[0].err instanceof RefreshTokenCacheImageError) {
                 throw new CollectionCacheImageError(`Received ${invalidTokens.length} invalid tokens`);
+              } else if (invalidTokens[0].err instanceof RefreshTokenOriginalImageError) {
+                throw new CollectionOriginalImageError(`Received ${invalidTokens.length} invalid tokens`);
               } else {
-                throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
+                throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
               }
             }
             void emitter.emit('progress', { step, progress: 100 });
+            return;
+          
+          // todo: needs impl
+          case CreationFlow.Incomplete:
+          case CreationFlow.Unknown:
+          default:
             return;
         }
         void emitter.emit('progress', { step, progress: 100 });
@@ -372,7 +385,10 @@ export default class Collection extends AbstractCollection {
       logger.error(err);
       let error;
       let stepToSave: CreationFlow = step;
-      if (err instanceof CreationFlowError) {
+      if (err instanceof CreationFlowError && stepToSave === CreationFlow.Complete) {
+        error = err;
+        stepToSave = CreationFlow.Incomplete;
+      } else if (err instanceof CreationFlowError) {
         error = err;
         if (err.discriminator === 'unknown') {
           stepToSave = CreationFlow.CollectionCreator;
@@ -387,6 +403,7 @@ export default class Collection extends AbstractCollection {
         error = new UnknownError(message);
         stepToSave = CreationFlow.Unknown;
       }
+
       collection = {
         ...collection,
         state: {

@@ -30,6 +30,8 @@ export enum RefreshTokenFlow {
    */
   Metadata = 'token-metadata',
 
+  CacheImage = 'token-cache-image',
+
   /**
    * upload the image to gcs
    */
