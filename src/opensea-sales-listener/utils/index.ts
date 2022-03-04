@@ -1,4 +1,4 @@
-import { BASE_TIME, SalesOrderType } from '../types';
+import { BASE_TIME, NftTransaction } from '../types';
 import { ethers } from 'ethers';
 import moment from 'moment';
 
@@ -27,6 +27,6 @@ export const getDocumentIdByTime = (timestamp: number, baseTime: BASE_TIME): str
   }
 };
 
-export const getETHPrice = (order: SalesOrderType): number => {
-  return parseFloat(ethers.utils.formatEther(order.price.toString()));
+export const getETHPrice = (transaction: NftTransaction): number => {
+  return parseFloat(ethers.utils.formatEther(transaction.price.toString()));
 };

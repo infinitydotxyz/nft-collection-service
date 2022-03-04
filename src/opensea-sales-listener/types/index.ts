@@ -14,10 +14,10 @@ export enum BASE_TIME {
   MONTHLY = 'monthly',
   YEARLY = 'yearly'
 }
-export interface SalesOrderType {
+export interface NftTransaction {
   txHash: string;
   blockNumber: number;
-  blockTimestamp: Date;
+  blockTimestamp: number;
   price: BigInt;
   paymentToken: string;
   buyerAddress: string;
@@ -29,27 +29,18 @@ export interface SalesOrderType {
   tokenType: TOKEN_TYPE;
 }
 
-export interface TransactionRepository {
+export interface NftSalesRepository {
   txHash: string;
   tokenId: string;
-  collectionAddr: string;
+  collectionAddress: string;
   price: number;
-  paymentToken: string;
+  paymentTokenType: string;
   quantity: number;
   buyer: string;
   seller: string;
   source: string;
   blockNumber: number;
-  blockTimestamp: Date;
-}
-export interface SalesRepository {
-  docId: string;
-  totalVolume: number;
-  totalSales: number;
-  floorPrice: number;
-  ceilPrice: number;
-  avgPrice: number;
-  timestamp: Date;
+  blockTimestamp: number;
 }
 
 export interface CollectionStatsRepository {

@@ -3,8 +3,8 @@ import { Block } from '@ethersproject/abstract-provider';
 import { WYVERN_EXCHANGE_ADDRESS, MERKLE_VALIDATOR_ADDRESS, WYVERN_ATOMICIZER_ADDRESS } from '../constants';
 import WyvernExchangeABI from '.././abi/wyvernExchange.json';
 import { getProviderByChainId } from '../../utils/ethers';
-import { SCRAPER_SOURCE, TOKEN_TYPE, SalesOrderType } from '../types/index';
-import { handleNewOrders } from '../models/transaction-history.controller';
+import { SCRAPER_SOURCE, TOKEN_TYPE, NftTransaction } from '../types/index';
+import { handleNftTransactions } from '../models/transaction-history.controller';
 import { logger } from '../../container';
 
 const ETH_CHAIN_ID = '1';
@@ -133,7 +133,7 @@ function handleSingleSale(inputs: any): TokenInfo {
  * @description When a sale is made on OpenSea an AtomicMatch_ call is invoked.
  *              This handler will create the associated OpenSeaSale entity
  */
-function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrderType[] | undefined {
+function handleAtomicMatch_(inputs: any, txHash: string, block: Block): NftTransaction[] | undefined {
   try {
     const addrs = inputs.addrs;
     const saleAddress: string = addrs[11];
@@ -145,7 +145,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
     const sellerAddress = addrs[8]; // Seller.maker
     const paymentTokenErc20Address = addrs[6];
 
-    const res: SalesOrderType = {
+    const res: NftTransaction = {
       txHash,
       blockNumber: block.number,
       blockTimestamp: block.timestamp * 1000,
@@ -169,7 +169,7 @@ function handleAtomicMatch_(inputs: any, txHash: string, block: Block): SalesOrd
       return [res];
     } else {
       const tokens = handleBundleSale(inputs);
-      const response: SalesOrderType[] = tokens.map((token: TokenInfo) => {
+      const response: NftTransaction[] = tokens.map((token: TokenInfo) => {
         res.collectionAddr = token.collectionAddr;
         res.tokenIdStr = token.tokenIdStr;
         res.tokenType = TOKEN_TYPE.ERC721;
@@ -218,10 +218,10 @@ const execute = (): void => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const block: Block = await event.getBlock();
       const decodedResponse = openseaIface.decodeFunctionData('atomicMatch_', response as ethers.utils.BytesLike);
-      const orders = handleAtomicMatch_(decodedResponse, txHash, block);
-      if (orders) {
+      const transactions = handleAtomicMatch_(decodedResponse, txHash, block);
+      if (transactions) {
         logger.log(`Scraper:[Opensea] fetched new order successfully: ${txHash}`);
-        await handleNewOrders(orders);
+        await handleNftTransactions(transactions);
       }
     } catch (err) {
       logger.error(`Failed to decode handleAtomicMatch function from tx: ${txHash}`);
