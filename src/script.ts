@@ -1,12 +1,28 @@
 import { logger } from './container';
 import path from 'path';
-import fs from 'fs';
+import fs, { read } from 'fs';
+import  {readFile} from 'fs/promises';
+import got from 'got/dist/source';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
     const address = '0xce25e60a89f200b1fa40f6c313047ffe386992c3';
     const chainId = '1';
+
+    const file = path.resolve('./results.json');
+    const data = await readFile(file, 'utf8');
+    const collections= JSON.parse(data);
+    for(const collection of collections) {
+      logger.log(collection);
+      await got.post({
+        url: 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection',
+        json: collection
+      });
+    }
+
+
+
   } catch (err) {
     logger.error(err);
   }

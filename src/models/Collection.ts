@@ -783,7 +783,7 @@ export default class Collection extends AbstractCollection {
       } as ImageToken;
       void emitter.emit('image', imageToken);
       void emitter.emit('progress', {
-        step: CreationFlow.CacheImage,
+        step: CreationFlow.Validate,
         progress: Math.floor((j / invalidImageTokens.length) * 100 * 100) / 100
       });
     }

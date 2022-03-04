@@ -9,6 +9,7 @@ function getEnvironmentVariable(name: string, required = true): string {
   return variable;
 }
 
+
 export const COLLECTION_SCHEMA_VERSION = 1;
 
 export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
@@ -21,6 +22,12 @@ export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
 export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
 export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+
+/**
+ * can be any randomly generated key as long as it's consistent across 
+ * all version of the server
+ */
+export const COLLECTION_QUEUE_API_KEY = getEnvironmentVariable('COLLECTION_QUEUE_API_KEY');
 
 const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];

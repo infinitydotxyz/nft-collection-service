@@ -130,6 +130,11 @@ export async function create(
     batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
   });
 
+  emitter.on('image', (token) => {
+    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+  });
+
   emitter.on('mint', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
     batch.add(tokenDoc, { ...token, error: {} }, { merge: !reset });

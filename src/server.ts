@@ -5,6 +5,7 @@ import { join, resolve } from 'path';
 import { validateAddress, validateChainId, normalizeAddress } from './utils/ethers';
 import {
   COLLECTION_QUEUE,
+  COLLECTION_QUEUE_API_KEY,
   COLLECTION_SERVICE_URL,
   NULL_ADDR,
   ONE_HOUR,
@@ -94,10 +95,11 @@ export async function main(): Promise<void> {
               httpMethod: 'POST',
               url,
               headers: {
+                'x-api-key': COLLECTION_QUEUE_API_KEY,
                 'Content-Type': 'application/octet-stream'
               },
               body: Buffer.from(payload).toString('base64')
-            }
+            },
           }
         };
 
@@ -119,7 +121,6 @@ export async function main(): Promise<void> {
 
   /**
    * endpoint used by the task queue to create the collection
-   * TODO add auth
    */
   app.post(
     '/queue/collection',
@@ -128,7 +129,16 @@ export async function main(): Promise<void> {
       let chainId: string;
       let indexInitiator: string;
       try {
-        const buffer: Buffer = req.body;
+        const authHeader = req.headers['x-api-key'];
+        if(authHeader !== COLLECTION_QUEUE_API_KEY) {
+          res.sendStatus(403);
+          return;
+        } 
+
+        logger.log(req.headers);
+        logger.log(req.body);
+
+        const buffer = req.body as Buffer;
         const data = JSON.parse(buffer.toString());
         address = data.address as string;
         chainId = data.chainId as string;
