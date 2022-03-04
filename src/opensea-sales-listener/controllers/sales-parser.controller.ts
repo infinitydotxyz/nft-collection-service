@@ -5,6 +5,8 @@ import { NftTransaction, BASE_TIME, NftSalesRepository, CollectionStatsRepositor
 import { DBN_COLLECTION_STATS, DBN_ALL_TIME, DBN_NFT_STATS, DBN_HISTORY, NULL_ADDRESS, DBN_SALES } from '../constants';
 import { getHashByNftAddress } from '../../utils';
 
+import SalesModel from 'opensea-sales-listener/models/sales.model';
+
 // /**
 //  *
 //  * @description extract order info from transactions
@@ -75,6 +77,8 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
       };
       return order;
     });
+
+    await SalesModel.handleOrders(orders);
 
     // await createNftSales(orders);
     // await updateNftStats(orders, totalPrice);
