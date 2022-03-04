@@ -40,7 +40,13 @@ export class RefreshTokenMetadataError extends RefreshTokenError {
   }
 }
 
-export class RefreshTokenImageError extends RefreshTokenError {
+export class RefreshTokenCacheImageError extends RefreshTokenError {
+  constructor(message?: string) {
+    super(RefreshTokenFlow.CacheImage, message);
+  }
+}
+
+export class RefreshTokenOriginalImageError extends RefreshTokenError {
   constructor(message?: string) {
     super(RefreshTokenFlow.Image, message);
   }
