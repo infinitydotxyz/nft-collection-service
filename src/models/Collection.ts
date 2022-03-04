@@ -25,8 +25,9 @@ import {
   CollectionIndexingError,
   CollectionMetadataError,
   CollectionMintsError,
+  CollectionOriginalImageError,
   CollectionTokenMetadataError,
-  CollectionTokenValidationError,
+  CollectionImageValidationError,
   CreationFlowError,
   UnknownError
 } from './errors/CreationFlow';
@@ -34,9 +35,10 @@ import Nft from './Nft';
 import { alchemy, logger, opensea } from '../container';
 import PQueue from 'p-queue';
 import {
-  RefreshTokenImageError,
+  RefreshTokenCacheImageError,
   RefreshTokenMetadataError,
   RefreshTokenMintError,
+  RefreshTokenOriginalImageError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 
@@ -84,9 +86,9 @@ export enum CreationFlow {
   CacheImage = 'cache-image',
 
   /**
-   * validate data
+   * validate images
    */
-  Validate = 'validate',
+  ValidateImage = 'validate-image',
 
   /**
    * at this point we have successfully completed all steps above
@@ -259,7 +261,7 @@ export default class Collection {
                 action: 'tokenRequest'
               };
               if (!mintTokens) {
-                throw new CollectionMintsError('Token metadata received undefined tokens');
+                throw new CollectionMintsError('Token metadata received undefined mint tokens');
               }
 
               let tokensValid = true;
@@ -271,7 +273,7 @@ export default class Collection {
                 }
               }
               if (!tokensValid) {
-                throw new CollectionMintsError('Received invalid tokens');
+                throw new CollectionMintsError('Token metadata received invalid mint tokens');
               }
               const alchemyLimit = 100;
               const numIters = Math.ceil(mintTokens.length / alchemyLimit);
@@ -319,7 +321,7 @@ export default class Collection {
               collection = collectionMetadataCollection; // update collection
               yield { collection };
             } catch (err: any) {
-              logger.error('Failed to get collection tokens', err);
+              logger.error('Failed to get collection mint tokens', err);
               if (err instanceof CollectionMintsError) {
                 throw err;
               }
@@ -641,7 +643,7 @@ export default class Collection {
                 state: {
                   ...collection.state,
                   create: {
-                    step: CreationFlow.Validate // update step
+                    step: CreationFlow.ValidateImage // update step
                   }
                 }
               };
@@ -649,16 +651,13 @@ export default class Collection {
               yield { collection };
             } catch (err: any) {
               logger.error('Failed to cache images', err);
-              if (err instanceof CollectionMintsError) {
-                throw err;
-              }
               // if any token fails we should throw an error
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
               throw new CollectionCacheImageError(message);
             }
             break;
 
-          case CreationFlow.Validate:
+          case CreationFlow.ValidateImage:
             try {
               /**
                * validate tokens
@@ -669,23 +668,21 @@ export default class Collection {
               };
 
               if (!tokens) {
-                throw new CollectionMintsError('Token metadata received undefined tokens');
+                throw new CollectionTokenMetadataError('Client failed to inject tokens');
               }
 
-              const invalidImageTokens = [];
+              const invalidCacheImageTokens = [];
               for (const token of tokens) {
                 try {
-                  Nft.validateToken(token, RefreshTokenFlow.Complete);
+                  Nft.validateToken(token, RefreshTokenFlow.CacheImage);
                 } catch (err) {
-                  if (err instanceof RefreshTokenImageError) {
-                    invalidImageTokens.push(token);
-                  }
+                  invalidCacheImageTokens.push(token);
                 }
               }
 
-              // try invalid image tokens
+              // try invalid cache image tokens another way
               let j = 0;
-              for (const token of invalidImageTokens) {
+              for (const token of invalidCacheImageTokens) {
                 j++;
                 const metadata = await opensea.getNFTMetadata(this.contract.address, token.tokenId ?? '');
                 const imageToken: ImageData & Partial<Token> = {
@@ -694,8 +691,8 @@ export default class Collection {
                 } as ImageToken;
                 void emitter.emit('image', imageToken);
                 void emitter.emit('progress', {
-                  step: CreationFlow.CacheImage,
-                  progress: Math.floor((j / invalidImageTokens.length) * 100 * 100) / 100
+                  step: CreationFlow.ValidateImage,
+                  progress: Math.floor((j / invalidCacheImageTokens.length) * 100 * 100) / 100
                 });
               }
 
@@ -716,8 +713,8 @@ export default class Collection {
               if (err instanceof CollectionTokenMetadataError || err instanceof CollectionCacheImageError) {
                 throw err;
               }
-              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to aggregate metadata';
-              throw new CollectionTokenValidationError(message);
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to validate tokens';
+              throw new CollectionImageValidationError(message);
             }
 
             break;
@@ -752,18 +749,21 @@ export default class Collection {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenMetadataError) {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
+              } else if (invalidTokens[0].err instanceof RefreshTokenCacheImageError) {
                 throw new CollectionCacheImageError(`Received ${invalidTokens.length} invalid tokens`);
+              } else if (invalidTokens[0].err instanceof RefreshTokenOriginalImageError) {
+                throw new CollectionOriginalImageError(`Received ${invalidTokens.length} invalid tokens`);
               } else {
                 throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
               }
             }
             return;
-
-            case CreationFlow.Incomplete:
-            case CreationFlow.Unknown:
-            default:
-              return;
+          
+          // todo: needs impl
+          case CreationFlow.Incomplete:
+          case CreationFlow.Unknown:
+          default:
+            return;
         }
         void emitter.emit('progress', { step, progress: 100 });
       }

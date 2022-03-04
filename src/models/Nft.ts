@@ -9,8 +9,9 @@ import {
 } from '../types/Token.interface';
 import Contract from './contracts/Contract.interface';
 import {
+  RefreshTokenCacheImageError,
   RefreshTokenError,
-  RefreshTokenImageError,
+  RefreshTokenOriginalImageError,
   RefreshTokenMetadataError,
   RefreshTokenMintError,
   RefreshTokenUriError
@@ -59,6 +60,7 @@ export default class Nft {
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Mint): ReturnType<RefreshTokenFlow.Mint>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Uri): ReturnType<RefreshTokenFlow.Uri>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Metadata): ReturnType<RefreshTokenFlow.Metadata>;
+  public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.CacheImage): ReturnType<RefreshTokenFlow.CacheImage>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Image): ReturnType<RefreshTokenFlow.Image>;
   public static validateToken(token: Partial<TokenType>, step: RefreshTokenFlow.Complete): ReturnType<RefreshTokenFlow.Complete>;
   public static validateToken<T extends RefreshTokenFlow>(token: Partial<TokenType>, step: T): ReturnType<T> {
@@ -98,11 +100,23 @@ export default class Nft {
     }
 
     /**
-     * validate image token
+     * validate cache image token
      */
-    if (!token.image?.url || !token.image.updatedAt) {
-      throw new RefreshTokenImageError(
-        `Invalid image token. Token Id: ${token.tokenId} Image: ${token.image?.url} Updated At: ${token.image?.updatedAt}`
+    if (step === RefreshTokenFlow.CacheImage && !token.image?.url) {
+      throw new RefreshTokenCacheImageError(
+        `Invalid cache image token. Token Id: ${token.tokenId} Image: ${token.image?.url} Updated At: ${token.image?.updatedAt}`
+      );
+    }
+    if (step === RefreshTokenFlow.CacheImage) {
+      return token as ReturnType<T>;
+    }
+
+    /**
+     * validate original image token
+     */
+    if (!token.image?.originalUrl) {
+      throw new RefreshTokenOriginalImageError(
+        `Invalid original image token. Token Id: ${token.tokenId} Image: ${token.image?.originalUrl} Updated At: ${token.image?.updatedAt}`
       );
     }
     if (step === RefreshTokenFlow.Image) {
