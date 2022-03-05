@@ -12,9 +12,9 @@ import {
   RefreshTokenFlow,
   Token,
   TokenMetadata
-} from '../types/Token.interface';
+} from 'infinity-types/types/Token';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { Collection as CollectionType, CreationFlow } from '../types/Collection.interface';
+import { Collection as CollectionType, CreationFlow } from 'infinity-types/types/Collection';
 import Emittery from 'emittery';
 import { NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
@@ -694,7 +694,7 @@ export default class Collection {
               }
             }
             return;
-          
+
           // todo: needs impl
           case CreationFlow.Incomplete:
           case CreationFlow.Unknown:

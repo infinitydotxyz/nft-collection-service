@@ -1,12 +1,11 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard } from '../../types/Token.interface';
+import { TokenStandard, Erc721Token } from 'infinity-types/types/Token';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
-import { CollectionAttributes } from 'types/Collection.interface';
-import { Erc721Token } from 'types/Token.interface';
-import { DisplayType } from 'types/Metadata.interface';
+import { CollectionAttributes } from 'infinity-types/types/Collection';
+import { DisplayType } from 'infinity-types/types/Metadata';
 import { normalize } from 'path';
 
 export default class Erc721Contract extends AbstractContract {

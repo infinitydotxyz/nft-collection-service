@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import Contract from './Contract.interface';
-import { TokenStandard } from '../../types/Token.interface';
+import { TokenStandard } from 'infinity-types/types/Token';
 import Erc721Contract from './Erc721Contract';
 
 export default class ContractFactory {

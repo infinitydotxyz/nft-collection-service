@@ -1,6 +1,6 @@
 import Firebase from '../database/Firebase';
 import { singleton } from 'tsyringe';
-import { Collection, CreationFlow } from '../types/Collection.interface';
+import { Collection, CreationFlow } from 'infinity-types/types/Collection';
 import { NUM_OWNERS_TTS } from '../constants';
 import { logger } from '../container';
 
