@@ -1,4 +1,4 @@
-import { CreationFlow } from '../Collection';
+import { CreationFlow } from 'infinity-types/types/Collection';
 
 export interface CreationFlowErrorJson {
   message: string;
@@ -78,9 +78,21 @@ export class CollectionCacheImageError extends CreationFlowError {
   }
 }
 
-export class CollectionTokenValidationError extends CreationFlowError {
+export class CollectionOriginalImageError extends CreationFlowError {
   constructor(message?: string) {
-    super(CreationFlow.CacheImage, message);
+    super(CreationFlow.ValidateImage, message);
+  }
+}
+
+export class CollectionImageValidationError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.ValidateImage, message);
+  }
+}
+
+export class CollectionIndexingError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.Incomplete, message);
   }
 }
 

@@ -1,11 +1,4 @@
-import { RefreshTokenFlow } from '../../types/Token.interface';
-
-export interface RefreshTokenErrorJson {
-  message: string;
-
-  discriminator: RefreshTokenFlow;
-}
-
+import { RefreshTokenFlow, RefreshTokenErrorJson } from 'infinity-types/types/Token';
 export class RefreshTokenError extends Error {
   discriminator: RefreshTokenFlow;
 
@@ -40,7 +33,13 @@ export class RefreshTokenMetadataError extends RefreshTokenError {
   }
 }
 
-export class RefreshTokenImageError extends RefreshTokenError {
+export class RefreshTokenCacheImageError extends RefreshTokenError {
+  constructor(message?: string) {
+    super(RefreshTokenFlow.CacheImage, message);
+  }
+}
+
+export class RefreshTokenOriginalImageError extends RefreshTokenError {
   constructor(message?: string) {
     super(RefreshTokenFlow.Image, message);
   }

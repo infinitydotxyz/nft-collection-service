@@ -1,13 +1,7 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { CollectionAttributes } from 'types/Collection.interface';
-import { Token } from 'types/Token.interface';
-
-export enum TokenStandard {
-  ERC721 = 'ERC721',
-  ERC1155 = 'ERC1155'
-}
-
+import { CollectionAttributes } from 'infinity-types/types/Collection';
+import { Token, TokenStandard } from 'infinity-types/types/Token';
 export interface HistoricalLogsChunk {
   events: ethers.Event[];
   fromBlock: number;

@@ -7,7 +7,7 @@
     "npm": "8.x"
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run update-types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
     "fix": "eslint --fix .",
@@ -18,7 +18,8 @@
     "deploy:server:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "fmt:check": "prettier -c ./src",
-    "fmt:write": "prettier -w ./src"
+    "fmt:write": "prettier -w ./src",
+    "update-types": "npm update infinity-types"
   },
   "repository": {
     "type": "git",
@@ -37,6 +38,7 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
+    "infinity-types": "git@github.com:infinity-xyz/typescript-types.git",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "typescript": "^4.5.5"

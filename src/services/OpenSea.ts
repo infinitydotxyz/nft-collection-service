@@ -2,11 +2,11 @@ import { ethers } from 'ethers';
 
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import { CollectionMetadata } from '../types/Collection.interface';
+import { CollectionMetadata } from 'infinity-types/types/Collection';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
-import { TokenStandard } from 'models/contracts/Contract.interface';
+import { TokenStandard } from 'infinity-types/types/Token';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -93,6 +93,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       symbol: data.symbol ?? '',
       profileImage: collection.image_url ?? '',
       bannerImage: collection.banner_image_url ?? '',
+      displayType: collection.display_data?.card_display_style,
       links: {
         timestamp: new Date().getTime(),
         discord: collection.discord_url ?? '',
@@ -296,6 +297,7 @@ interface OpenSeaContractResponse {
   buyer_fee_basis_points: number;
   seller_fee_basis_points: number;
   payout_address?: unknown;
+  display_data?: { card_display_style: string };
 }
 export interface Collection {
   banner_image_url: string;
