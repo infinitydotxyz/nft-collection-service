@@ -125,6 +125,7 @@ export interface CollectionMetadata {
   profileImage: string;
   bannerImage: string;
   links: Links;
+  displayType?: string;
 }
 
 /**
