@@ -1,8 +1,7 @@
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
 import { firebase } from '../container';
 import BatchHandler from '../models/BatchHandler';
-import { CreationFlow } from '../models/Collection';
-import { Collection } from '../types/Collection.interface';
+import { Collection, CreationFlow } from 'infinity-types/types/Collection';
 
 /**
  * added queue properties, updateAt and version
