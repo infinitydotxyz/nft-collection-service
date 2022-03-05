@@ -1,11 +1,4 @@
-import { RefreshTokenFlow } from '../../types/Token.interface';
-
-export interface RefreshTokenErrorJson {
-  message: string;
-
-  discriminator: RefreshTokenFlow;
-}
-
+import { RefreshTokenFlow, RefreshTokenErrorJson } from '../../types/Token.interface';
 export class RefreshTokenError extends Error {
   discriminator: RefreshTokenFlow;
 

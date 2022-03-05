@@ -1,5 +1,4 @@
 import { Erc721Metadata } from './Metadata.interface';
-import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
 
 export enum TokenStandard {
   ERC721 = 'ERC721',
@@ -21,6 +20,12 @@ export type ImageToken = MetadataToken & ImageData;
 
 export type AggregatedData = Pick<Token, 'rarityScore' | 'rarityRank'>;
 export type AggregatedToken = ImageToken & AggregatedData;
+
+export interface RefreshTokenErrorJson {
+  message: string;
+
+  discriminator: RefreshTokenFlow;
+}
 
 export enum RefreshTokenFlow {
   Mint = 'mint',
