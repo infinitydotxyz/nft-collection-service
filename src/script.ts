@@ -4,6 +4,7 @@ import Alchemy from './services/Alchemy';
 import { collectionDao, firebase, logger, alchemy, opensea } from './container';
 
 import { buildCollections } from './scripts/buildCollections';
+import { sleep } from './utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -61,6 +62,7 @@ export function flattener(): void {
 export async function apppendDisplayTypeToCollections(): Promise<void> {
   const data = await firebase.db.collection('collections').get();
   data.forEach(async (doc) => {
+    await sleep(2000);
     const address = doc.get('address') as string;
     const dispType = doc.get('displayType');
     if (address && !dispType) {
