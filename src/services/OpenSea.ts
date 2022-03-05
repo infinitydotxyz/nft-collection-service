@@ -93,6 +93,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       symbol: data.symbol ?? '',
       profileImage: collection.image_url ?? '',
       bannerImage: collection.banner_image_url ?? '',
+      displayType: collection.display_data?.card_display_style,
       links: {
         timestamp: new Date().getTime(),
         discord: collection.discord_url ?? '',
@@ -296,6 +297,7 @@ interface OpenSeaContractResponse {
   buyer_fee_basis_points: number;
   seller_fee_basis_points: number;
   payout_address?: unknown;
+  display_data?: { card_display_style: string };
 }
 export interface Collection {
   banner_image_url: string;
