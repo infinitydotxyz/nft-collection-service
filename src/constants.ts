@@ -12,8 +12,8 @@ function getEnvironmentVariable(name: string, required = true): string {
 export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
-export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
-export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
+export const FB_STORAGE_BUCKET = 'infinity-static';
+export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
 
 const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
