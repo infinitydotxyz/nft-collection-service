@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 import { isMainThread, parentPort } from 'worker_threads';
 import chalk from 'chalk';
-import Collection, { CreationFlow } from '../models/Collection';
+import Collection from '../models/Collection';
+import { Collection as CollectionType, CreationFlow } from '../types/Collection.interface';
 import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { ImageData, MetadataData, MintToken, Token } from '../types/Token.interface';
-import { Collection as CollectionType } from '../types/Collection.interface';
 import ContractFactory from '../models/contracts/ContractFactory';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 

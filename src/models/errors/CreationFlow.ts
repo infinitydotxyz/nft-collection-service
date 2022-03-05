@@ -1,4 +1,4 @@
-import { CreationFlow } from '../Collection';
+import { CreationFlow } from '../../types/Collection.interface';
 
 export interface CreationFlowErrorJson {
   message: string;

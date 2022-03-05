@@ -2,9 +2,8 @@ import OpenSeaClient, { Collection as OpenSeaCollection } from '../services/Open
 import { firebase, logger } from '../container';
 import { filterDuplicates, getSearchFriendlyString, sleep } from '../utils';
 import PQueue from 'p-queue';
-import { Collection } from '../types/Collection.interface';
 import BatchHandler from '../models/BatchHandler';
-import { CreationFlow } from '../models/Collection';
+import { Collection, CreationFlow } from '../types/Collection.interface';
 import chalk from 'chalk';
 import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';

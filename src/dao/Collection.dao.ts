@@ -1,9 +1,8 @@
 import Firebase from '../database/Firebase';
 import { singleton } from 'tsyringe';
-import { Collection } from '../types/Collection.interface';
+import { Collection, CreationFlow } from '../types/Collection.interface';
 import { NUM_OWNERS_TTS } from '../constants';
 import { logger } from '../container';
-import { CreationFlow } from '../models/Collection';
 
 @singleton()
 export default class CollectionDao {

@@ -14,7 +14,7 @@ import {
   TokenMetadata
 } from '../types/Token.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { Collection as CollectionType } from '../types/Collection.interface';
+import { Collection as CollectionType, CreationFlow } from '../types/Collection.interface';
 import Emittery from 'emittery';
 import { NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';
@@ -41,70 +41,6 @@ import {
   RefreshTokenOriginalImageError,
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
-
-export enum CreationFlow {
-  /**
-   * get collection deployer info and owner
-   */
-  CollectionCreator = 'collection-creator',
-
-  /**
-   * get the collection level metadata
-   * links, name, description, images, symbol
-   */
-  CollectionMetadata = 'collection-metadata',
-
-  /**
-   * get all token ids, timestamp and block minted
-   * and minter
-   */
-  CollectionMints = 'collection-mints',
-
-  /**
-   * get metadata for every token
-   */
-  TokenMetadata = 'token-metadata',
-
-  /**
-   * get metadata for every token from opensea
-   */
-  // TokenMetadataOS = 'token-metadata-os',
-
-  /**
-   * get metadata for every token from uri
-   */
-  TokenMetadataUri = 'token-metadata-uri',
-
-  /**
-   * requires that we have every token
-   */
-  AggregateMetadata = 'aggregate-metadata',
-
-  /**
-   * cache image
-   */
-  CacheImage = 'cache-image',
-
-  /**
-   * validate images
-   */
-  ValidateImage = 'validate-image',
-
-  /**
-   * at this point we have successfully completed all steps above
-   */
-  Complete = 'complete',
-
-  /**
-   * at this point we have successfully completed all steps but some data is missing
-   */
-  Incomplete = 'incomplete',
-
-  /**
-   * at this point you give up
-   */
-  Unknown = 'unknown'
-}
 
 type CollectionCreatorType = Pick<
   CollectionType,

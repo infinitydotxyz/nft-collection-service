@@ -1,6 +1,10 @@
 import { Erc721Metadata } from './Metadata.interface';
 import { RefreshTokenErrorJson } from '../models/errors/RefreshTokenFlow';
-import { TokenStandard } from '../models/contracts/Contract.interface';
+
+export enum TokenStandard {
+  ERC721 = 'ERC721',
+  ERC1155 = 'ERC1155'
+}
 
 export type TokenMetadata = Erc721Metadata;
 

@@ -1,5 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
-import { HistoricalLogs, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
+import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
+import { TokenStandard } from '../../types/Token.interface';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';

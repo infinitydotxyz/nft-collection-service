@@ -6,7 +6,7 @@ import { CollectionMetadata } from '../types/Collection.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
-import { TokenStandard } from 'models/contracts/Contract.interface';
+import { TokenStandard } from '../types/Token.interface';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters

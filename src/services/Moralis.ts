@@ -1,5 +1,5 @@
 import got, { Got, Response } from 'got';
-import { TokenStandard } from '../models/contracts/Contract.interface';
+import { TokenStandard } from '../types/Token.interface';
 import { sleep } from '../utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
