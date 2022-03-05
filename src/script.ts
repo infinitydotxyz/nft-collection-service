@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 
 // eslint-disable-next-line @typescript-eslint/require-await
+// do not remove commented code
 export async function main(): Promise<void> {
   try {
     /**
@@ -16,7 +17,7 @@ export async function main(): Promise<void> {
      */
     // await addNumOwnersUpdatedAtAndDataExportedFields();
     // await buildCollections();
-    // await collectionDao.getCollectionsSummary();
+    // const data = await collectionDao.getCollectionsSummary();
     // const tokenIds: string[] = [];
     // const openseaLimit = 30;
     // while (tokenIds.length < openseaLimit) {
@@ -28,8 +29,10 @@ export async function main(): Promise<void> {
     // logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`);
     // flattener();
     // const resp = await opensea.getCollectionMetadata('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d');
-    const resp = await opensea.getCollection('boredapeyachtclub');
-    logger.log(resp);
+    
+    // const resp = await opensea.getCollection('boredapeyachtclub');
+    // logger.log(resp);
+    await apppendDisplayTypeToCollections();
   } catch (err) {
     logger.error(err);
   }
@@ -53,4 +56,20 @@ export function flattener(): void {
     }
   }
   fs.appendFileSync('results.json', ']');
+}
+
+export async function apppendDisplayTypeToCollections(): Promise<void> {
+  const data = await firebase.db.collection('collections').get();
+  data.forEach(async (doc) => {
+    const address = doc.get('address') as string;
+    const dispType = doc.get('displayType');
+    if (address && !dispType) {
+      const resp = await opensea.getCollectionMetadata(address);
+      logger.log(address, resp.displayType);
+      await firebase.db
+        .collection('collections')
+        .doc('1:' + address)
+        .set({ displayType: resp.displayType }, { merge: true });
+    }
+  });
 }
