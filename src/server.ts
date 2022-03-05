@@ -1,12 +1,15 @@
 import express, { Request, Response } from 'express';
-import { collectionService, logger } from './container';
+import { collectionDao, collectionService, logger } from './container';
 import { readFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import { validateAddress, validateChainId, normalizeAddress } from './utils/ethers';
 import {
   COLLECTION_QUEUE,
+  COLLECTION_QUEUE_API_KEY,
   COLLECTION_SERVICE_URL,
   NULL_ADDR,
+  ONE_HOUR,
+  ONE_MIN,
   PROJECT,
   PROJECT_LOCATION,
   TASK_QUEUE_SERVICE_ACCOUNT
@@ -61,16 +64,29 @@ export async function main(): Promise<void> {
       }
 
       try {
+        const collection = await collectionDao.get(chainId, address);
+        const recentlyUpdated = collection?.state?.create?.updatedAt > Date.now() - 10 * ONE_MIN;
+        if (recentlyUpdated) {
+          /**
+           * collection is already being created
+           */
+          res.sendStatus(200); // already queued
+          return;
+        }
+
         const url = new URL(join(COLLECTION_SERVICE_URL, '/queue/collection')).toString();
         const payload = JSON.stringify({
           chainId,
           address,
           indexInitiator
         });
-
         const parent = client.queuePath(PROJECT, PROJECT_LOCATION, COLLECTION_QUEUE);
 
-        const id = hash(`${chainId}:${address}`);
+        /**
+         * prevent the same collection from being queued more than once an hour
+         */
+        const hourToCompleteIn = Math.ceil(Date.now() / ONE_HOUR);
+        const id = hash(`${chainId}:${address}:${hourToCompleteIn}`);
         const request: protos.google.cloud.tasks.v2.ICreateTaskRequest = {
           parent,
           task: {
@@ -79,6 +95,7 @@ export async function main(): Promise<void> {
               httpMethod: 'POST',
               url,
               headers: {
+                'x-api-key': COLLECTION_QUEUE_API_KEY,
                 'Content-Type': 'application/octet-stream'
               },
               body: Buffer.from(payload).toString('base64')
@@ -89,7 +106,7 @@ export async function main(): Promise<void> {
         const [response] = await client.createTask(request);
         logger.log(response);
 
-        res.sendStatus(202); // queued
+        res.sendStatus(202); // added to queue
         return;
       } catch (err: any) {
         if (err.code === 6) {
@@ -102,14 +119,6 @@ export async function main(): Promise<void> {
     }
   );
 
-  app.post('/log_payload', (req, res) => {
-    logger.log(req.headers);
-    logger.log('Received request with body:', JSON.stringify(req.body, null, 2));
-    const str = Buffer.from((req.body as Buffer).toString(), 'base64').toString('ascii');
-    logger.log(str);
-    res.send(200);
-  });
-
   /**
    * endpoint used by the task queue to create the collection
    */
@@ -120,7 +129,16 @@ export async function main(): Promise<void> {
       let chainId: string;
       let indexInitiator: string;
       try {
-        const buffer: Buffer = req.body;
+        const authHeader = req.headers['x-api-key'];
+        if (authHeader !== COLLECTION_QUEUE_API_KEY) {
+          res.sendStatus(403);
+          return;
+        }
+
+        logger.log(req.headers);
+        logger.log(req.body);
+
+        const buffer = req.body as Buffer;
         const data = JSON.parse(buffer.toString());
         address = data.address as string;
         chainId = data.chainId as string;
@@ -140,6 +158,13 @@ export async function main(): Promise<void> {
       }
 
       try {
+        const collection = await collectionDao.get(chainId, address);
+        const recentlyUpdated = collection?.state?.create?.updatedAt > Date.now() - 10 * ONE_MIN;
+        if (recentlyUpdated) {
+          res.sendStatus(200);
+          return;
+        }
+
         await collectionService.createCollection(address, chainId, false, false, indexInitiator);
         res.sendStatus(200);
       } catch (err) {

@@ -2,11 +2,12 @@
 import { AssertionError } from 'node:assert';
 import Alchemy from './services/Alchemy';
 import { collectionDao, firebase, logger, alchemy, opensea } from './container';
-
 import { buildCollections } from './scripts/buildCollections';
 import { sleep } from './utils';
-import fs from 'fs';
+import fs, { read } from 'fs';
 import path from 'path';
+import { readFile } from 'fs/promises';
+import got from 'got/dist/source';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code

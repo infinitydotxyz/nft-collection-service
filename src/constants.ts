@@ -22,6 +22,12 @@ export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
 export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
 
+/**
+ * can be any randomly generated key as long as it's consistent across
+ * all version of the server
+ */
+export const COLLECTION_QUEUE_API_KEY = getEnvironmentVariable('COLLECTION_QUEUE_API_KEY');
+
 const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
 

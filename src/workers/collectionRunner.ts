@@ -1,6 +1,6 @@
 import { Worker } from 'worker_threads';
 import path from 'path';
-import { firebase, logger, metadataClient, tokenDao } from '../container';
+import { firebase, logger, tokenDao } from '../container';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 import ContractFactory from '../models/contracts/ContractFactory';
 import Collection from '../models/Collection';
@@ -57,7 +57,7 @@ export async function create(
   const provider = new CollectionMetadataProvider();
   const contractFactory = new ContractFactory();
   const contract = await contractFactory.create(address, chainId);
-  const collection = new Collection(contract, metadataClient, provider);
+  const collection = new Collection(contract, provider);
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
 
   const batch = new BatchHandler();
@@ -116,17 +116,21 @@ export async function create(
       lastLogAt = now;
       log(formatLog(step, progress));
     }
-
     if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
       lastProgressUpdateAt = now;
-      collectionDoc.update({'state.create.progress': progress}).catch((err) => {
+      collectionDoc.update({ 'state.create.progress': progress, 'state.create.step': step }).catch((err) => {
         logger.error('Failed to update collection progress');
         logger.error(err);
-      })
+      });
     }
   });
 
   emitter.on('token', (token) => {
+    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+  });
+
+  emitter.on('image', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
     batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
   });
@@ -169,8 +173,16 @@ export async function create(
 
       if (done) {
         const successful = collectionData?.state?.create?.step === CreationFlow.Complete;
+        const indexerRan = collectionData?.state?.create?.step === CreationFlow.Incomplete;
+        const unknownError = collectionData?.state?.create?.step === CreationFlow.Unknown;
         if (successful) {
           log(`Collection Completed: ${chainId}:${address}`);
+          return;
+        } else if (indexerRan) {
+          log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+          return;
+        } else if (unknownError) {
+          log(`Unknown error occured for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else {
           attempt += 1;

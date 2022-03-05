@@ -7,6 +7,7 @@
     "npm": "8.x"
   },
   "scripts": {
+    "pre:commit": "npm run fmt:write && npm run fix",
     "build": "npm run update-types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
@@ -44,8 +45,8 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@google-cloud/tasks": "^2.5.0",
     "@alch/alchemy-web3": "^1.2.4",
+    "@google-cloud/tasks": "^2.5.0",
     "axios": "^0.26.0",
     "bl": "^5.0.0",
     "chalk": "^4.1.2",

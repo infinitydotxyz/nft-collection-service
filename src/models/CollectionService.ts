@@ -52,13 +52,6 @@ export default class CollectionService extends EventEmitter {
     reset = false,
     indexInitiator = NULL_ADDR
   ): Promise<void> {
-    /**
-     * verify that the collection has not been successfully indexed yet
-     *
-     * don't update indexInitiator
-     *
-     * validate address and chain id
-     */
     address = validateAddress(normalizeAddress(address));
     indexInitiator = validateAddress(normalizeAddress(indexInitiator));
     chainId = validateChainId(chainId);
