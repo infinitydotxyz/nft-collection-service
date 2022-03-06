@@ -2,12 +2,12 @@ import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import PQueue from 'p-queue';
 import { ALCHEMY_CONCURRENCY, NULL_ADDR } from '../constants';
-import { ImageData, MetadataData, MintToken, RefreshTokenFlow, Token } from 'infinity-types/types/Token';
+import { ImageData, MetadataData, MintToken, RefreshTokenFlow, Token } from '@infinityxyz/types/core/Token';
 import Emittery from 'emittery';
 import { ethers } from 'ethers';
 import Nft from './Nft';
 import { logger } from '../container';
-import { Collection as CollectionType } from 'infinity-types/types/Collection';
+import { Collection as CollectionType } from '@infinityxyz/types/core/Collection';
 
 export type CollectionEmitter = Emittery<{
   token: Token;
