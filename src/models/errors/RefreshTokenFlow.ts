@@ -1,4 +1,4 @@
-import { RefreshTokenFlow, RefreshTokenErrorJson } from '@infinityxyz/types/core/Token';
+import { RefreshTokenFlow, RefreshTokenErrorJson } from '@infinityxyz/types/core';
 export class RefreshTokenError extends Error {
   discriminator: RefreshTokenFlow;
 

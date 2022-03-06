@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { CollectionAttributes } from '@infinityxyz/types/core/Collection';
-import { Token, TokenStandard } from '@infinityxyz/types/core/Token';
+import { CollectionAttributes } from '@infinityxyz/types/core';
+import { Token, TokenStandard } from '@infinityxyz/types/core';
 export interface HistoricalLogsChunk {
   events: ethers.Event[];
   fromBlock: number;
