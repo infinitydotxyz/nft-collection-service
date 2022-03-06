@@ -31,7 +31,7 @@ export async function main(): Promise<void> {
     // logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`);
     // flattener();
     // const resp = await opensea.getCollectionMetadata('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d');
-    
+
     // const resp = await opensea.getCollection('boredapeyachtclub');
     // logger.log(resp);
     await apppendDisplayTypeToCollections();

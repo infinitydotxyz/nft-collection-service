@@ -7,6 +7,7 @@ import BatchHandler from '../models/BatchHandler';
 import chalk from 'chalk';
 import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
+import { normalizeAddress } from '../utils/ethers';
 
 /**
  * buildCollections gets collections from opensea
@@ -76,7 +77,7 @@ export async function buildCollections(): Promise<void> {
 
         const contracts: Array<Partial<Collection>> = [];
         for (const contract of collection?.primary_asset_contracts) {
-          const address = (contract.address ?? '').trim().toLowerCase();
+          const address = normalizeAddress(contract.address ?? '');
           const openseaStorefront = '0x495f947276749ce646f68ac8c248420045cb7b5e';
           if (contract.name && contract.schema_name && address && address !== openseaStorefront) {
             try {

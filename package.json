@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "engines": {
-    "node": "16.x",
-    "npm": "8.x"
+    "node": "16.x.x",
+    "npm": "8.x.x"
   },
   "scripts": {
     "pre:commit": "npm run fmt:write && npm run fix",
@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "fix": "eslint --fix .",
     "start": "npx cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
+    "serve": "npx cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV_SCRIPT=script node -r dotenv/config ./dist/bootstrap.js",
     "cli": "npm run build && cross-env NODE_ENV_SCRIPT=cli node -r dotenv/config ./dist/bootstrap.js",

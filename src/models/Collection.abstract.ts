@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import Nft from './Nft';
 import { logger } from '../container';
 import { Collection as CollectionType } from '../types/Collection.interface';
+import { normalizeAddress } from '../utils/ethers';
 
 export type CollectionEmitter = Emittery<{
   token: Token;
@@ -57,9 +58,9 @@ export default abstract class Collection {
 
     return {
       deployedAt: deployer.createdAt,
-      deployer: deployer.address.toLowerCase(),
+      deployer: normalizeAddress(deployer.address),
       deployedAtBlock: deployer.block,
-      owner: owner.toLowerCase()
+      owner: normalizeAddress(owner)
     };
   }
 
@@ -69,7 +70,7 @@ export default abstract class Collection {
     try {
       const creation = await this.contract.getContractCreationTx();
       const blockDeployedAt = creation.blockNumber;
-      const deployer = (this.contract.decodeDeployer(creation) ?? '').toLowerCase();
+      const deployer = normalizeAddress(this.contract.decodeDeployer(creation) ?? '');
       const createdAt = (await creation.getBlock()).timestamp * 1000; // convert timestamp to ms
       return {
         createdAt,
@@ -185,7 +186,7 @@ export default abstract class Collection {
         chainId: this.contract.chainId,
         tokenId,
         mintedAt,
-        minter: transfer.to.toLowerCase(),
+        minter: normalizeAddress(transfer.to),
         mintTxHash: event.transactionHash,
         mintPrice
       };

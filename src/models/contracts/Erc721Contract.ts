@@ -7,6 +7,7 @@ import { CollectionAttributes } from 'types/Collection.interface';
 import { Erc721Token } from 'types/Token.interface';
 import { DisplayType } from 'types/Metadata.interface';
 import { normalize } from 'path';
+import { normalizeAddress } from '../../utils/ethers';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -19,14 +20,14 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   decodeDeployer(event: ethers.Event): string {
-    const deployer: string = (event?.args?.[1] as string)?.toLowerCase?.() ?? '';
+    const deployer: string = normalizeAddress((event?.args?.[1] as string) ?? '');
     return deployer;
   }
 
   decodeTransfer(event: ethers.Event): { from: string; to: string; tokenId: string } {
     const args = event?.args;
-    const from = (args?.[0] as string)?.toLowerCase?.();
-    const to = (args?.[1] as string)?.toLowerCase?.();
+    const from = normalizeAddress((args?.[0] as string) ?? '');
+    const to = normalizeAddress((args?.[1] as string) ?? '');
     const tokenId = (args?.[2] as BigNumber)?.toString?.();
 
     if (!to || !from || !tokenId) {

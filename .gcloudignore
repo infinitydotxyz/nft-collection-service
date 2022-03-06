@@ -19,8 +19,6 @@ node_modules/
 # Additional files not needed to run the service (ts files, lint, etc.)
 src/ 
 .eslintrc.js
-.git
-.gitignore
 .vscode
 errors.txt
 README.md

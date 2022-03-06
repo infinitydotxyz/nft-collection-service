@@ -1,19 +1,11 @@
 import chalk from 'chalk';
 import v8 from 'v8';
 
-function getEnvironmentVariable(name: string, required = true): string {
-  const variable = process.env[name] ?? '';
-  if (required && !variable) {
-    throw new Error(`Missing environment variable ${name}`);
-  }
-  return variable;
-}
-
-export const COLLECTION_SCHEMA_VERSION = 1;
-
-export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
-export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
-
+/**
+ *
+ * TODO adi change these for prod
+ * ---------------------------------------
+ */
 export const PROJECT = 'nftc-dev';
 export const PROJECT_LOCATION = 'us-east1';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
@@ -21,6 +13,14 @@ export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
 export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
 export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+/**
+ * ---------------------------------------
+ */
+
+export const COLLECTION_SCHEMA_VERSION = 1;
+
+export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
+export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
 /**
  * can be any randomly generated key as long as it's consistent across
@@ -44,7 +44,6 @@ const getInfuraIPFSAuthKeys = (): string[] => {
       break;
     }
   }
-
   return apiKeys;
 };
 
@@ -66,16 +65,17 @@ export const JSON_RPC_MAINNET_KEYS = (() => {
   return apiKeys;
 })();
 
-export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
-
 /**
  * in most cases we should not pay attention to blocks until
  * we are sure they won't be uncle'd
  */
 export const MAX_UNCLE_ABLE_BLOCKS = 6;
+export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
 
 /**
+ *
  * times
+ *
  */
 export const ONE_MIN = 60_000;
 export const ONE_HOUR = 60 * ONE_MIN;
@@ -101,26 +101,9 @@ if (maxConcurrencyForIPFS > 400) {
 }
 const maxConcurrencyForIPFSPerCollection = Math.floor(maxConcurrencyForIPFS / COLLECTION_TASK_CONCURRENCY);
 
-const getMaxConcurrency = (): { limit: number; message: string } => {
-  const systemLimit = maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY;
-
-  if (maxConcurrencyForIPFS < systemLimit) {
-    const difference = systemLimit - maxConcurrencyForIPFS;
-    return {
-      limit: maxConcurrencyForIPFSPerCollection,
-      message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
-    };
-  }
-
-  return {
-    limit: maxConcurrencyPerCollection,
-    message: 'process heap size'
-  };
-};
 const maxConcurrencyObj = getMaxConcurrency();
 export const METADATA_CONCURRENCY = maxConcurrencyObj.limit;
 
-// export const TOKEN_URI_CONCURRENCY = Math.floor(JSON_RPC_MAINNET_KEYS.length * 30 / COLLECTION_TASK_CONCURRENCY);
 export const ALCHEMY_CONCURRENCY = 50;
 export const IMAGE_UPLOAD_CONCURRENCY = 50;
 
@@ -134,7 +117,9 @@ export const ERROR_LOG = process.env.ERROR_LOG !== 'false'; // explicitly set to
 export const ERROR_LOG_FILE = process.env.ERROR_LOG_FILE ?? ''; // specify file to write to error log file
 
 /**
+ *
  * start up log
+ *
  */
 const bar = '-'.repeat(process.stdout.columns);
 const title = 'NFT Scraper';
@@ -157,3 +142,34 @@ System:
 
 ${bar}
 `;
+
+/**
+ *
+ * helper functions
+ *
+ */
+
+function getEnvironmentVariable(name: string, required = true): string {
+  const variable = process.env[name] ?? '';
+  if (required && !variable) {
+    throw new Error(`Missing environment variable ${name}`);
+  }
+  return variable;
+}
+
+function getMaxConcurrency(): { limit: number; message: string } {
+  const systemLimit = maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY;
+
+  if (maxConcurrencyForIPFS < systemLimit) {
+    const difference = systemLimit - maxConcurrencyForIPFS;
+    return {
+      limit: maxConcurrencyForIPFSPerCollection > 20 ? maxConcurrencyForIPFS : 20,
+      message: `IPFS. Create more ${Math.ceil(difference / 100)} keys to reach max of ${systemLimit}`
+    };
+  }
+
+  return {
+    limit: maxConcurrencyPerCollection > 20 ? maxConcurrencyPerCollection : 20,
+    message: 'process heap size'
+  };
+}

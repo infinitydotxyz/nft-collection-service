@@ -5,6 +5,7 @@ import { buildCollections } from './scripts/buildCollections';
 import { collectionService, logger } from './container';
 import { parseArgs, ModeArgument, setTerminalTitle } from './utils/cli';
 import { NULL_ADDR } from './constants';
+import { normalizeAddress } from './utils/ethers';
 
 enum Task {
   CreateCollection = 'create',
@@ -107,7 +108,7 @@ async function addressMode(): Promise<void> {
 
   const args = parseArgs(addressModeArgs);
 
-  const address = args.address;
+  const address = normalizeAddress(args.address);
   const chainId = args.chain;
   const hasBlueCheck = args.hasBlueCheck === 'true';
   const reset = args.reset === 'true';

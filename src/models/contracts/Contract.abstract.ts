@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { Readable } from 'stream';
 import { CollectionAttributes } from '../../types/Collection.interface';
 import { Token } from '../../types/Token.interface';
-import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
+import { ethersErrorHandler, getProviderByChainId, normalizeAddress } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions, TokenStandard } from './Contract.interface';
 import { logger } from '../../container';
 
@@ -79,7 +79,7 @@ export default abstract class Contract implements IContract {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const owner: string = (await this.contract.owner()) ?? '';
-      return owner?.toLowerCase() ?? '';
+      return normalizeAddress(owner ?? '');
     } catch (err: any) {
       logger.error('failed to get collection owner', err);
       if ('code' in err) {

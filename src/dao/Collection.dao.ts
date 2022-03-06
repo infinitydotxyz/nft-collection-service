@@ -4,6 +4,7 @@ import { Collection } from '../types/Collection.interface';
 import { NUM_OWNERS_TTS } from '../constants';
 import { logger } from '../container';
 import { CreationFlow } from '../models/Collection';
+import { normalizeAddress } from '../utils/ethers';
 
 @singleton()
 export default class CollectionDao {
@@ -14,7 +15,7 @@ export default class CollectionDao {
   }
 
   async get(chainId: string, address: string): Promise<Collection> {
-    const collectionRef = this.firebase.getCollectionDocRef(chainId, address);
+    const collectionRef = this.firebase.getCollectionDocRef(chainId, normalizeAddress(address));
 
     const doc = await collectionRef.get();
 
@@ -27,7 +28,7 @@ export default class CollectionDao {
     if (!chainId || !address) {
       throw new Error('invalid collection');
     }
-    const collectionRef = this.firebase.getCollectionDocRef(chainId, address);
+    const collectionRef = this.firebase.getCollectionDocRef(chainId, normalizeAddress(address));
 
     await collectionRef.set(collection, { merge: true });
   }

@@ -1,4 +1,5 @@
 import { writeFileSync } from 'fs';
+import { normalizeAddress } from 'utils/ethers';
 import { firebase, tokenDao, logger } from '../container';
 
 export const tokensDataToFile = async (chainId: string, collection: string): Promise<void> => {
@@ -19,6 +20,6 @@ export async function exportCollections(): Promise<void> {
     const address = data.address as string;
     const chainId = data.chainId as string;
     logger.log('fetching data for', address);
-    await tokensDataToFile(chainId, address.toLowerCase());
+    await tokensDataToFile(chainId, normalizeAddress(address));
   }
 }

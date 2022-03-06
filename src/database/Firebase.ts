@@ -5,6 +5,7 @@ import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { normalizeAddress } from '../utils/ethers';
 
 @singleton()
 export default class Firebase {
@@ -31,7 +32,7 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
+    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${normalizeAddress(address)}`);
     return collectionDoc;
   }
 
