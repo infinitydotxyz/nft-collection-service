@@ -5,7 +5,7 @@ import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
 import { migrateToVersion1 } from './scripts/migrateToVersion1';
-import { Collection } from '@infinityxyz/types/core/Collection';
+import { Collection } from '@infinityxyz/types/core';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
 
