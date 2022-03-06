@@ -4,7 +4,7 @@ import { ONE_HOUR } from './constants';
 import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
-import { Collection } from 'infinity-types/types/Collection';
+import { Collection } from '@infinityxyz/types/core/Collection';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
 

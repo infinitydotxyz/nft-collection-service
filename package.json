@@ -13,7 +13,7 @@
     "cli-server": "npm run build && cross-env TEENY_REQUEST_WARN_CONCURRENT_REQUESTS=10000 cross-env NODE_ENV=cli node --max-old-space-size=60000 -r dotenv/config ./dist/bootstrap.js",
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",
-    "update-types": "npm update infinity-types"
+    "update-types": "npm update @infinityxyz/types"
   },
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/bl": "^5.0.2",
+    "@infinityxyz/types": "^1.0.0",
     "@types/mime-types": "^2.1.1",
     "@types/node": "^17.0.14",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
@@ -32,7 +33,6 @@
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
-    "infinity-types": "git@github.com:infinity-xyz/typescript-types.git",
     "prettier": "^2.5.1",
     "rimraf": "^3.0.2",
     "typescript": "^4.5.5"
