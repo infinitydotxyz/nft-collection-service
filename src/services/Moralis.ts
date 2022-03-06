@@ -1,9 +1,8 @@
 import got, { Got, Response } from 'got';
-import { TokenStandard } from '@infinityxyz/types/core';
+import { TokenStandard , TokenMetadata } from '@infinityxyz/types/core';
 import { sleep } from '../utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
-import { TokenMetadata } from '@infinityxyz/types/core';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import { logger } from '../container';

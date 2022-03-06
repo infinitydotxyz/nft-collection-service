@@ -2,11 +2,10 @@ import 'reflect-metadata';
 import { isMainThread, parentPort } from 'worker_threads';
 import chalk from 'chalk';
 import Collection from '../models/Collection';
-import { Collection as CollectionType, CreationFlow } from '@infinityxyz/types/core';
+import { Collection as CollectionType, CreationFlow , ImageData, MetadataData, MintToken, Token } from '@infinityxyz/types/core';
 import { firebase, metadataClient, tokenDao, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { ImageData, MetadataData, MintToken, Token } from '@infinityxyz/types/core';
 import ContractFactory from '../models/contracts/ContractFactory';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 

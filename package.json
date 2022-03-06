@@ -6,7 +6,7 @@
     "build": "npm run update-types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
-    "fix": "eslint --fix .",
+    "lintfix": "eslint --fix .",
     "start": "node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV=script node -r dotenv/config ./dist/bootstrap.js",
     "cli": "npm run build && cross-env NODE_ENV=cli node -r dotenv/config ./dist/bootstrap.js",

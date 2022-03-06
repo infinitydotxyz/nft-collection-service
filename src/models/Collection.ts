@@ -12,9 +12,8 @@ import {
   RefreshTokenFlow,
   Token,
   TokenMetadata
-} from '@infinityxyz/types/core';
+, Collection as CollectionType, CreationFlow } from '@infinityxyz/types/core';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { Collection as CollectionType, CreationFlow } from '@infinityxyz/types/core';
 import Emittery from 'emittery';
 import { NULL_ADDR, ALCHEMY_CONCURRENCY } from '../constants';
 import { getSearchFriendlyString } from '../utils';

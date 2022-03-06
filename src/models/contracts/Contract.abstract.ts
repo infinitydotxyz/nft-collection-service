@@ -1,8 +1,7 @@
 import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
 import { Readable } from 'stream';
-import { CollectionAttributes } from '@infinityxyz/types/core';
-import { Token, TokenStandard } from '@infinityxyz/types/core';
+import { CollectionAttributes , Token, TokenStandard } from '@infinityxyz/types/core';
 import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions } from './Contract.interface';
 import { logger } from '../../container';
