@@ -11,7 +11,7 @@
     "build": "npm run update-types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
-    "fix": "eslint --fix .",
+    "lintfix": "eslint --fix .",
     "start": "npx cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV_SCRIPT=script node -r dotenv/config ./dist/bootstrap.js",

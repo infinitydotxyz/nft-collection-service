@@ -8,10 +8,10 @@ import {
   MintToken,
   RefreshTokenFlow,
   Token,
-  TokenMetadata
+  TokenMetadata,
+  Collection as CollectionType,
+  CreationFlow
 } from '@infinityxyz/types/core';
-import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
-import { Collection as CollectionType, CreationFlow } from '@infinityxyz/types/core';
 import Emittery from 'emittery';
 import { COLLECTION_SCHEMA_VERSION } from '../constants';
 import { getSearchFriendlyString } from '../utils';
