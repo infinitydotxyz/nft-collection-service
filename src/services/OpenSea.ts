@@ -2,11 +2,11 @@ import { ethers } from 'ethers';
 
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import { CollectionMetadata } from 'infinity-types/types/Collection';
+import { CollectionMetadata } from '@infinityxyz/types/core/Collection';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
-import { TokenStandard } from 'infinity-types/types/Token';
+import { TokenStandard } from '@infinityxyz/types/core/Token';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters

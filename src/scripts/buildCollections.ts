@@ -3,7 +3,7 @@ import { firebase, logger } from '../container';
 import { filterDuplicates, getSearchFriendlyString, sleep } from '../utils';
 import PQueue from 'p-queue';
 import BatchHandler from '../models/BatchHandler';
-import { Collection } from 'infinity-types/types/Collection';
+import { Collection } from '@infinityxyz/types/core/Collection';
 import chalk from 'chalk';
 import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
