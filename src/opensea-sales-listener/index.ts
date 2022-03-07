@@ -1,4 +1,4 @@
-import { execute as runOpenseaSalesListener } from './parser/opensea';
+import { execute as runOpenseaSalesListener } from './controllers/sales-listener.controller';
 import chalk from 'chalk';
 import { logger } from '../container';
 

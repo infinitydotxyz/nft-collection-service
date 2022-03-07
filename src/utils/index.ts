@@ -72,7 +72,7 @@ export function randomItem<T>(array: T[]): T {
  * @description  tokenIds can be big in some cases and we might run into firestore doc name length limit
  *
  */
-export const getHashByNftAddress = (chainId: string, tokenAddress: string, tokenId: string): string => {
-  const data = chainId + tokenAddress.trim() + tokenId.trim();
+export const getHashByNftAddress = (chainId: string, collectionAddress: string, tokenId: string): string => {
+  const data = chainId + collectionAddress.trim() + tokenId.trim();
   return crypto.createHash('sha256').update(data).digest('hex').trim().toLowerCase();
 };

@@ -3,7 +3,7 @@ import { NftSalesRepository } from '../types';
 import { DBN_SALES } from '../constants';
 
 /**
- * @description save the order info into <sales> collection
+ * @description save the orders into <sales> collection
  */
 const handleOrders = async (orders: NftSalesRepository[], chainId = '1'): Promise<FirebaseFirestore.WriteResult[]> => {
   try {
@@ -22,4 +22,6 @@ const handleOrders = async (orders: NftSalesRepository[], chainId = '1'): Promis
   }
 };
 
-export default { handleOrders };
+const SalesModel = { handleOrders };
+
+export default SalesModel;

@@ -1,4 +1,4 @@
-export * from './opensea-contract';
+export * from './wyvern-constants';
 
 export const DBN_COLLECTION_STATS = 'collection-stats';
 export const DBN_ALL_TIME = 'all-time';
