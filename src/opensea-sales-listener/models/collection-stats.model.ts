@@ -14,11 +14,11 @@ const getNewStats = (
   return {
     floorPrice:
       prevStats.floorPrice === 0
-        ? incomingStats.floorPrice
+        ? Math.min(incomingStats.floorPrice, prevStats.avgPrice)
         : Math.min(prevStats.floorPrice, prevStats.avgPrice, incomingStats.floorPrice),
     ceilPrice:
       prevStats.floorPrice === 0
-        ? incomingStats.ceilPrice
+        ? Math.max(incomingStats.ceilPrice, prevStats.avgPrice)
         : Math.max(prevStats.ceilPrice, prevStats.avgPrice, incomingStats.ceilPrice),
     totalVolume,
     totalNumSales,
