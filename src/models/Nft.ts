@@ -6,7 +6,7 @@ import {
   TokenMetadata,
   RefreshTokenFlow,
   UriToken
-} from '../types/Token.interface';
+} from '@infinityxyz/types/core';
 import Contract from './contracts/Contract.interface';
 import {
   RefreshTokenCacheImageError,

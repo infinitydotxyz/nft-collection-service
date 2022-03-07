@@ -3,11 +3,10 @@ import path from 'path';
 import { firebase, logger, tokenDao } from '../container';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 import ContractFactory from '../models/contracts/ContractFactory';
-import Collection, { CreationFlow } from '../models/Collection';
-import { Collection as CollectionType } from '../types/Collection.interface';
+import Collection from '../models/Collection';
+import { Collection as CollectionType, CreationFlow , ImageData, MetadataData, MintToken, Token } from '@infinityxyz/types/core';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { ImageData, MetadataData, MintToken, Token } from '../types/Token.interface';
 import { NULL_ADDR } from '../constants';
 
 export async function createCollection(

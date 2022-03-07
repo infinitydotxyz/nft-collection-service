@@ -8,10 +8,10 @@
   },
   "scripts": {
     "pre:commit": "npm run fmt:write && npm run fix",
-    "build": "npm run clean && tsc",
+    "build": "npm run update-types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
-    "fix": "eslint --fix .",
+    "lintfix": "eslint --fix .",
     "start": "npx cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "serve": "npx cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve node -r dotenv/config ./dist/bootstrap.js",
@@ -20,7 +20,8 @@
     "deploy:server:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "fmt:check": "prettier -c ./src",
-    "fmt:write": "prettier -w ./src"
+    "fmt:write": "prettier -w ./src",
+    "update-types": "npm update @infinityxyz/types"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/bl": "^5.0.2",
+    "@infinityxyz/types": "^1.0.0",
     "@types/mime-types": "^2.1.1",
     "@types/node": "^17.0.14",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
