@@ -13,7 +13,6 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "start": "npx cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
-    "serve": "npx cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV_SCRIPT=script cross-env NODE_PATH=./dist node node -r dotenv/config ./dist/bootstrap.js",
     "cli": "npm run build && cross-env NODE_ENV_SCRIPT=cli cross-env NODE_PATH=./dist node node -r dotenv/config ./dist/bootstrap.js",
