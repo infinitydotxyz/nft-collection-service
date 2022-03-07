@@ -605,10 +605,10 @@ export default class Collection extends AbstractCollection {
     }
 
     const tokenPromises: Array<Promise<MetadataToken>> = [];
+    let progress = 0;
     for (const token of metadataLessTokens) {
       const nft = new Nft(token as MintToken, this.contract, this.ethersQueue);
       const iterator = nft.refreshToken();
-      let progress = 0;
       const tokenWithMetadataPromise = new Promise<MetadataToken>(async (resolve, reject) => {
         let tokenWithMetadata = token as Partial<Erc721Token>;
         try {
@@ -725,6 +725,16 @@ export default class Collection extends AbstractCollection {
     const openseaLimit = 50;
     const openseaTokenIdsLimit = 20;
 
+    const tokensMap: {[key: string]: Token} = tokens.reduce((acc, item) => {
+      if(item?.tokenId) {
+        return {
+          ...acc,
+          [item.tokenId]: item
+        }
+      }
+      return acc;
+    }, {})
+
     // fetch tokens that don't have images
     const imageLessTokens = [];
     for (const token of tokens) {
@@ -745,14 +755,16 @@ export default class Collection extends AbstractCollection {
         }
         const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
         for (const datum of data.assets) {
+          const token = tokensMap[datum?.token_id];
+          const metadata = token?.metadata;
           const imageToken: ImageData & Partial<Token> = {
             tokenId: datum.token_id,
-            image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+            image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
           } as ImageToken;
           void emitter.emit('image', imageToken);
         }
         void emitter.emit('progress', {
-          step: CreationFlow.AggregateMetadata,
+          step: CreationFlow.CacheImage,
           progress: Math.floor(((i * openseaTokenIdsLimit) / numImagelessTokens) * 100 * 100) / 100
         });
       }
@@ -764,14 +776,16 @@ export default class Collection extends AbstractCollection {
         // update cursor
         cursor = data.next;
         for (const datum of data.assets) {
+          const token = tokensMap[datum?.token_id];
+          const metadata = token?.metadata;
           const imageToken: ImageData & Partial<Token> = {
             tokenId: datum.token_id,
-            image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+            image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
           } as ImageToken;
           void emitter.emit('image', imageToken);
         }
         void emitter.emit('progress', {
-          step: CreationFlow.AggregateMetadata,
+          step: CreationFlow.CacheImage,
           progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
         });
       }

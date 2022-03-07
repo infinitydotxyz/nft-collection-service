@@ -109,7 +109,9 @@ export async function create(
 
   let lastLogAt = 0;
   let lastProgressUpdateAt = 0;
+  const lastStep = '';
   emitter.on('progress', ({ step, progress }) => {
+
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
