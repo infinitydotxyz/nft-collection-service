@@ -8,11 +8,11 @@
   },
   "scripts": {
     "pre:commit": "npm run fmt:write && npm run fix",
-    "build": "npm run update-types && npm run clean && tsc",
+    "build": "npm run update:types && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "start": "npx cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node node -r dotenv/config ./dist/bootstrap.js",
+    "start": "npx cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "serve": "npx cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV_SCRIPT=script cross-env NODE_PATH=./dist node node -r dotenv/config ./dist/bootstrap.js",
