@@ -9,7 +9,7 @@ const getNewStats = (prevStats: NftStatsRepository, incomingStats: NftStatsRepos
   const totalNumSales = prevStats.totalNumSales + incomingStats.totalNumSales;
   return {
     floorPrice: Math.min(prevStats.floorPrice, incomingStats.floorPrice),
-    ceilPrice: Math.min(prevStats.ceilPrice, incomingStats.ceilPrice),
+    ceilPrice: Math.max(prevStats.ceilPrice, incomingStats.ceilPrice),
     totalVolume,
     totalNumSales,
     avgPrice: totalVolume / totalNumSales,

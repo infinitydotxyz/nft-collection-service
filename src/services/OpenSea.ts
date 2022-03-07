@@ -142,38 +142,16 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
     return collection;
   }
 
-  async getCollectionStatsByCollectionAddr(collectionAddr: string, tokenId: string): Promise<CollectionStats> {
-    // const res: Response<{ collection: Collection }> = await this.errorHandler(() => {
-    //   return this.client.get(`assert/${collectionAddr}/${tokenId}`, {
-    //     responseType: 'json'
-    //   });
-    // });
+  async getCollectionStatsByTokenInfo(collectionAddr: string, tokenId: string, chainId: string): Promise<CollectionStats> {
+    const res: Response<{ collection: { stats: CollectionStats } }> = await this.errorHandler(() => {
+      return this.client.get(`asset/${collectionAddr}/${tokenId}`, {
+        responseType: 'json'
+      });
+    });
 
-    const x: CollectionStats = {
-      one_day_volume: 3,
-      one_day_change: 3,
-      one_day_sales: 3,
-      one_day_average_price: 3,
-      seven_day_volume: 3,
-      seven_day_change: 3,
-      seven_day_sales: 3,
-      seven_day_average_price: 3,
-      thirty_day_volume: 3,
-      thirty_day_change: 3,
-      thirty_day_sales: 3,
-      thirty_day_average_price: 3,
-      total_volume: 3,
-      total_sales: 3,
-      total_supply: 3,
-      count: 3,
-      num_owners: 3,
-      average_price: 3,
-      num_reports: 3,
-      market_cap: 3,
-      floor_price: 3
-    };
+    const collectionStats = res?.body?.collection.stats ?? {};
 
-    return x;
+    return collectionStats;
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
