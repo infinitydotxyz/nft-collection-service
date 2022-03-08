@@ -1,11 +1,10 @@
 import { logger } from '../../container';
 import { convertWeiToEther } from '../utils';
-import { NftTransaction, NftSalesRepository, SCRAPER_SOURCE, TOKEN_TYPE } from '../types';
+import { NftTransaction, NftSalesRepository } from '../types';
 import { NULL_ADDRESS } from '../constants';
 
 import SalesModel from '../models/sales.model';
-import NftStatsModel from '../models/nft-stats.model';
-import CollectionStatsModel from '../models/collection-stats.model';
+import StatsModel from '../models/stats.model';
 
 export const handleNftTransactions = async (transactions: NftTransaction[], chainId = '1'): Promise<void> => {
   /**
@@ -34,11 +33,7 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
       return order;
     });
 
-    const promiseArray = [
-      SalesModel.handleOrders(orders),
-      NftStatsModel.handleOrders(orders, totalPrice),
-      CollectionStatsModel.handleOrders(orders, totalPrice)
-    ];
+    const promiseArray = [SalesModel.handleOrders(orders), StatsModel.handleOrders(orders, totalPrice)];
 
     await Promise.all(promiseArray);
   } catch (err) {
