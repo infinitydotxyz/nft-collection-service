@@ -22,7 +22,7 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
         txHash: tx.txHash.trim().toLowerCase(),
         tokenId: tx.tokenIdStr,
         collectionAddress: tx.collectionAddr.trim().toLowerCase(),
-        price: totalPrice / transactions.length,
+        price: totalPrice / transactions.length / tx.quantity,
         paymentTokenType: tx.paymentToken,
         quantity: tx.quantity,
         buyer: tx.buyerAddress.trim().toLowerCase(),
