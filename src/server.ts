@@ -18,10 +18,10 @@ import { CloudTasksClient, protos } from '@google-cloud/tasks';
 import { hash } from './utils';
 
 export async function main(): Promise<void> {
-  const packageDotJSON = resolve('./package.json');
+  const packageDotJSON = resolve(__dirname, '../package.json');
   const { version } = JSON.parse(await readFile(packageDotJSON, 'utf-8'));
 
-  const serviceAccountFile = resolve(`./creds/${TASK_QUEUE_SERVICE_ACCOUNT}`);
+  const serviceAccountFile = resolve(__dirname, `../creds/${TASK_QUEUE_SERVICE_ACCOUNT}`);
   process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountFile;
   const client = new CloudTasksClient();
 

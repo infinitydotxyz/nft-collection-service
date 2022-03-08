@@ -20,7 +20,7 @@ export async function createCollection(
   if (useWorker) {
     return await new Promise<void>((resolve, reject) => {
       logger.log('Starting worker thread');
-      const workerFile = path.resolve('./dist/workers/collection.js');
+      const workerFile = path.resolve(__dirname, './collection.js');
       const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator] });
 
       worker.on('message', (msg) => {
