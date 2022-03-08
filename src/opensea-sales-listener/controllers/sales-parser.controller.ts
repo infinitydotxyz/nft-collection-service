@@ -34,9 +34,13 @@ export const handleNftTransactions = async (transactions: NftTransaction[], chai
       return order;
     });
 
-    await SalesModel.handleOrders(orders);
-    await NftStatsModel.handleOrders(orders, totalPrice);
-    await CollectionStatsModel.handleOrders(orders, totalPrice);
+    const promiseArray = [
+      SalesModel.handleOrders(orders),
+      NftStatsModel.handleOrders(orders, totalPrice),
+      CollectionStatsModel.handleOrders(orders, totalPrice)
+    ];
+
+    await Promise.all(promiseArray);
   } catch (err) {
     logger.error('Sales-scraper:updateCollectionSalesInfo', err);
   }

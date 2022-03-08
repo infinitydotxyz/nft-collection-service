@@ -17,7 +17,7 @@ const getNewStats = (
         ? Math.min(incomingStats.floorPrice, prevStats.avgPrice)
         : Math.min(prevStats.floorPrice, prevStats.avgPrice, incomingStats.floorPrice),
     ceilPrice:
-      prevStats.floorPrice === 0
+      prevStats.ceilPrice === 0
         ? Math.max(incomingStats.ceilPrice, prevStats.avgPrice)
         : Math.max(prevStats.ceilPrice, prevStats.avgPrice, incomingStats.ceilPrice),
     totalVolume,
