@@ -2,42 +2,65 @@ import ContractFactory from './contracts/ContractFactory';
 import CollectionMetadataProvider from './CollectionMetadataProvider';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
-import { COLLECTION_TASK_CONCURRENCY } from '../constants';
-import { createCollection } from '../workers/collection';
+import { COLLECTION_TASK_CONCURRENCY, NULL_ADDR } from '../constants';
+import { createCollection } from '../workers/collectionRunner';
 import { logger } from '../container';
+import { EventEmitter } from 'stream';
+import { normalizeAddress, validateAddress, validateChainId } from '../utils/ethers';
 
 @singleton()
-export default class CollectionService {
+export default class CollectionService extends EventEmitter {
   private readonly contractFactory: ContractFactory;
   private readonly collectionMetadataProvider: CollectionMetadataProvider;
 
   private readonly taskQueue: PQueue;
 
+  readonly concurrency: number;
+
   constructor() {
+    super();
     this.contractFactory = new ContractFactory();
     this.collectionMetadataProvider = new CollectionMetadataProvider();
+    this.concurrency = COLLECTION_TASK_CONCURRENCY;
     this.taskQueue = new PQueue({
-      concurrency: COLLECTION_TASK_CONCURRENCY // number of collections to run at once
+      concurrency: this.concurrency // number of collections to run at once
     });
 
-    function setTerminalTitle(title: string): void {
-      process.stdout.write(String.fromCharCode(27) + ']0;' + title + String.fromCharCode(7));
-    }
+    this.taskQueue.on('add', () => {
+      this.emit('sizeChange', {
+        size: this.taskQueue.size,
+        pending: this.taskQueue.pending
+      });
+    });
 
-    setInterval(() => {
-      const size = this.taskQueue.size + this.taskQueue.pending;
-      setTerminalTitle(`Collection Queue Size: ${this.taskQueue.size} Pending: ${this.taskQueue.pending}  Total: ${size}`);
-    }, 3000);
+    this.taskQueue.on('next', () => {
+      this.emit('sizeChange', {
+        size: this.taskQueue.size,
+        pending: this.taskQueue.pending
+      });
+
+      this.emit('collectionCompleted', () => {
+        this.emit('collectionCompleted');
+      });
+    });
   }
 
-  async createCollection(address: string, chainId: string, hasBlueCheck = false, reset = false): Promise<void> {
-    address = address.toLowerCase();
+  async createCollection(
+    address: string,
+    chainId: string,
+    hasBlueCheck = false,
+    reset = false,
+    indexInitiator = NULL_ADDR
+  ): Promise<void> {
+    address = validateAddress(normalizeAddress(address));
+    indexInitiator = validateAddress(normalizeAddress(indexInitiator));
+    chainId = validateChainId(chainId);
 
     return await this.taskQueue.add(async () => {
       try {
-        await createCollection(address, chainId, hasBlueCheck, reset);
+        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, false);
       } catch (err) {
-        logger.error('Worker errored...', err);
+        logger.error('Collection errored...', err);
       }
     });
   }

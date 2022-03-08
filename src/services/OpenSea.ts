@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import { sleep } from '../utils';
 import { OPENSEA_API_KEY } from '../constants';
-import { CollectionMetadata , TokenStandard } from '@infinityxyz/types/core';
+import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';

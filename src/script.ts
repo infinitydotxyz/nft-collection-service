@@ -1,42 +1,64 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { AssertionError } from 'node:assert';
 import Alchemy from './services/Alchemy';
 import { collectionDao, firebase, logger, alchemy, opensea } from './container';
-
 import { buildCollections } from './scripts/buildCollections';
 import { sleep } from './utils';
-import fs from 'fs';
+import fs, { read } from 'fs';
 import path from 'path';
+import { readFile , writeFile } from 'fs/promises';
+import got from 'got/dist/source';
+import { COLLECTION_SERVICE_URL } from './constants';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    /**
-     * must be run to add numOwnersUpdatedAtAndDataExported fields to existing collections
-     * that don't yet have these fields
-     */
-    // await addNumOwnersUpdatedAtAndDataExportedFields();
-    // await buildCollections();
-    // const data = await collectionDao.getCollectionsSummary();
-    // const tokenIds: string[] = [];
-    // const openseaLimit = 30;
-    // while (tokenIds.length < openseaLimit) {
-    //   tokenIds.push(`token_ids=${tokenIds.length + 1}`);
+    await enqueueResultsDotJson();
+    const rawData = await readFile('./enqueued.json', 'utf-8');
+    const data: Array<{address: string}> = JSON.parse(rawData);
+    logger.log(`${data.length} collections were enqueued`);
+    // for(const collection of data) {
+
     // }
-    // const resp = await opensea.getTokenIdsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', tokenIds.join('&'));
-    // const resp = await opensea.getNFTsOfContract('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', 50, '');
-    // logger.log(resp);
-    // logger.log(`Requested: ${tokenIds.length} tokenIds received: ${resp.assets.length} assets`);
-    // flattener();
-    // const resp = await opensea.getCollectionMetadata('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d');
-    
-    // const resp = await opensea.getCollection('boredapeyachtclub');
-    // logger.log(resp);
-    await apppendDisplayTypeToCollections();
+
+    while(true) {
+      await sleep(60_000);
+      await collectionDao.getCollectionsSummary();
+    }
+
+
+
+    // await apppendDisplayTypeToCollections();
   } catch (err) {
     logger.error(err);
   }
+}
+
+
+
+async function enqueueResultsDotJson(): Promise<void> {
+  const file = './results.json';
+
+  const rawData = await readFile(file, 'utf-8');
+  const data: Array<{address: string, chainId: string}> = JSON.parse(rawData);
+
+  const collectionsEnqueued: Array<{address: string}> = [];
+  
+  for(const collection of data) {
+    const response = await got.post({
+      url: `${COLLECTION_SERVICE_URL}/collection`,
+      json: {
+        address: collection.address,
+        chainId: collection.chainId
+      }
+    });
+
+    if(response.statusCode === 202) {
+      collectionsEnqueued.push({address: collection.address});
+    }
+  }
+
+  await writeFile('./enqueued.json', JSON.stringify(collectionsEnqueued));
 }
 
 export function flattener(): void {

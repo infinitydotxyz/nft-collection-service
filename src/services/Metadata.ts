@@ -108,7 +108,7 @@ export default class MetadataClient {
    * returns a promise for a successful response (i.e. status code 200)
    *
    */
-  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response<string>> {
+  async get(u: string | URL, priority = 0, attempt = 0): Promise<Response<string> | Pick<Response<string>, 'requestUrl' | 'statusCode' | 'url' | 'body' | 'rawBody'>> {
     attempt += 1;
 
     let url = new URL(u.toString());
@@ -120,6 +120,26 @@ export default class MetadataClient {
     }
 
     try {
+      if (url.protocol === 'data:') {
+        const rawUrl = url.toString();
+        const base64EncodedMetadata = rawUrl.split(',')?.[1] ?? '';
+        if(!base64EncodedMetadata) {
+          throw new Error(`Unable to parse on chain metadata. ${rawUrl}`);
+        }
+        const rawBody = Buffer.from(base64EncodedMetadata, 'base64');
+        const decodedMetadata = rawBody.toString('ascii');
+
+        const res: Pick<Response<string>, 'requestUrl' | 'statusCode' | 'url' | 'body' | 'rawBody'> = {
+          requestUrl: rawUrl,
+          statusCode: 200,
+          url: rawUrl,
+          body: decodedMetadata,
+          rawBody
+        }
+        return res;
+
+      }
+
       const response: Response<string> = await this.queue.add(
         async () => {
           /**
