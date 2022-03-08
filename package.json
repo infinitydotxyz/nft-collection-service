@@ -8,7 +8,7 @@
   },
   "scripts": {
     "pre:commit": "npm run fmt:write && npm run fix",
-    "build": "npm run update:types && npm run clean && tsc",
+    "build": "npm run update:lib && npm run clean && tsc",
     "clean": "rimraf ./dist",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
@@ -20,7 +20,7 @@
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",
-    "update:types": "npm update @infinityxyz/types"
+    "update:lib": "npm update @infinityxyz/lib"
   },
   "repository": {
     "type": "git",
@@ -46,7 +46,7 @@
   "dependencies": {
     "@alch/alchemy-web3": "^1.2.4",
     "@google-cloud/tasks": "^2.5.0",
-    "@infinityxyz/types": "^1.1.2",
+    "@infinityxyz/lib": "^1.1.2",
     "axios": "^0.26.0",
     "bl": "^5.0.0",
     "chalk": "^4.1.2",

@@ -1,6 +1,6 @@
 import { singleton } from 'tsyringe';
 import Firebase from '../database/Firebase';
-import { Token } from '@infinityxyz/types/core';
+import { Token } from '@infinityxyz/lib/types/core';
 
 @singleton()
 export default class TokenDao {

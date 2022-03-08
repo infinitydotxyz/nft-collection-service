@@ -2,7 +2,14 @@ import Contract, { HistoricalLogsChunk } from './contracts/Contract.interface';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import PQueue from 'p-queue';
 import { ALCHEMY_CONCURRENCY, NULL_ADDR } from '../constants';
-import { ImageData, MetadataData, MintToken, RefreshTokenFlow, Token , Collection as CollectionType } from '@infinityxyz/types/core';
+import {
+  ImageData,
+  MetadataData,
+  MintToken,
+  RefreshTokenFlow,
+  Token,
+  Collection as CollectionType
+} from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
 import { ethers } from 'ethers';
 import Nft from './Nft';

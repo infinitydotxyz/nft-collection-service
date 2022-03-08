@@ -8,8 +8,10 @@ import {
   MintToken,
   RefreshTokenFlow,
   Token,
-  TokenMetadata
-, Collection as CollectionType, CreationFlow } from '@infinityxyz/types/core';
+  TokenMetadata,
+  Collection as CollectionType,
+  CreationFlow
+} from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
 import { COLLECTION_SCHEMA_VERSION } from '../constants';
 import { getSearchFriendlyString } from '../utils';
@@ -725,15 +727,15 @@ export default class Collection extends AbstractCollection {
     const openseaLimit = 50;
     const openseaTokenIdsLimit = 20;
 
-    const tokensMap: {[key: string]: Token} = tokens.reduce((acc, item) => {
-      if(item?.tokenId) {
+    const tokensMap: { [key: string]: Token } = tokens.reduce((acc, item) => {
+      if (item?.tokenId) {
         return {
           ...acc,
           [item.tokenId]: item
-        }
+        };
       }
       return acc;
-    }, {})
+    }, {});
 
     // fetch tokens that don't have images
     const imageLessTokens = [];

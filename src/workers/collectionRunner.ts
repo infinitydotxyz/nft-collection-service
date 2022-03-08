@@ -4,7 +4,14 @@ import { firebase, logger, tokenDao } from '../container';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 import ContractFactory from '../models/contracts/ContractFactory';
 import Collection from '../models/Collection';
-import { Collection as CollectionType, CreationFlow , ImageData, MetadataData, MintToken, Token } from '@infinityxyz/types/core';
+import {
+  Collection as CollectionType,
+  CreationFlow,
+  ImageData,
+  MetadataData,
+  MintToken,
+  Token
+} from '@infinityxyz/lib/types/core';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
@@ -111,7 +118,6 @@ export async function create(
   let lastProgressUpdateAt = 0;
   const lastStep = '';
   emitter.on('progress', ({ step, progress }) => {
-
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
