@@ -49,7 +49,7 @@ export async function main(): Promise<void> {
       address = req.body.address as string;
       chainId = req.body.chainId as string;
       indexInitiator = req.body.indexInitiator as string;
-
+      
       if (!indexInitiator) {
         indexInitiator = NULL_ADDR;
       }

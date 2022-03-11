@@ -12,7 +12,9 @@ export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
 export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
 export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
-export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+export const DEV_COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+export const PROD_COLLECTION_SERVICE_URL = ''; // TODO adi add this once deployed to prod
+export const COLLECTION_SERVICE_URL = DEV_COLLECTION_SERVICE_URL; 
 /**
  * ---------------------------------------
  */
