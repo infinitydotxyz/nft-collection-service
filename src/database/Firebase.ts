@@ -6,6 +6,7 @@ import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { normalizeAddress } from '../utils/ethers';
+import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Firebase {
@@ -32,7 +33,7 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${normalizeAddress(address)}`);
+    const collectionDoc = this.db.collection('collections').doc(getCollectionDocId({chainId, collectionAddress: address}));
     return collectionDoc;
   }
 

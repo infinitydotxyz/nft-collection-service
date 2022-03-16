@@ -1,5 +1,3 @@
-import ContractFactory from './contracts/ContractFactory';
-import CollectionMetadataProvider from './CollectionMetadataProvider';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import { COLLECTION_TASK_CONCURRENCY, NULL_ADDR } from '../constants';
@@ -10,17 +8,12 @@ import { normalizeAddress, validateAddress, validateChainId } from '../utils/eth
 
 @singleton()
 export default class CollectionService extends EventEmitter {
-  private readonly contractFactory: ContractFactory;
-  private readonly collectionMetadataProvider: CollectionMetadataProvider;
-
   private readonly taskQueue: PQueue;
 
   readonly concurrency: number;
 
   constructor() {
     super();
-    this.contractFactory = new ContractFactory();
-    this.collectionMetadataProvider = new CollectionMetadataProvider();
     this.concurrency = COLLECTION_TASK_CONCURRENCY;
     this.taskQueue = new PQueue({
       concurrency: this.concurrency // number of collections to run at once

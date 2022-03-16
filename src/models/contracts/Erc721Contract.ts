@@ -261,4 +261,15 @@ export default class Erc721Contract extends AbstractContract {
     }
     return '';
   }
+
+  async implementsStandard(): Promise<boolean> {
+    try {
+      // arbitrary, non-null address (erc721 throws error if null)
+      const address = '0x22c3b13EC38cbE06Cf3a4C49c100C65ce830A662';
+      await this.contract.functions.balanceOf(address);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
 }

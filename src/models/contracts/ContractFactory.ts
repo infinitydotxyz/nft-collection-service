@@ -1,7 +1,7 @@
-import { ethers } from 'ethers';
 import Contract from './Contract.interface';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
 import Erc721Contract from './Erc721Contract';
+import { validateAddress, validateChainId } from 'utils/ethers';
 
 export default class ContractFactory {
   async create(address: string, chainId: string): Promise<Contract> {
@@ -16,17 +16,18 @@ export default class ContractFactory {
   }
 
   private async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
-    // TODO sniff or request token standard
-    if (!ethers.utils.isAddress(address)) {
-      throw new Error(`invaplid token address: ${address}`);
-    }
+    validateAddress(address);
+    validateChainId(chainId);
+    
+    const erc721 = new Erc721Contract(address, chainId);
+    
+    const isErc721 = await erc721.implementsStandard();
 
-    if (!chainId) {
-      throw new Error(`invalid chainId: ${chainId}`);
-    }
+    if(isErc721) {
+      return TokenStandard.ERC721;
+    } 
 
-    return await new Promise((resolve, reject) => {
-      resolve(TokenStandard.ERC721);
-    });
+    throw new Error('Failed to detect token standard');
   }
+
 }
