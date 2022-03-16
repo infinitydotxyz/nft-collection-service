@@ -5,28 +5,77 @@ import { buildCollections } from './scripts/buildCollections';
 import { sleep } from './utils';
 import fs, { read } from 'fs';
 import path from 'path';
-import { readFile , writeFile } from 'fs/promises';
+import { readFile, writeFile } from 'fs/promises';
 import got from 'got/dist/source';
 import { COLLECTION_SERVICE_URL } from './constants';
+import ContractFactory from 'models/contracts/ContractFactory';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+
+async function deleteCollection(db: FirebaseFirestore.Firestore, collectionPath: string, batchSize: number): Promise<void> {
+  const collectionRef = db.collection(collectionPath);
+  const query = collectionRef.orderBy('__name__').limit(batchSize);
+
+  return await new Promise((resolve, reject) => {
+    deleteQueryBatch(db, query, resolve).catch(reject);
+  });
+}
+
+async function deleteQueryBatch(db: FirebaseFirestore.Firestore, query: FirebaseFirestore.Query, resolve: () => void): Promise<void> {
+  const snapshot = await query.get();
+
+  const batchSize = snapshot.size;
+  if (batchSize === 0) {
+    // When there are no documents left, we are done
+    resolve();
+    return;
+  }
+
+  // Delete documents in a batch
+  const batch = db.batch();
+  snapshot.docs.forEach((doc: FirebaseFirestore.DocumentSnapshot) => {
+    batch.delete(doc.ref);
+  });
+  await batch.commit();
+
+  // Recurse on the next process tick, to avoid
+  // exploding the stack.
+  process.nextTick(() => {
+    void deleteQueryBatch(db, query, resolve);
+  });
+}
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await enqueueResultsDotJson();
-    const rawData = await readFile('./enqueued.json', 'utf-8');
-    const data: Array<{address: string}> = JSON.parse(rawData);
-    logger.log(`${data.length} collections were enqueued`);
+    // await collectionDao.getCollectionsSummary();
+    const iterator = collectionDao.streamCollections();
+
+    for await (const { collection, ref } of iterator) {
+      const factory = new ContractFactory();
+      const address = collection.address;
+      const chainId = collection.chainId;
+      if (address && chainId) {
+        try {
+          const standard = await factory.getTokenStandard(address, chainId);
+        } catch (err: any) {
+          const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
+          logger.log(message);
+          logger.log(`Found non ERC721 contract. Deleting ${chainId}:${address} nfts`)
+          const nftsCollection = ref.collection(firestoreConstants.COLLECTION_NFTS_COLL).path;
+          await deleteCollection(firebase.db, nftsCollection, 400);
+          await ref.set({ state: { create: { step: '', error: { message } } } }, { merge: true });
+          logger.log('Deleted collection nfts');
+        }
+      }
+    }
+    logger.log('Successfully checked all collection token standards');
+
     // for(const collection of data) {
 
     // }
 
-    while(true) {
-      await sleep(60_000);
-      await collectionDao.getCollectionsSummary();
-    }
-
-
+    // await collectionDao.getCollectionsSummary();
 
     // await apppendDisplayTypeToCollections();
   } catch (err) {
@@ -34,17 +83,15 @@ export async function main(): Promise<void> {
   }
 }
 
-
-
 async function enqueueResultsDotJson(): Promise<void> {
   const file = './results.json';
 
   const rawData = await readFile(file, 'utf-8');
-  const data: Array<{address: string, chainId: string}> = JSON.parse(rawData);
+  const data: Array<{ address: string; chainId: string }> = JSON.parse(rawData);
 
-  const collectionsEnqueued: Array<{address: string}> = [];
-  
-  for(const collection of data) {
+  const collectionsEnqueued: Array<{ address: string }> = [];
+
+  for (const collection of data) {
     const response = await got.post({
       url: `${COLLECTION_SERVICE_URL}/collection`,
       json: {
@@ -53,8 +100,8 @@ async function enqueueResultsDotJson(): Promise<void> {
       }
     });
 
-    if(response.statusCode === 202) {
-      collectionsEnqueued.push({address: collection.address});
+    if (response.statusCode === 202) {
+      collectionsEnqueued.push({ address: collection.address });
     }
   }
 

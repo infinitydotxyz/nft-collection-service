@@ -15,7 +15,7 @@ export default class ContractFactory {
     }
   }
 
-  private async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
+  async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
     validateAddress(address);
     validateChainId(chainId);
     

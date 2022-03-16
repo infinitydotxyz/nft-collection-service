@@ -4,6 +4,8 @@ import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
 import { NUM_OWNERS_TTS } from '../constants';
 import { logger } from '../container';
 import { normalizeAddress } from '../utils/ethers';
+import { Readable } from 'stream';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class CollectionDao {
@@ -49,17 +51,24 @@ export default class CollectionDao {
     return collections;
   }
 
-  async getCollectionsSummary(): Promise<void> {
-    const stream = this.firebase.db.collection('collections').stream();
-
-    const collections: Array<Partial<Collection>> = [];
-    try {
+  streamCollections(): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
+    const stream = this.firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).stream();
+    async function* generator(): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
       for await (const snapshot of stream) {
-        const collection: Partial<Collection> = (snapshot as unknown as FirebaseFirestore.QueryDocumentSnapshot).data();
-        collections.push(collection);
+        const snap = (snapshot as unknown as FirebaseFirestore.QueryDocumentSnapshot);
+        const collection: Partial<Collection> = snap.data();
+        yield { collection, ref: snap.ref };
       }
-    } catch (err) {
-      logger.error(err);
+    }
+
+    return generator();
+  }
+
+  async getCollectionsSummary(): Promise<void> {
+    const collections: Array<Partial<Collection>> = [];
+    const iterator = this.streamCollections();
+    for await (const { collection } of iterator) {
+      collections.push(collection);
     }
 
     let completeCollections = 0;
