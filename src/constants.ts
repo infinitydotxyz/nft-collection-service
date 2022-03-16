@@ -18,8 +18,6 @@ export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-d
  */
 
 export const COLLECTION_SCHEMA_VERSION = 1;
-
-export const OPENSEA_API_KEY = getEnvironmentVariable('OPENSEA_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 
 /**
@@ -50,18 +48,12 @@ const getInfuraIPFSAuthKeys = (): string[] => {
 export const INFURA_API_KEYS = getInfuraIPFSAuthKeys();
 
 export const JSON_RPC_MAINNET_KEYS = (() => {
-  const apiKeys = [];
-  let i = 0;
-  while (true) {
-    try {
-      const apiKey = getEnvironmentVariable(`JSON_RPC_MAINNET${i}`);
-      apiKeys.push(apiKey);
-      i += 1;
-    } catch (err) {
-      break;
-    }
-  }
+  const apiKeys = getMultipleEnvVariables('JSON_RPC_MAINNET');
+  return apiKeys;
+})();
 
+export const OPENSEA_API_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
   return apiKeys;
 })();
 
@@ -91,7 +83,7 @@ const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
-export const COLLECTION_TASK_CONCURRENCY = 5;
+export const COLLECTION_TASK_CONCURRENCY = 2;
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
@@ -148,15 +140,6 @@ ${bar}
  * helper functions
  *
  */
-
-function getEnvironmentVariable(name: string, required = true): string {
-  const variable = process.env[name] ?? '';
-  if (required && !variable) {
-    throw new Error(`Missing environment variable ${name}`);
-  }
-  return variable;
-}
-
 function getMaxConcurrency(): { limit: number; message: string } {
   const systemLimit = maxConcurrencyPerCollection * COLLECTION_TASK_CONCURRENCY;
 
@@ -172,4 +155,36 @@ function getMaxConcurrency(): { limit: number; message: string } {
     limit: maxConcurrencyPerCollection > 20 ? maxConcurrencyPerCollection : 20,
     message: 'process heap size'
   };
+}
+
+
+function getMultipleEnvVariables(prefix: string, minLength = 1): string[] {
+  const variables = [];
+  let i = 0;
+
+  for (;;) {
+    try {
+      const apiKey = getEnvironmentVariable(`${prefix}${i}`);
+      variables.push(apiKey);
+      i += 1;
+    } catch (err) {
+      break;
+    }
+  }
+
+  if (variables.length < minLength) {
+    throw new Error(
+      `Env Variable: ${prefix} failed to get min number of keys. Found: ${variables.length} Expected: at least ${minLength}`
+    );
+  }
+
+  return variables;
+}
+
+function getEnvironmentVariable(name: string, required = true): string {
+  const variable = process.env[name] ?? '';
+  if (required && !variable) {
+    throw new Error(`Missing environment variable ${name}`);
+  }
+  return variable;
 }
