@@ -51,8 +51,9 @@ export default class CollectionDao {
     return collections;
   }
 
-  streamCollections(): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
-    const stream = this.firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).stream();
+  streamCollections(query?: FirebaseFirestore.Query): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
+    const allCollections = this.firebase.db.collection(firestoreConstants.COLLECTIONS_COLL);
+    const stream = query ? query?.stream() : allCollections.stream();
     async function* generator(): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
       for await (const snapshot of stream) {
         const snap = (snapshot as unknown as FirebaseFirestore.QueryDocumentSnapshot);
