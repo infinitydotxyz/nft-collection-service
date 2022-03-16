@@ -108,6 +108,7 @@ export default abstract class Contract implements IContract {
     provider: ethers.providers.JsonRpcProvider,
     options: PaginateLogsOptions
   ): Promise<HistoricalLogs> {
+    // eslint-disable-next-line prefer-const
     let { fromBlock, toBlock = 'latest', maxAttempts = 5, returnType = 'stream' } = options;
 
     toBlock = toBlock ?? 'latest';
@@ -130,6 +131,7 @@ export default abstract class Contract implements IContract {
     const maxBlock = await getMaxBlock(provider, toBlock);
     const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts);
     let readable: Readable;
+    let events: ethers.Event[] = [];
     switch (returnType) {
       case 'stream':
         readable = Readable.from(generator);
@@ -137,9 +139,7 @@ export default abstract class Contract implements IContract {
       case 'generator':
         return generator;
       case 'promise':
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         readable = Readable.from(generator);
-        let events: ethers.Event[] = [];
         for await (const data of readable) {
           events = [...events, ...data];
         }

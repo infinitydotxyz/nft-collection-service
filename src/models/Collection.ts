@@ -1,3 +1,5 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
   Erc721Token,
@@ -611,6 +613,7 @@ export default class Collection extends AbstractCollection {
     for (const token of metadataLessTokens) {
       const nft = new Nft(token as MintToken, this.contract, this.ethersQueue);
       const iterator = nft.refreshToken();
+      // eslint-disable-next-line no-async-promise-executor
       const tokenWithMetadataPromise = new Promise<MetadataToken>(async (resolve, reject) => {
         let tokenWithMetadata = token as Partial<Erc721Token>;
         try {

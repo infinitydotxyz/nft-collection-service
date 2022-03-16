@@ -200,7 +200,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    while (true) {
+    for(;;) { 
       attempt += 1;
 
       try {

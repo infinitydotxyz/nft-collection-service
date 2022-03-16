@@ -56,6 +56,7 @@ export default abstract class Collection {
 
     try {
       owner = await this.contract.getOwner();
+    // eslint-disable-next-line no-empty
     } catch {}
 
     if (!owner) {
@@ -108,6 +109,7 @@ export default abstract class Collection {
     const getBlockTimestampInMS = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
       const result = blockTimestamps.get(item.blockNumber);
       if (!result) {
+        // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<{ error: any } | { value: number }>(async (resolve) => {
           let attempts = 0;
           while (attempts < 3) {
@@ -135,6 +137,7 @@ export default abstract class Collection {
     const getPricePerMint = async (item: ethers.Event): Promise<{ error: any } | { value: number }> => {
       const result = transactions.get(item.transactionHash);
       if (!result) {
+        // eslint-disable-next-line no-async-promise-executor
         const promise = new Promise<{ error: any } | { value: number }>(async (resolve) => {
           let attempts = 0;
           while (attempts < 3) {
@@ -244,7 +247,7 @@ export default abstract class Collection {
     const tokens: MintToken[] = [];
     let unknownErrors = 0;
     for (const result of promiseSettledResults) {
-      if (result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value?.state?.metadata) {
+      if (result.status === 'fulfilled' && result.value?.state?.metadata && 'error' in result.value.state.metadata) {
         logger.log(result.value.state?.metadata.error);
       } else if (result.status === 'fulfilled') {
         tokens.push(result.value);

@@ -30,7 +30,7 @@ const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
 
   let i = 0;
-  while (true) {
+  for(;;) {
     try {
       const projectId = getEnvironmentVariable(`INFURA_IPFS_PROJECT_ID${i}`);
       const projectSecret = getEnvironmentVariable(`INFURA_IPFS_PROJECT_SECRET${i}`);

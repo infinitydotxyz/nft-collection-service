@@ -1,3 +1,5 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import fileType from 'file-type';
 import mime from 'mime-types';
 import Reader from 'it-reader';
@@ -25,8 +27,10 @@ export const detectContentType = async (path, source) => {
 
       if (done) return { source: reader };
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       fileSignature = await fileType.fromBuffer(value.slice());
 
+      // eslint-disable-next-line @typescript-eslint/require-await
       source = (async function* () {
         // eslint-disable-line require-await
         yield value;
@@ -36,6 +40,7 @@ export const detectContentType = async (path, source) => {
       if (err.code !== 'ERR_UNDER_READ') throw err;
 
       // not enough bytes for sniffing, just yield the data
+      // eslint-disable-next-line @typescript-eslint/require-await
       source = (async function* () {
         // eslint-disable-line require-await
         yield err.buffer; // these are the bytes that were read (if any)

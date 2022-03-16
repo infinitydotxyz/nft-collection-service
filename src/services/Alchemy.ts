@@ -3,6 +3,7 @@ import { AlchemyWeb3, createAlchemyWeb3 } from '@alch/alchemy-web3';
 import { singleton } from 'tsyringe';
 import { logger } from '../container';
 import axios from 'axios';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Alchemy {
@@ -38,8 +39,8 @@ export default class Alchemy {
     // Fetch metadata for a particular NFT:
     logger.log('fetching metadata for a crypto coven NFT...');
     const response = await this.web3.alchemy.getNftMetadata({
-      contractAddress: '0x5180db8F5c931aaE63c74266b211F580155ecac8',
-      tokenId: '1590'
+      contractAddress: trimLowerCase(address),
+      tokenId: `${tokenId}`
     });
     logger.log(JSON.stringify(response, null, 2));
   }

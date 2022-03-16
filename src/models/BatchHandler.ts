@@ -44,7 +44,7 @@ export default class BatchHandler {
       let attempt = 0;
       const batch = this.currentBatch.batch;
       this.currentBatch = this.newBatch();
-      while (true) {
+      for(;;) {
         attempt += 1;
         try {
           await batch.commit();

@@ -1,3 +1,4 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import Alchemy from './services/Alchemy';
 import { collectionDao, firebase, logger, alchemy, opensea } from './container';

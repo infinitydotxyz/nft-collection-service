@@ -15,7 +15,6 @@ import {
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
-import { getCollectionDocId } from '@infinityxyz/lib/utils';
 import Contract from 'models/contracts/Contract.interface';
 
 export async function createCollection(
@@ -197,7 +196,7 @@ export async function create(
           log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else if (unknownError) {
-          log(`Unknown error occured for collection: ${chainId}:${address} previously. Skipping for now`);
+          log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else {
           attempt += 1;
@@ -222,8 +221,7 @@ export async function create(
           switch (action) {
             case 'tokenRequest':
               await batch.flush();
-              const tokens = await tokenDao.getAllTokens(chainId, address);
-              valueToInject = tokens as Token[];
+              valueToInject = (await tokenDao.getAllTokens(chainId, address)) as Token[];
               break;
 
             default:
