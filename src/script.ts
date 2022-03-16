@@ -9,7 +9,7 @@ import { readFile, writeFile } from 'fs/promises';
 import got from 'got/dist/source';
 import { COLLECTION_SERVICE_URL } from './constants';
 import ContractFactory from 'models/contracts/ContractFactory';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
 
 
@@ -17,7 +17,6 @@ import { TokenStandard } from '@infinityxyz/lib/types/core';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-
     await checkCollectionTokenStandard()
     // await collectionDao.getCollectionsSummary();
     // for(const collection of data) {
@@ -123,7 +122,7 @@ async function enqueueResultsDotJson(): Promise<void> {
     });
 
     if (response.statusCode === 202) {
-      collectionsEnqueued.push({ address: collection.address });
+      collectionsEnqueued.push({ address: trimLowerCase(collection.address) });
     }
   }
 

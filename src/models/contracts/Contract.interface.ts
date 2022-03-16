@@ -70,5 +70,5 @@ export default interface Contract {
    */
   getTokenUri: (tokenId: string) => Promise<string>;
 
-  implementsStandard: () => Promise<boolean>;
+  supportsInterface: () => Promise<boolean>;
 }

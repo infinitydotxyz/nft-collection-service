@@ -21,7 +21,7 @@ export default class ContractFactory {
     
     const erc721 = new Erc721Contract(address, chainId);
     
-    const isErc721 = await erc721.implementsStandard();
+    const isErc721 = await erc721.supportsInterface();
 
     if(isErc721) {
       return TokenStandard.ERC721;
