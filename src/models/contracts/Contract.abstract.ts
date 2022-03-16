@@ -62,6 +62,8 @@ export default abstract class Contract implements IContract {
 
   abstract getTokenUri(tokenId: string): Promise<string>;
 
+  abstract implementsStandard(): Promise<boolean>;
+
   /**
    * throws an error if the chainId is invalid
    */
