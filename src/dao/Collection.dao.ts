@@ -51,12 +51,18 @@ export default class CollectionDao {
     return collections;
   }
 
-  streamCollections(query?: FirebaseFirestore.Query): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
+  streamCollections(
+    query?: FirebaseFirestore.Query
+  ): AsyncGenerator<{ collection: Partial<Collection>; ref: FirebaseFirestore.DocumentReference }, void, unknown> {
     const allCollections = this.firebase.db.collection(firestoreConstants.COLLECTIONS_COLL);
     const stream = query ? query?.stream() : allCollections.stream();
-    async function* generator(): AsyncGenerator<{ collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference}, void, unknown> {
+    async function* generator(): AsyncGenerator<
+      { collection: Partial<Collection>; ref: FirebaseFirestore.DocumentReference },
+      void,
+      unknown
+    > {
       for await (const snapshot of stream) {
-        const snap = (snapshot as unknown as FirebaseFirestore.QueryDocumentSnapshot);
+        const snap = snapshot as unknown as FirebaseFirestore.QueryDocumentSnapshot;
         const collection: Partial<Collection> = snap.data();
         yield { collection, ref: snap.ref };
       }
@@ -65,7 +71,16 @@ export default class CollectionDao {
     return generator();
   }
 
-  async getCollectionsSummary(): Promise<void> {
+  async getCollectionsSummary(): Promise<
+    { collections: Array<{
+      address: string | undefined;
+      chainId: string | undefined;
+      numNfts: number | undefined;
+      state: string;
+      error: string | Record<string, any>;
+      exported: boolean;
+    }>, numberComplete: number }
+  > {
     const collections: Array<Partial<Collection>> = [];
     const iterator = this.streamCollections();
     for await (const { collection } of iterator) {
@@ -87,8 +102,6 @@ export default class CollectionDao {
       };
     });
 
-    logger.log(JSON.stringify(data, null, 2));
-
-    logger.log(`Found: ${collections.length} collections. Number of complete collections: ${completeCollections}`);
+    return { collections: data, numberComplete: completeCollections };
   }
 }

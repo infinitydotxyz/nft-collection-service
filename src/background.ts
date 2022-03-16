@@ -4,7 +4,6 @@ import { ONE_HOUR } from './constants';
 import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
-import { migrateToVersion1 } from './scripts/migrateToVersion1';
 import { Collection } from '@infinityxyz/lib/types/core';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
@@ -21,11 +20,6 @@ const tasks: BackgroundTask[] = [
     interval: ONE_HOUR,
     fn: updateCollectionNumOwners
   },
-  {
-    name: 'Migrate collection schema',
-    interval: 'ONCE',
-    fn: migrateToVersion1
-  }
 ];
 
 /**

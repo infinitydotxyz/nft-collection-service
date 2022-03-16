@@ -17,12 +17,11 @@ import { TokenStandard } from '@infinityxyz/lib/types/core';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await checkCollectionTokenStandard()
+    // await checkCollectionTokenStandard()
+    const summary = await collectionDao.getCollectionsSummary();
+    logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
     // await collectionDao.getCollectionsSummary();
-    // for(const collection of data) {
-    // }
-    // await collectionDao.getCollectionsSummary();
-    // await apppendDisplayTypeToCollections();
+    // await appendDisplayTypeToCollections();
   } catch (err) {
     logger.error(err);
   }
@@ -87,7 +86,7 @@ async function checkCollectionTokenStandard(): Promise<void> {
             logger.log(message);
             logger.log(`Found non ERC721 contract. Deleting ${chainId}:${address} nfts`);
             const nftsCollection = ref.collection(firestoreConstants.COLLECTION_NFTS_COLL).path;
-            await deleteCollection(firebase.db, nftsCollection, 350);
+            await deleteCollection(firebase.db, nftsCollection, 300);
             await ref.set({ state: { create: { step: '', error: { message } } }, tokenStandard: '' }, { merge: true });
             logger.log('Deleted collection nfts');
           } else {
@@ -149,7 +148,7 @@ export function flattener(): void {
   fs.appendFileSync('results.json', ']');
 }
 
-export async function apppendDisplayTypeToCollections(): Promise<void> {
+export async function appendDisplayTypeToCollections(): Promise<void> {
   const data = await firebase.db.collection('collections').get();
   data.forEach(async (doc) => {
     await sleep(2000);
