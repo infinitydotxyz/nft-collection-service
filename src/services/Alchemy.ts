@@ -33,11 +33,12 @@ export default class Alchemy {
       logger.log('token ID:', nft.id.tokenId);
     }
     logger.log('===');
+
   }
+
 
   async getNFTMetadata(address: string, tokenId: number): Promise<void> {
     // Fetch metadata for a particular NFT:
-    logger.log('fetching metadata for a crypto coven NFT...');
     const response = await this.web3.alchemy.getNftMetadata({
       contractAddress: trimLowerCase(address),
       tokenId: `${tokenId}`
