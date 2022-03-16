@@ -88,7 +88,7 @@ async function checkCollectionTokenStandard(): Promise<void> {
             logger.log(message);
             logger.log(`Found non ERC721 contract. Deleting ${chainId}:${address} nfts`);
             const nftsCollection = ref.collection(firestoreConstants.COLLECTION_NFTS_COLL).path;
-            await deleteCollection(firebase.db, nftsCollection, 450);
+            await deleteCollection(firebase.db, nftsCollection, 350);
             await ref.set({ state: { create: { step: '', error: { message } } }, tokenStandard: '' }, { merge: true });
             logger.log('Deleted collection nfts');
           } else {
