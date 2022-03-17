@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 export function filterDuplicates<T>(items: T[], propertySelector: (item: T) => string): T[] {
   const hashes = new Set();
   return items.filter((item: T) => {
@@ -18,27 +20,22 @@ export async function sleep(duration: number): Promise<void> {
   });
 }
 
-export function isDev(): boolean {
-  return !!process.env.NODE_ENV;
-}
-
 export enum Env {
   Cli = 'cli',
   Script = 'script',
-  Production = 'production'
+  Serve = 'serve'
 }
 
 export function getEnv(): Env {
-  switch (process.env.NODE_ENV) {
+  switch (process.env.NODE_ENV_SCRIPT) {
     case Env.Cli:
       return Env.Cli;
     case Env.Script:
       return Env.Script;
+    case Env.Serve:
+      return Env.Serve;
     default:
-      if (process.env.NODE_ENV) {
-        throw new Error(`Invalid NODE_ENV: ${process.env.NODE_ENV}`);
-      }
-      return Env.Production;
+      throw new Error(`Invalid NODE_ENV_SCRIPT: ${process.env.NODE_ENV_SCRIPT}`);
   }
 }
 
@@ -63,4 +60,8 @@ export function randomInt(min: number, max: number): number {
 export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
+}
+
+export function hash(data: string): string {
+  return createHash('sha256').update(data).digest('hex').trim().toLowerCase();
 }

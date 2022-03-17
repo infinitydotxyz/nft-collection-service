@@ -1,12 +1,12 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, Erc721Token } from 'infinity-types/types/Token';
+import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
-import { CollectionAttributes } from 'infinity-types/types/Collection';
-import { DisplayType } from 'infinity-types/types/Metadata';
 import { normalize } from 'path';
+import { normalizeAddress } from '../../utils/ethers';
+import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants'
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -19,14 +19,14 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   decodeDeployer(event: ethers.Event): string {
-    const deployer: string = (event?.args?.[1] as string)?.toLowerCase?.() ?? '';
+    const deployer: string = normalizeAddress((event?.args?.[1] as string) ?? '');
     return deployer;
   }
 
   decodeTransfer(event: ethers.Event): { from: string; to: string; tokenId: string } {
     const args = event?.args;
-    const from = (args?.[0] as string)?.toLowerCase?.();
-    const to = (args?.[1] as string)?.toLowerCase?.();
+    const from = normalizeAddress((args?.[0] as string) ?? '');
+    const to = normalizeAddress((args?.[1] as string) ?? '');
     const tokenId = (args?.[2] as BigNumber)?.toString?.();
 
     if (!to || !from || !tokenId) {
@@ -51,7 +51,7 @@ export default class Erc721Contract extends AbstractContract {
     const updatedTokens: Erc721Token[] = [];
 
     for (const token of tokens) {
-      const tokenRarityScore = token?.metadata?.attributes?.reduce((raritySum, attribute) => {
+      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum, attribute) => {
         const traitType = attribute.trait_type ?? attribute.value;
         const attributeRarityScore = getRarityScore(traitType, attribute.value);
         return raritySum + attributeRarityScore;
@@ -119,7 +119,7 @@ export default class Erc721Contract extends AbstractContract {
     };
 
     for (const metadata of tokenMetadata) {
-      const attributes = metadata?.attributes ?? [];
+      const attributes = Array.isArray(metadata.attributes) ? metadata.attributes : [];
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
@@ -261,5 +261,18 @@ export default class Erc721Contract extends AbstractContract {
       }
     }
     return '';
+  }
+
+  async supportsInterface(): Promise<boolean> {
+    try {
+      const res = await this.contract.functions.supportsInterface(ERC721InterfaceId);
+      const isSupported = res[0];
+      if(typeof isSupported === 'boolean') {
+        return isSupported;
+      } 
+      return false;
+    } catch (err) {
+      return false;
+    }
   }
 }

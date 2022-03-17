@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
 import { Readable } from 'node:stream';
-import { CollectionAttributes } from 'infinity-types/types/Collection';
-import { Token, TokenStandard } from 'infinity-types/types/Token';
+import { CollectionAttributes, Token, TokenStandard } from '@infinityxyz/lib/types/core';
 export interface HistoricalLogsChunk {
   events: ethers.Event[];
   fromBlock: number;
@@ -70,4 +69,6 @@ export default interface Contract {
    * returns a promise for the uri of the token's metadata
    */
   getTokenUri: (tokenId: string) => Promise<string>;
+
+  supportsInterface: () => Promise<boolean>;
 }

@@ -3,10 +3,11 @@ import { firebase, logger } from '../container';
 import { filterDuplicates, getSearchFriendlyString, sleep } from '../utils';
 import PQueue from 'p-queue';
 import BatchHandler from '../models/BatchHandler';
-import { Collection, CreationFlow } from 'infinity-types/types/Collection';
+import { Collection } from '@infinityxyz/lib/types/core';
 import chalk from 'chalk';
 import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
+import { normalizeAddress } from '../utils/ethers';
 
 /**
  * buildCollections gets collections from opensea
@@ -56,7 +57,7 @@ export async function buildCollections(): Promise<void> {
     }
   }
 
-  const collectionQueue = new PQueue({ concurrency: 2, interval: 2000, intervalCap: 2 });
+  const queue = new PQueue({ concurrency: 2, interval: 2000, intervalCap: 2 });
 
   const batch = new BatchHandler();
 
@@ -75,8 +76,9 @@ export async function buildCollections(): Promise<void> {
         }
 
         const contracts: Array<Partial<Collection>> = [];
-        for (const contract of collection?.primary_asset_contracts) {
-          const address = (contract.address ?? '').trim().toLowerCase();
+        const primaryAssetContracts = collection?.primary_asset_contracts ?? [];
+        for (const contract of primaryAssetContracts) {
+          const address = normalizeAddress(contract.address ?? '');
           const openseaStorefront = '0x495f947276749ce646f68ac8c248420045cb7b5e';
           if (contract.name && contract.schema_name && address && address !== openseaStorefront) {
             try {
@@ -94,15 +96,7 @@ export async function buildCollections(): Promise<void> {
                   chainId: '1',
                   address: address,
                   metadata: metadata,
-                  slug,
-                  state: {
-                    create: {
-                      step: CreationFlow.CollectionCreator
-                    },
-                    export: {
-                      done: false
-                    }
-                  }
+                  slug
                 };
                 contracts.push(collectionData);
               }
@@ -130,17 +124,27 @@ export async function buildCollections(): Promise<void> {
   for await (const collections of iterator) {
     let validCollections = 0;
     const collectionsPromises: Array<Promise<void>> = [];
-    for (const collection of collections) {
-      if (!collection.slug.includes('untitled-collection')) {
+    for (const openseaCollection of collections) {
+      if (!openseaCollection.slug.includes('untitled-collection')) {
         validCollections += 1;
-        const promise = collectionQueue.add(async () => {
-          const contracts = await getCollection(collection.slug);
-          const uniqueContracts = filterDuplicates(contracts, (item) => `${item.chainId}-${item.address}`);
-          for (const contract of uniqueContracts) {
-            if (contract.chainId && contract.address) {
-              const doc = firebase.getCollectionDocRef(contract.chainId, contract.address);
-              batch.add(doc, contract, { merge: true });
-              logger.log(chalk.green(`Found contract: ${contract.chainId}:${contract.address} Name: ${contract.metadata?.name}`));
+        const promise = queue.add(async () => {
+          const collectionCollections = await getCollection(openseaCollection.slug);
+          const uniqueCollections = filterDuplicates(collectionCollections, (item) => `${item.chainId}-${item.address}`);
+          for (const collection of uniqueCollections) {
+            if (collection.chainId && collection.address) {
+              // const doc = firebase.getCollectionDocRef(contract.chainId, contract.address);
+              // batch.add(doc, contract, { merge: true });
+              try {
+                /**
+                 * TODO add to queue
+                 */
+                // await collectionQueue.enqueueCollection(collection.address, collection.chainId, Date.now(), collection);
+                logger.log(
+                  chalk.green(`Found collection: ${collection.chainId}:${collection.address} Name: ${collection.metadata?.name}`)
+                );
+              } catch (err) {
+                logger.error(`Failed to enqueue collection`, err);
+              }
             }
           }
         });
@@ -156,6 +160,7 @@ export async function buildCollections(): Promise<void> {
     try {
       logger.log(`Committing batch of ${batch.size} collections`);
       await batch.flush();
+    // eslint-disable-next-line no-empty
     } catch {}
   }
 }

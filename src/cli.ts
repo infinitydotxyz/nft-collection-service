@@ -3,19 +3,13 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { buildCollections } from './scripts/buildCollections';
 import { collectionService, logger } from './container';
+import { parseArgs, ModeArgument, setTerminalTitle } from './utils/cli';
+import { NULL_ADDR } from './constants';
+import { normalizeAddress } from './utils/ethers';
 
 enum Task {
   CreateCollection = 'create',
   ScrapeCollections = 'scrape'
-}
-
-interface ModeArgument {
-  arg: string;
-  default?: string;
-  required?: {
-    errorMessage: string;
-  };
-  validate?: (parsedArg: string) => true | string;
 }
 
 enum Mode {
@@ -63,6 +57,9 @@ function getTask(): Task {
 
 export async function main(): Promise<void> {
   const task = getTask();
+  collectionService.on('sizeChange', (data: { size: number; pending: number }) => {
+    setTerminalTitle(`Collection Queue Size: ${data.size} Pending: ${data.pending}  Total: ${data.size + data.pending}`);
+  });
 
   switch (task) {
     case Task.CreateCollection:
@@ -83,39 +80,6 @@ async function create(): Promise<void> {
     default:
       throw new Error('Mode not yet implemented');
   }
-}
-
-function parseArgs(modeArgs: ModeArgument[]): { [key: string]: string } {
-  const parseArg = (arg: string): string => {
-    const fullArg = process.argv.find((item) => {
-      return item.includes(arg);
-    });
-    return (fullArg ?? '').split('=')[1]?.trim() ?? '';
-  };
-
-  const args: { [key: string]: string } = {};
-
-  for (const desc of modeArgs) {
-    let arg: string | number = parseArg(desc.arg);
-    if (!arg && desc.default) {
-      arg = desc.default;
-    }
-
-    if (desc.required && !arg) {
-      throw new Error(desc.required.errorMessage);
-    }
-
-    if (typeof desc.validate === 'function') {
-      const result = desc.validate(arg);
-      if (typeof result === 'string' || !result) {
-        throw new Error(result);
-      }
-    }
-
-    args[desc.arg] = arg;
-  }
-
-  return args;
 }
 
 async function addressMode(): Promise<void> {
@@ -144,14 +108,14 @@ async function addressMode(): Promise<void> {
 
   const args = parseArgs(addressModeArgs);
 
-  const address = args.address;
+  const address = normalizeAddress(args.address);
   const chainId = args.chain;
   const hasBlueCheck = args.hasBlueCheck === 'true';
   const reset = args.reset === 'true';
 
   try {
     logger.log(`Starting Task: create Address: ${address} Chain Id: ${chainId} `);
-    await collectionService.createCollection(address, chainId, hasBlueCheck, reset);
+    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR);
   } catch (err) {
     logger.log(`Failed to complete task`);
     logger.error(err);

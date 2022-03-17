@@ -1,3 +1,5 @@
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable no-case-declarations */
 import {
   ImageToken,
   MetadataToken,
@@ -6,7 +8,7 @@ import {
   TokenMetadata,
   RefreshTokenFlow,
   UriToken
-} from 'infinity-types/types/Token';
+} from '@infinityxyz/lib/types/core';
 import Contract from './contracts/Contract.interface';
 import {
   RefreshTokenCacheImageError,
@@ -150,14 +152,14 @@ export default class Nft {
     }
 
     try {
-      while (true) {
+      for(;;) {
         switch (this.token.state?.metadata.step) {
           case RefreshTokenFlow.Uri:
             const mintToken = Nft.validateToken(this.token, RefreshTokenFlow.Mint);
             try {
               let attempt = 0;
               let tokenUri: string | undefined;
-              while (true) {
+              for(;;) {
                 attempt += 1;
                 try {
                   tokenUri = await this.tokenUriQueue?.add(async () => {

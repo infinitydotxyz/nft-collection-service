@@ -1,4 +1,4 @@
-import { CreationFlow } from 'infinity-types/types/Collection';
+import { CreationFlow } from '@infinityxyz/lib/types/core';
 
 export interface CreationFlowErrorJson {
   message: string;

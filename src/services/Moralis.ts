@@ -1,9 +1,8 @@
 import got, { Got, Response } from 'got';
-import { TokenStandard } from 'infinity-types/types/Token';
+import { TokenStandard, TokenMetadata } from '@infinityxyz/lib/types/core';
 import { sleep } from '../utils';
 import { MORALIS_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
-import { TokenMetadata } from 'infinity-types/types/Token';
 import PQueue from 'p-queue';
 import { singleton } from 'tsyringe';
 import { logger } from '../container';
@@ -127,7 +126,7 @@ export default class Moralis {
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
-    while (true) {
+    for(;;) {
       attempt += 1;
       try {
         const res = await this.queue.add(async () => {

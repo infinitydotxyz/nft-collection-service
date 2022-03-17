@@ -1,9 +1,8 @@
 import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
 import { Readable } from 'stream';
-import { CollectionAttributes } from 'infinity-types/types/Collection';
-import { Token, TokenStandard } from 'infinity-types/types/Token';
-import { ethersErrorHandler, getProviderByChainId } from '../../utils/ethers';
+import { CollectionAttributes, Token, TokenStandard } from '@infinityxyz/lib/types/core';
+import { ethersErrorHandler, getProviderByChainId, normalizeAddress } from 'utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions } from './Contract.interface';
 import { logger } from '../../container';
 
@@ -63,6 +62,8 @@ export default abstract class Contract implements IContract {
 
   abstract getTokenUri(tokenId: string): Promise<string>;
 
+  abstract supportsInterface(): Promise<boolean>;
+
   /**
    * throws an error if the chainId is invalid
    */
@@ -79,7 +80,7 @@ export default abstract class Contract implements IContract {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const owner: string = (await this.contract.owner()) ?? '';
-      return owner?.toLowerCase() ?? '';
+      return normalizeAddress(owner ?? '');
     } catch (err: any) {
       logger.error('failed to get collection owner', err);
       if ('code' in err) {
@@ -107,6 +108,7 @@ export default abstract class Contract implements IContract {
     provider: ethers.providers.JsonRpcProvider,
     options: PaginateLogsOptions
   ): Promise<HistoricalLogs> {
+    // eslint-disable-next-line prefer-const
     let { fromBlock, toBlock = 'latest', maxAttempts = 5, returnType = 'stream' } = options;
 
     toBlock = toBlock ?? 'latest';
@@ -129,6 +131,7 @@ export default abstract class Contract implements IContract {
     const maxBlock = await getMaxBlock(provider, toBlock);
     const generator = this.paginateLogsHelper(thunkedLogRequest, fromBlock, maxBlock, maxAttempts);
     let readable: Readable;
+    let events: ethers.Event[] = [];
     switch (returnType) {
       case 'stream':
         readable = Readable.from(generator);
@@ -136,9 +139,7 @@ export default abstract class Contract implements IContract {
       case 'generator':
         return generator;
       case 'promise':
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         readable = Readable.from(generator);
-        let events: ethers.Event[] = [];
         for await (const data of readable) {
           events = [...events, ...data];
         }

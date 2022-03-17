@@ -5,6 +5,7 @@ import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Firebase {
@@ -15,13 +16,15 @@ export default class Firebase {
   bucket: Bucket;
 
   constructor() {
-    const serviceAccountFile = resolve(`./creds/${FIREBASE_SERVICE_ACCOUNT}`);
+    const serviceAccountFile = resolve(__dirname, `../../creds/${FIREBASE_SERVICE_ACCOUNT}`);
 
     const serviceAccount = JSON.parse(readFileSync(serviceAccountFile, 'utf-8'));
+
     const app = firebaseAdmin.initializeApp({
       credential: firebaseAdmin.credential.cert(serviceAccount as ServiceAccount),
       storageBucket: FB_STORAGE_BUCKET
     });
+
     this.firebaseAdmin = app;
     this.db = firebaseAdmin.firestore();
     this.db.settings({ ignoreUndefinedProperties: true });
@@ -29,7 +32,7 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${address.toLowerCase()}`);
+    const collectionDoc = this.db.collection('collections').doc(getCollectionDocId({chainId, collectionAddress: address}));
     return collectionDoc;
   }
 
@@ -53,7 +56,7 @@ export default class Firebase {
 
   async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {
     let attempts = 0;
-    while (true) {
+    for(;;) {
       attempts += 1;
       try {
         let remoteFile = this.bucket.file(path);

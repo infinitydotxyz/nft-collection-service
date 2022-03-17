@@ -4,14 +4,14 @@ import { ONE_HOUR } from './constants';
 import { collectionDao, firebase, logger } from './container';
 import BatchHandler from './models/BatchHandler';
 import OpenSeaClient from './services/OpenSea';
-import { Collection } from 'infinity-types/types/Collection';
+import { Collection } from '@infinityxyz/lib/types/core';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
 
 interface BackgroundTask {
   name: string;
-  interval: number;
-  fn: (emitter: BackgroundTaskEmitter) => Promise<void>;
+  interval: number | 'ONCE';
+  fn: (emitter: BackgroundTaskEmitter) => Promise<void> | void;
 }
 
 const tasks: BackgroundTask[] = [
@@ -19,7 +19,7 @@ const tasks: BackgroundTask[] = [
     name: 'Collection numOwners',
     interval: ONE_HOUR,
     fn: updateCollectionNumOwners
-  }
+  },
 ];
 
 /**
@@ -29,7 +29,8 @@ export function main(): void {
   const runTask = (task: BackgroundTask): void => {
     const emitter: BackgroundTaskEmitter = new Emittery();
     const log = (message: string): void => {
-      logger.log(chalk.blue(`[Background Task][${task.name}][${task.interval / 1000}s interval] ${message}`));
+      const interval = task.interval === 'ONCE' ? 'ONCE' : `${task.interval / 1000}s`;
+      logger.log(chalk.blue(`[Background Task][${task.name}][${interval} interval] ${message}`));
     };
 
     emitter.on('update', (update) => {
@@ -53,9 +54,11 @@ export function main(): void {
 
     void run();
 
-    setInterval(() => {
-      void run();
-    }, task.interval);
+    if (typeof task.interval === 'number') {
+      setInterval(() => {
+        void run();
+      }, task.interval);
+    }
   };
 
   for (const task of tasks) {

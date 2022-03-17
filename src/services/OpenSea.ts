@@ -1,12 +1,11 @@
 import { ethers } from 'ethers';
 
-import { sleep } from '../utils';
-import { OPENSEA_API_KEY } from '../constants';
-import { CollectionMetadata } from 'infinity-types/types/Collection';
+import { randomItem, sleep } from '../utils';
+import { OPENSEA_API_KEYS } from '../constants';
+import { CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import { CollectionMetadataProvider } from '../types/CollectionMetadataProvider.interface';
 import got, { Got, Response } from 'got/dist/source';
 import { gotErrorHandler } from '../utils/got';
-import { TokenStandard } from 'infinity-types/types/Token';
 
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
@@ -39,8 +38,20 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
   constructor() {
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
-      headers: {
-        'x-api-key': OPENSEA_API_KEY
+      hooks: {
+        beforeRequest: [
+          (options) => {
+            if(!options?.headers?.['x-api-key']) {
+
+              if(!options.headers) {
+                options.headers = {}
+              }
+
+              const randomApiKey = randomItem(OPENSEA_API_KEYS);
+              options.headers['x-api-key'] = randomApiKey;
+            }
+          }
+        ]
       },
       /**
        * requires us to check status code
@@ -189,7 +200,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    while (true) {
+    for(;;) { 
       attempt += 1;
 
       try {

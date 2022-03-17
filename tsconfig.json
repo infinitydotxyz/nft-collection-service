@@ -19,6 +19,7 @@
         "sourceMap": true,
         "emitDecoratorMetadata": true,
 
+        "rootDir": "./src",
         "outDir": "dist",
         "baseUrl": "./src",
     },
