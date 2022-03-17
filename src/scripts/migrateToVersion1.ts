@@ -1,5 +1,5 @@
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
-import { firebase } from '../container';
+import { collectionDao } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
 
@@ -11,10 +11,9 @@ import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
  */
 export async function migrateToVersion1(): Promise<void> {
   const batchHandler = new BatchHandler();
-  const collections = await firebase.db.collection('collections').get();
-  collections.forEach((snapshot) => {
-    const collectionRef = snapshot.ref;
-    const collection: Partial<Collection> = snapshot.data();
+  const iterator = collectionDao.streamCollections();
+  for await (const {collection, ref} of iterator) {
+    const collectionRef = ref;
     if (collection?.state?.create?.step === CreationFlow.Complete) {
       const completedCollection: Collection = {
         ...(collection as Collection),
@@ -50,6 +49,7 @@ export async function migrateToVersion1(): Promise<void> {
       };
       batchHandler.add(collectionRef, incompleteCollection, { merge: true });
     }
-  });
+  }
+
   await batchHandler.flush();
 }

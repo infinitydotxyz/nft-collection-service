@@ -69,4 +69,6 @@ export default interface Contract {
    * returns a promise for the uri of the token's metadata
    */
   getTokenUri: (tokenId: string) => Promise<string>;
+
+  supportsInterface: () => Promise<boolean>;
 }

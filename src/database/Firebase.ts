@@ -5,7 +5,7 @@ import { FB_STORAGE_BUCKET, FIREBASE_SERVICE_ACCOUNT } from '../constants';
 import { Readable } from 'stream';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { normalizeAddress } from '../utils/ethers';
+import { getCollectionDocId } from '@infinityxyz/lib/utils';
 
 @singleton()
 export default class Firebase {
@@ -32,7 +32,7 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(`${chainId}:${normalizeAddress(address)}`);
+    const collectionDoc = this.db.collection('collections').doc(getCollectionDocId({chainId, collectionAddress: address}));
     return collectionDoc;
   }
 
@@ -56,7 +56,7 @@ export default class Firebase {
 
   async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {
     let attempts = 0;
-    while (true) {
+    for(;;) {
       attempts += 1;
       try {
         let remoteFile = this.bucket.file(path);

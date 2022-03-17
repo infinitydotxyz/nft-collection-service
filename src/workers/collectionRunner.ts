@@ -15,6 +15,7 @@ import {
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { NULL_ADDR } from '../constants';
+import Contract from 'models/contracts/Contract.interface';
 
 export async function createCollection(
   address: string,
@@ -62,10 +63,17 @@ export async function create(
   log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset}`);
   const provider = new CollectionMetadataProvider();
   const contractFactory = new ContractFactory();
-  const contract = await contractFactory.create(address, chainId);
-  const collection = new Collection(contract, provider);
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
+  let contract: Contract;
+  try{
+    contract = await contractFactory.create(address, chainId);
+  }catch (err: any) {
+    const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
+    await collectionDoc.set({ state: { create: { step: '', error: { message } } } }, { merge: true })
+    throw err;
+  }
 
+  const collection = new Collection(contract, provider);
   const batch = new BatchHandler();
 
   const data = await collectionDoc.get();
@@ -116,7 +124,6 @@ export async function create(
 
   let lastLogAt = 0;
   let lastProgressUpdateAt = 0;
-  const lastStep = '';
   emitter.on('progress', ({ step, progress }) => {
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
@@ -189,7 +196,7 @@ export async function create(
           log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else if (unknownError) {
-          log(`Unknown error occured for collection: ${chainId}:${address} previously. Skipping for now`);
+          log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
         } else {
           attempt += 1;
@@ -214,8 +221,7 @@ export async function create(
           switch (action) {
             case 'tokenRequest':
               await batch.flush();
-              const tokens = await tokenDao.getAllTokens(chainId, address);
-              valueToInject = tokens as Token[];
+              valueToInject = (await tokenDao.getAllTokens(chainId, address)) as Token[];
               break;
 
             default:

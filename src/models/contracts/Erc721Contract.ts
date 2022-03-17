@@ -6,6 +6,7 @@ import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
 import { normalize } from 'path';
 import { normalizeAddress } from '../../utils/ethers';
+import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants'
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -260,5 +261,18 @@ export default class Erc721Contract extends AbstractContract {
       }
     }
     return '';
+  }
+
+  async supportsInterface(): Promise<boolean> {
+    try {
+      const res = await this.contract.functions.supportsInterface(ERC721InterfaceId);
+      const isSupported = res[0];
+      if(typeof isSupported === 'boolean') {
+        return isSupported;
+      } 
+      return false;
+    } catch (err) {
+      return false;
+    }
   }
 }

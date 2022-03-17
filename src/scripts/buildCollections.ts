@@ -76,7 +76,8 @@ export async function buildCollections(): Promise<void> {
         }
 
         const contracts: Array<Partial<Collection>> = [];
-        for (const contract of collection?.primary_asset_contracts) {
+        const primaryAssetContracts = collection?.primary_asset_contracts ?? [];
+        for (const contract of primaryAssetContracts) {
           const address = normalizeAddress(contract.address ?? '');
           const openseaStorefront = '0x495f947276749ce646f68ac8c248420045cb7b5e';
           if (contract.name && contract.schema_name && address && address !== openseaStorefront) {
@@ -159,6 +160,7 @@ export async function buildCollections(): Promise<void> {
     try {
       logger.log(`Committing batch of ${batch.size} collections`);
       await batch.flush();
+    // eslint-disable-next-line no-empty
     } catch {}
   }
 }
