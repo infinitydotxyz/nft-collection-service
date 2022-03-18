@@ -4,7 +4,7 @@
   "description": "",
   "engines": {
     "node": "16.x.x",
-    "npm": "8.x.x"
+    "npm": "7.x.x"
   },
   "scripts": {
     "pre:commit": "npm run fmt:write && npm run fix",
