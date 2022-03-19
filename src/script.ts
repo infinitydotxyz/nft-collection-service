@@ -12,15 +12,17 @@ import { COLLECTION_SERVICE_URL } from './constants';
 import ContractFactory from 'models/contracts/ContractFactory';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
+import { deleteDataSubColl } from 'scripts/deleteDataSubColl';
 
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
+    await deleteDataSubColl();
     // await checkCollectionTokenStandard()
-    const summary = await collectionDao.getCollectionsSummary();
-    logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+    // const summary = await collectionDao.getCollectionsSummary();
+    // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
     // await collectionDao.getCollectionsSummary();
     // await appendDisplayTypeToCollections();
   } catch (err) {
