@@ -2,8 +2,7 @@ import PQueue from 'p-queue';
 import { EventEmitter } from 'stream';
 import { firebase, logger } from '../container';
 
-export async function deleteDataSubColl() {
-  const groups = ['data', 'daily', 'hourly', 'weekly', 'monthly', 'yearly', 'collectionStats', 'nftStats'];
+export async function deleteCollectionGroups(groups: string[]) {
   const pQueue = new PQueue({
     concurrency: 300
   });

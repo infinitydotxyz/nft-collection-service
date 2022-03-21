@@ -5,13 +5,36 @@ import { sleep } from './utils';
 import fs from 'fs';
 import path from 'path';
 
-import { deleteDataSubColl } from 'scripts/deleteDataSubColl';
+import { deleteCollectionGroups } from 'scripts/deleteDataSubColl';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await deleteDataSubColl();
+    const collectionGroupsToDelete = [
+      'data',
+      'daily',
+      'hourly',
+      'weekly',
+      'monthly',
+      'yearly',
+      'collectionStats',
+      'nftStats',
+      'nft',
+      'collectionStatsAllTime',
+      'collectionStatsHourly',
+      'collectionStatsDaily',
+      'collectionStatsWeekly',
+      'collectionStatsMonthly',
+      'collectionStatsYearly',
+      'nftStatsAllTime',
+      'nftStatsHourly',
+      'nftStatsDaily',
+      'nftStatsWeekly',
+      'nftStatsMonthly',
+      'nftStatsYearly'
+    ];
+    await deleteCollectionGroups(collectionGroupsToDelete);
     // await checkCollectionTokenStandard()
     // const summary = await collectionDao.getCollectionsSummary();
     // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
