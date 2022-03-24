@@ -18,8 +18,8 @@ export async function main(): Promise<void> {
       'weekly',
       'monthly',
       'yearly',
-      'collectionStats',
-      'nftStats',
+      'collectionStats', // overlaps with current structure
+      'nftStats', // overlaps with current structure
       'nft',
       'collectionStatsAllTime',
       'collectionStatsHourly',
