@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType } from '@infinityxyz/lib/types/core';
+import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType, Token } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
@@ -40,7 +40,7 @@ export default class Erc721Contract extends AbstractContract {
     };
   }
 
-  calculateRarity(tokens: Erc721Token[], collectionAttributes?: CollectionAttributes): Erc721Token[] {
+  calculateRarity(tokens: Token[], collectionAttributes?: CollectionAttributes): Token[] {
     const attributes = collectionAttributes ?? this.aggregateTraits(tokens);
 
     const getRarityScore = (traitType: string | number, traitValue: string | number): number => {
@@ -50,7 +50,8 @@ export default class Erc721Contract extends AbstractContract {
 
     const updatedTokens: Erc721Token[] = [];
 
-    for (const token of tokens) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    for (const token of tokens as Erc721Token[]) {
       const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum, attribute) => {
         const traitType = attribute.trait_type ?? attribute.value;
         const attributeRarityScore = getRarityScore(traitType, attribute.value);
@@ -72,7 +73,8 @@ export default class Erc721Contract extends AbstractContract {
     });
   }
 
-  aggregateTraits(tokens: Erc721Token[]): CollectionAttributes {
+  aggregateTraits(tokens: Token[]): CollectionAttributes {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
 
@@ -123,9 +125,9 @@ export default class Erc721Contract extends AbstractContract {
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
-          incrementTrait(attribute.value, attribute.trait_type, attribute.display_type);
+          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined, attribute.display_type as DisplayType | undefined);
         } else {
-          incrementTrait(attribute.value, attribute.trait_type);
+          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined );
         }
       }
     }

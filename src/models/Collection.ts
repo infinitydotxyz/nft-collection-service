@@ -2,7 +2,6 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
-  Erc721Token,
   ImageData,
   ImageToken,
   MetadataData,
@@ -426,7 +425,17 @@ export default class Collection extends AbstractCollection {
     hasBlueCheck: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionCreatorType> {
-    const creator = await this.getCreator();
+    let creator = {
+      deployedAt: Number.NaN,
+      deployer: '',
+      owner: '',
+      deployedAtBlock: Number.NaN
+    };
+    try {
+      creator = await this.getCreator();
+    } catch (err) {
+      console.error(`Failed to get creator`, err);
+    }
     const initialCollection: CollectionCreatorType = {
       indexInitiator: indexInitiator,
       chainId: this.contract.chainId,
@@ -615,7 +624,7 @@ export default class Collection extends AbstractCollection {
       const iterator = nft.refreshToken();
       // eslint-disable-next-line no-async-promise-executor
       const tokenWithMetadataPromise = new Promise<MetadataToken>(async (resolve, reject) => {
-        let tokenWithMetadata = token as Partial<Erc721Token>;
+        let tokenWithMetadata = token as Partial<Token>;
         try {
           let prevTokenProgress = 0;
           for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {

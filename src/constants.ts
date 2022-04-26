@@ -9,6 +9,8 @@ import v8 from 'v8';
 export const PROJECT = 'nftc-dev';
 export const PROJECT_LOCATION = 'us-east1';
 export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
+// export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
+
 export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
 export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';

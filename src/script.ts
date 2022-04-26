@@ -1,43 +1,53 @@
-// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { firebase, logger, opensea } from './container';
+import { collectionDao, firebase, logger, opensea } from './container';
 import { sleep } from './utils';
+import {readFile} from 'fs/promises';
 import fs from 'fs';
+
 import path from 'path';
 
 import { deleteCollectionGroups } from 'scripts/deleteDataSubColl';
+import { start } from 'scripts/deleteDataSubCollThreads';
+import { fixInfinityStats } from 'scripts/fixInfinityStats';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    const collectionGroupsToDelete = [
-      'data',
-      'daily',
-      'hourly',
-      'weekly',
-      'monthly',
-      'yearly',
-      'collectionStats', // overlaps with current structure
-      'nftStats', // overlaps with current structure
-      'nft',
-      'collectionStatsAllTime',
-      'collectionStatsHourly',
-      'collectionStatsDaily',
-      'collectionStatsWeekly',
-      'collectionStatsMonthly',
-      'collectionStatsYearly',
-      'nftStatsAllTime',
-      'nftStatsHourly',
-      'nftStatsDaily',
-      'nftStatsWeekly',
-      'nftStatsMonthly',
-      'nftStatsYearly'
-    ];
-    await deleteCollectionGroups(collectionGroupsToDelete);
+
+    // await fixInfinityStats();
     // await checkCollectionTokenStandard()
     // const summary = await collectionDao.getCollectionsSummary();
-    // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+    // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+    
+
+    const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
+    logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+
+    const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
+      return {
+        ...acc,
+        [collection.state]: [...(acc[collection.state] || []), collection]
+      }
+    }, {});
+
+    const nonErc721 = [];
+
+    for(const [state, collections] of Object.entries(collectionsByState)) {
+      const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
+      console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
+      for(const collection  of collections as any[]) {
+        if(collection.error.message === 'Failed to detect token standard') {
+          nonErc721.push(collection);
+        }
+      }
+    }
+
+    console.log(`Found: ${nonErc721.length} ${Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100}%  collections without ERC721 standard`);
+    
     // await collectionDao.getCollectionsSummary();
     // await appendDisplayTypeToCollections();
   } catch (err) {
