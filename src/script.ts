@@ -86,7 +86,7 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
 }
 
 export async function getCollectionsFromMnemonic(): Promise<void> {
-  const data = await mnemonic.getCollection('0x7ae83250a1d15bcaaf813e315072e0ad5ece1be3');
+  const data = await mnemonic.getERC721Collections();
   console.log(data);
 }
 
