@@ -1,7 +1,7 @@
 import Contract from './Contract.interface';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
 import Erc721Contract from './Erc721Contract';
-import { validateAddress, validateChainId } from 'utils/ethers';
+import { validateAddress, validateChainId } from '../../utils/ethers';
 
 export default class ContractFactory {
   async create(address: string, chainId: string): Promise<Contract> {

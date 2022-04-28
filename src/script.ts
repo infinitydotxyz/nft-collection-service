@@ -1,6 +1,8 @@
 // eslint-disable-next-line eslint-comments/disable-enable-pair
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { firebase, logger, opensea } from './container';
+import 'dotenv/config';
+import 'reflect-metadata';
+import { firebase, logger, opensea, mnemonic } from './container';
 import { sleep } from './utils';
 import fs from 'fs';
 import path from 'path';
@@ -11,30 +13,31 @@ import { deleteCollectionGroups } from 'scripts/deleteDataSubColl';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    const collectionGroupsToDelete = [
-      'data',
-      'daily',
-      'hourly',
-      'weekly',
-      'monthly',
-      'yearly',
-      'collectionStats', // overlaps with current structure
-      'nftStats', // overlaps with current structure
-      'nft',
-      'collectionStatsAllTime',
-      'collectionStatsHourly',
-      'collectionStatsDaily',
-      'collectionStatsWeekly',
-      'collectionStatsMonthly',
-      'collectionStatsYearly',
-      'nftStatsAllTime',
-      'nftStatsHourly',
-      'nftStatsDaily',
-      'nftStatsWeekly',
-      'nftStatsMonthly',
-      'nftStatsYearly'
-    ];
-    await deleteCollectionGroups(collectionGroupsToDelete);
+    await getCollectionsFromMnemonic();
+    // const collectionGroupsToDelete = [
+    //   'data',
+    //   'daily',
+    //   'hourly',
+    //   'weekly',
+    //   'monthly',
+    //   'yearly',
+    //   'collectionStats', // overlaps with current structure
+    //   'nftStats', // overlaps with current structure
+    //   'nft',
+    //   'collectionStatsAllTime',
+    //   'collectionStatsHourly',
+    //   'collectionStatsDaily',
+    //   'collectionStatsWeekly',
+    //   'collectionStatsMonthly',
+    //   'collectionStatsYearly',
+    //   'nftStatsAllTime',
+    //   'nftStatsHourly',
+    //   'nftStatsDaily',
+    //   'nftStatsWeekly',
+    //   'nftStatsMonthly',
+    //   'nftStatsYearly'
+    // ];
+    // await deleteCollectionGroups(collectionGroupsToDelete);
     // await checkCollectionTokenStandard()
     // const summary = await collectionDao.getCollectionsSummary();
     // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
@@ -81,3 +84,10 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
     }
   });
 }
+
+export async function getCollectionsFromMnemonic(): Promise<void> {
+  const data = await mnemonic.getCollection('0x7ae83250a1d15bcaaf813e315072e0ad5ece1be3');
+  console.log(data);
+}
+
+void main();

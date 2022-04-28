@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType } from '@infinityxyz/lib/types/core';
+import { TokenStandard, CollectionAttributes, DisplayType, Token } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
@@ -40,7 +40,7 @@ export default class Erc721Contract extends AbstractContract {
     };
   }
 
-  calculateRarity(tokens: Erc721Token[], collectionAttributes?: CollectionAttributes): Erc721Token[] {
+  calculateRarity(tokens: Token[], collectionAttributes?: CollectionAttributes): Token[] {
     const attributes = collectionAttributes ?? this.aggregateTraits(tokens);
 
     const getRarityScore = (traitType: string | number, traitValue: string | number): number => {
@@ -48,11 +48,12 @@ export default class Erc721Contract extends AbstractContract {
       return rarityScore;
     };
 
-    const updatedTokens: Erc721Token[] = [];
+    const updatedTokens: Token[] = [];
 
     for (const token of tokens) {
-      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum, attribute) => {
+      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum: number, attribute: { trait_type: any; value: string | number; }) => {
         const traitType = attribute.trait_type ?? attribute.value;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const attributeRarityScore = getRarityScore(traitType, attribute.value);
         return raritySum + attributeRarityScore;
       }, 0);
@@ -72,7 +73,7 @@ export default class Erc721Contract extends AbstractContract {
     });
   }
 
-  aggregateTraits(tokens: Erc721Token[]): CollectionAttributes {
+  aggregateTraits(tokens: Token[]): CollectionAttributes {
     const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
 

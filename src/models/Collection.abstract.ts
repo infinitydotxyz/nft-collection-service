@@ -14,7 +14,7 @@ import Emittery from 'emittery';
 import { ethers } from 'ethers';
 import Nft from './Nft';
 import { logger } from '../container';
-import { normalizeAddress } from 'utils/ethers';
+import { normalizeAddress } from '../utils/ethers';
 
 export type CollectionEmitter = Emittery<{
   token: Token;

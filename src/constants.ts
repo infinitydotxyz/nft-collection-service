@@ -57,6 +57,11 @@ export const OPENSEA_API_KEYS = (() => {
   return apiKeys;
 })();
 
+export const MNEMONIC_API_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('MNEMONIC_API_KEY');
+  return apiKeys;
+})();
+
 /**
  * in most cases we should not pay attention to blocks until
  * we are sure they won't be uncle'd
