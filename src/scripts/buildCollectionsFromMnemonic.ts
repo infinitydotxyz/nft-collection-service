@@ -84,6 +84,10 @@ export async function buildCollectionsFromMnemonic(tokenStandard: TokenStandard)
 
         // ensure we don't yet have this document
         const doc = await firebase.getCollectionDocRef('1', address).get();
+        let tokenStandard = TokenStandard.ERC721;
+        if (mnemonicCollection.type === 'TOKEN_TYPE_ERC1155') {
+          tokenStandard = TokenStandard.ERC1155;
+        }
         if (!doc.exists) {
           const collectionData: Partial<Collection> = {
             chainId: '1',
@@ -91,7 +95,8 @@ export async function buildCollectionsFromMnemonic(tokenStandard: TokenStandard)
             metadata: metadata,
             slug,
             deployer: mnemonicCollection.mintEvent.minterAddress,
-            deployedAt: new Date(mnemonicCollection.mintEvent.blockTimestamp).getTime()
+            deployedAt: new Date(mnemonicCollection.mintEvent.blockTimestamp).getTime(),
+            tokenStandard
           };
           return collectionData;
         }
