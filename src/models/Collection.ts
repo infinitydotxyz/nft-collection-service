@@ -1,3 +1,4 @@
+
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
@@ -569,11 +570,15 @@ export default class Collection extends AbstractCollection {
           tokenId = String(parseInt(tokenIdStr, 16));
         }
         if (tokenId) {
+          let title = datum.title ?? metadata?.name ?? '';
+          if(!title && 'title' in metadata) {
+            title = metadata.title ?? ''
+          }
           const tokenWithMetadata: MetadataData & Partial<Token> = {
-            slug: getSearchFriendlyString(datum.title ?? metadata.name ?? metadata.title ?? ''),
+            slug: getSearchFriendlyString(title),
             tokenId,
             tokenUri: datum.tokenUri?.raw,
-            numTraitTypes: metadata?.attributes?.length,
+            numTraitTypes: (metadata as any)?.attributes?.length ?? 0, // TODO handle erc1155 metadata
             metadata,
             updatedAt: Date.now()
           };
