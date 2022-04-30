@@ -214,7 +214,7 @@ export default class Nft {
                   ...uriToken,
                   metadata,
                   updatedAt: Date.now(),
-                  numTraitTypes: metadata?.attributes?.length ?? 0,
+                  numTraitTypes: (metadata as any)?.attributes?.length ?? 0, // TODO handle erc1155 metadata
                   state: {
                     metadata: {
                       step: RefreshTokenFlow.Image

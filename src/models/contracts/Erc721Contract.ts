@@ -1,12 +1,12 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, CollectionAttributes, DisplayType, Token } from '@infinityxyz/lib/types/core';
+import { TokenStandard, CollectionAttributes, DisplayType, Token, Erc721Metadata } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
 import { normalize } from 'path';
 import { normalizeAddress } from '../../utils/ethers';
-import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants'
+import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -51,12 +51,16 @@ export default class Erc721Contract extends AbstractContract {
     const updatedTokens: Token[] = [];
 
     for (const token of tokens) {
-      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum: number, attribute: { trait_type: any; value: string | number; }) => {
-        const traitType = attribute.trait_type ?? attribute.value;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        const attributeRarityScore = getRarityScore(traitType, attribute.value);
-        return raritySum + attributeRarityScore;
-      }, 0);
+      const tokenMetadata = token?.metadata as Erc721Metadata;
+      const tokenRarityScore = (tokenMetadata?.attributes ?? []).reduce(
+        (raritySum: number, attribute: { trait_type?: any; value: string | number }) => {
+          const traitType = attribute.trait_type ?? attribute.value;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const attributeRarityScore = getRarityScore(traitType, attribute.value);
+          return raritySum + attributeRarityScore;
+        },
+        0
+      );
       updatedTokens.push({
         ...token,
         rarityScore: tokenRarityScore
@@ -120,13 +124,17 @@ export default class Erc721Contract extends AbstractContract {
     };
 
     for (const metadata of tokenMetadata) {
-      const attributes = Array.isArray(metadata.attributes) ? metadata.attributes : [];
+      const attributes = Array.isArray((metadata as any).attributes) ? (metadata as any).attributes : []; // TODO handle erc1155 metadata
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
-          incrementTrait(attribute.value, attribute.trait_type, attribute.display_type);
+          incrementTrait(
+            attribute.value as string | number,
+            attribute.trait_type as string | undefined,
+            attribute.display_type as DisplayType | undefined
+          );
         } else {
-          incrementTrait(attribute.value, attribute.trait_type);
+          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined);
         }
       }
     }
@@ -268,9 +276,9 @@ export default class Erc721Contract extends AbstractContract {
     try {
       const res = await this.contract.functions.supportsInterface(ERC721InterfaceId);
       const isSupported = res[0];
-      if(typeof isSupported === 'boolean') {
+      if (typeof isSupported === 'boolean') {
         return isSupported;
-      } 
+      }
       return false;
     } catch (err) {
       return false;

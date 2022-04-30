@@ -153,29 +153,36 @@ export default abstract class Contract implements IContract {
     maxBlock: number,
     maxAttempts: number
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
-    let from = minBlock;
+    const blockRange = {
+      maxBlock,
+      minBlock,
+      from: minBlock,
+      to: minBlock + 2000, 
+      pageSize: 2000,
+      maxPageSize: 2000,
+    }
 
-    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000);
+    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000, blockRange);
 
     let pagesWithoutResults = 0;
-    while (from < maxBlock) {
+    while (blockRange.from < blockRange.maxBlock) {
       // we can get a max of 2k blocks at once
-      let to = from + 2000;
+      blockRange.to = blockRange.from + blockRange.pageSize;
 
-      if (to > maxBlock) {
-        to = maxBlock;
+      if (blockRange.to > blockRange.maxBlock) {
+        blockRange.to = maxBlock;
       }
 
       const size = maxBlock - minBlock;
-      const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
+      const progress = Math.floor(((blockRange.from - blockRange.minBlock) / size) * 100 * 100) / 100;
 
       yield errorHandler(async () => {
         if (pagesWithoutResults > 5) {
           try {
-            const events = await thunkedLogRequest(from, maxBlock);
-            const fromBlock = minBlock;
-            const toBlock = to;
-            to = maxBlock;
+            const events = await thunkedLogRequest(blockRange.from, blockRange.maxBlock);
+            const fromBlock = blockRange.minBlock;
+            const toBlock = blockRange.to;
+            blockRange.to = blockRange.maxBlock;
             return {
               progress,
               fromBlock,
@@ -188,7 +195,7 @@ export default abstract class Contract implements IContract {
           }
         }
 
-        const events = await thunkedLogRequest(from, to);
+        const events = await thunkedLogRequest(blockRange.from, blockRange.to);
 
         if (events.length === 0) {
           pagesWithoutResults += 1;
@@ -196,8 +203,8 @@ export default abstract class Contract implements IContract {
           pagesWithoutResults = 0;
         }
 
-        const fromBlock = minBlock;
-        const toBlock = to;
+        const fromBlock = blockRange.minBlock;
+        const toBlock = blockRange.to;
         return {
           progress,
           fromBlock,
@@ -206,7 +213,7 @@ export default abstract class Contract implements IContract {
         };
       });
 
-      from = to + 1;
+      blockRange.from = blockRange.to + 1;
     }
   }
 }

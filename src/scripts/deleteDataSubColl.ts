@@ -29,13 +29,17 @@ export async function deleteCollectionGroups(groups: string[]) {
        */
       for await (const doc of collStream) {
         const snap = doc as any as FirebaseFirestore.QueryDocumentSnapshot;
-        await recurseOnDoc(snap);
-        batch.delete(snap.ref);
-        emitter.emit('delete', snap.ref.path);
-        size += 1;
-        if (size % 300 === 0) {
-          await batch.commit();
-          batch = firebase.db.batch();
+        try{
+          await recurseOnDoc(snap);
+          batch.delete(snap.ref);
+          emitter.emit('delete', snap.ref.path);
+          size += 1;
+          if (size % 300 === 0) {
+            await batch.commit();
+            batch = firebase.db.batch();
+          }
+        }catch(err) {
+          console.log(`Failed to delete docs`, err);
         }
       }
     }
@@ -48,10 +52,15 @@ export async function deleteCollectionGroups(groups: string[]) {
     for await (const docSnap of query.stream()) {
       const docSnapshot = docSnap as any as FirebaseFirestore.QueryDocumentSnapshot;
       const promise = pQueue.add(async () => {
-        await recurseOnDoc(docSnapshot);
-        await docSnapshot.ref.delete();
-        emitter.emit('delete', docSnapshot.ref.path);
-      });
+        try{
+          await recurseOnDoc(docSnapshot);
+          await docSnapshot.ref.delete();
+          emitter.emit('delete', docSnapshot.ref.path);
+        }catch(err) {
+          logger.error('failed to recurse or delete', err);
+          throw err;
+        }
+      })
       promises.push(promise);
     }
 

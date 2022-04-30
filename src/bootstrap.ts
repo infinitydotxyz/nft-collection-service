@@ -12,8 +12,6 @@ async function bootstrap(): Promise<void> {
 
   logger.log(START_UP_MESSAGE);
 
-  background();
-
   switch (env) {
     case Env.Cli:
       await cli();
@@ -22,6 +20,7 @@ async function bootstrap(): Promise<void> {
       await dev();
       return;
     case Env.Serve:
+      background();
       await server();
       return;
     default:
