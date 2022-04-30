@@ -1,12 +1,12 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType, Token } from '@infinityxyz/lib/types/core';
+import { TokenStandard, CollectionAttributes, DisplayType, Token, Erc721Metadata } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
 import { normalize } from 'path';
 import { normalizeAddress } from '../../utils/ethers';
-import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants'
+import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -48,15 +48,19 @@ export default class Erc721Contract extends AbstractContract {
       return rarityScore;
     };
 
-    const updatedTokens: Erc721Token[] = [];
+    const updatedTokens: Token[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    for (const token of tokens as Erc721Token[]) {
-      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum, attribute) => {
-        const traitType = attribute.trait_type ?? attribute.value;
-        const attributeRarityScore = getRarityScore(traitType, attribute.value);
-        return raritySum + attributeRarityScore;
-      }, 0);
+    for (const token of tokens) {
+      const tokenMetadata = token?.metadata as Erc721Metadata;
+      const tokenRarityScore = (tokenMetadata?.attributes ?? []).reduce(
+        (raritySum: number, attribute: { trait_type?: any; value: string | number }) => {
+          const traitType = attribute.trait_type ?? attribute.value;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const attributeRarityScore = getRarityScore(traitType, attribute.value);
+          return raritySum + attributeRarityScore;
+        },
+        0
+      );
       updatedTokens.push({
         ...token,
         rarityScore: tokenRarityScore
@@ -74,7 +78,6 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   aggregateTraits(tokens: Token[]): CollectionAttributes {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
 
@@ -125,9 +128,13 @@ export default class Erc721Contract extends AbstractContract {
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
-          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined, attribute.display_type as DisplayType | undefined);
+          incrementTrait(
+            attribute.value as string | number,
+            attribute.trait_type as string | undefined,
+            attribute.display_type as DisplayType | undefined
+          );
         } else {
-          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined );
+          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined);
         }
       }
     }
@@ -269,9 +276,9 @@ export default class Erc721Contract extends AbstractContract {
     try {
       const res = await this.contract.functions.supportsInterface(ERC721InterfaceId);
       const isSupported = res[0];
-      if(typeof isSupported === 'boolean') {
+      if (typeof isSupported === 'boolean') {
         return isSupported;
-      } 
+      }
       return false;
     } catch (err) {
       return false;

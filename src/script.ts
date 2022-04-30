@@ -2,7 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { collectionDao, firebase, logger, opensea } from './container';
+import 'dotenv/config';
+import 'reflect-metadata';
+import { firebase, logger, opensea, mnemonic } from './container';
 import { sleep } from './utils';
 import {readFile} from 'fs/promises';
 import fs from 'fs';
@@ -17,8 +19,31 @@ import { fixInfinityStats } from 'scripts/fixInfinityStats';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-
-    // await fixInfinityStats();
+    await getCollectionsFromMnemonic();
+    // const collectionGroupsToDelete = [
+    //   'data',
+    //   'daily',
+    //   'hourly',
+    //   'weekly',
+    //   'monthly',
+    //   'yearly',
+    //   'collectionStats', // overlaps with current structure
+    //   'nftStats', // overlaps with current structure
+    //   'nft',
+    //   'collectionStatsAllTime',
+    //   'collectionStatsHourly',
+    //   'collectionStatsDaily',
+    //   'collectionStatsWeekly',
+    //   'collectionStatsMonthly',
+    //   'collectionStatsYearly',
+    //   'nftStatsAllTime',
+    //   'nftStatsHourly',
+    //   'nftStatsDaily',
+    //   'nftStatsWeekly',
+    //   'nftStatsMonthly',
+    //   'nftStatsYearly'
+    // ];
+    // await deleteCollectionGroups(collectionGroupsToDelete);
     // await checkCollectionTokenStandard()
     // const summary = await collectionDao.getCollectionsSummary();
     // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
@@ -91,3 +116,10 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
     }
   });
 }
+
+export async function getCollectionsFromMnemonic(): Promise<void> {
+  const data = await mnemonic.getERC721Collections();
+  console.log(data);
+}
+
+void main();
