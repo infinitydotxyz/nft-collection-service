@@ -139,19 +139,29 @@ export async function create(
     }
   });
 
+  const getCollectionData = () => {
+    const collectionData: Partial<Token> = {
+      collectionSlug: currentCollection?.slug ?? '',
+      collectionName: currentCollection?.name ?? '',
+      hasBlueCheck: currentCollection?.hasBlueCheck ?? '',
+      collectionAddress: currentCollection?.address ?? ''
+    }
+    return collectionData;
+  }
+
   emitter.on('token', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
   });
 
   emitter.on('image', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
   });
 
   emitter.on('mint', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: !reset });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: !reset });
   });
 
   emitter.on('tokenError', (data) => {
