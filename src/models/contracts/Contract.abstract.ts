@@ -175,7 +175,7 @@ export default abstract class Contract implements IContract {
         }
         const size = maxBlock - minBlock;
         const progress = Math.floor(((blockRange.from - blockRange.minBlock) / size) * 100 * 100) / 100;
-        
+
         if (pagesWithoutResults > 5) {
           try {
             const events = await thunkedLogRequest(blockRange.from, blockRange.maxBlock);

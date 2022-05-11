@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import 'dotenv/config';
 import 'reflect-metadata';
-import { firebase, logger, opensea, mnemonic } from './container';
+import { firebase, logger, opensea, mnemonic, collectionDao } from './container';
 import { sleep } from './utils';
 import {readFile} from 'fs/promises';
 import fs from 'fs';
@@ -19,7 +19,7 @@ import { fixInfinityStats } from 'scripts/fixInfinityStats';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await getCollectionsFromMnemonic();
+    // await getCollectionsFromMnemonic();
     // const collectionGroupsToDelete = [
     //   'data',
     //   'daily',
@@ -47,7 +47,6 @@ export async function main(): Promise<void> {
     // await checkCollectionTokenStandard()
     // const summary = await collectionDao.getCollectionsSummary();
     // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
-    
 
     const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
     logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);

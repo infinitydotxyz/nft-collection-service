@@ -96,7 +96,7 @@ export async function create(
     await collectionDoc.set(collection);
   }
 
-  const formatLog = (step: string, progress: number): string => {
+  const formatLog = (step: string, progress: number, message?: string): string => {
     const now = new Date();
     const formatNum = (num: number, padWith: string, minLength: number): string => {
       let numStr = `${num}`;
@@ -110,7 +110,7 @@ export async function create(
     const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
     const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-    return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
+    return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]${message ? ' ' + message : ''}`;
   };
 
   const emitter = new Emittery<{
@@ -119,16 +119,16 @@ export async function create(
     image: ImageData & Partial<Token>;
     mint: MintToken;
     tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-    progress: { step: string; progress: number };
+    progress: { step: string; progress: number, message?: string };
   }>();
 
   let lastLogAt = 0;
   let lastProgressUpdateAt = 0;
-  emitter.on('progress', ({ step, progress }) => {
+  emitter.on('progress', ({ step, progress, message }) => {
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
-      log(formatLog(step, progress));
+      log(formatLog(step, progress, message));
     }
     if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
       lastProgressUpdateAt = now;

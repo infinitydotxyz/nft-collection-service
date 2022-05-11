@@ -501,14 +501,14 @@ export default class Collection extends AbstractCollection {
       resumeFromBlock = collection.state.create.error?.lastSuccessfulBlock;
     }
 
-    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number } }>();
+    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number, message?: string } }>();
 
     mintEmitter.on('mint', (mintToken) => {
       void emitter.emit('mint', mintToken);
     });
 
-    mintEmitter.on('progress', ({ progress }) => {
-      void emitter.emit('progress', { progress, step: CreationFlow.CollectionMints });
+    mintEmitter.on('progress', ({ progress, message }) => {
+      void emitter.emit('progress', { progress, step: CreationFlow.CollectionMints, message });
     });
 
     const { failedWithUnknownErrors, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(

@@ -22,7 +22,7 @@ export type CollectionEmitter = Emittery<{
   image: ImageData & Partial<Token>;
   mint: MintToken;
   tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-  progress: { step: string; progress: number };
+  progress: { step: string; progress: number, message?: string };
 }>;
 
 export default abstract class Collection {
@@ -56,7 +56,7 @@ export default abstract class Collection {
 
     try {
       owner = await this.contract.getOwner();
-    // eslint-disable-next-line no-empty
+      // eslint-disable-next-line no-empty
     } catch {}
 
     if (!owner) {
@@ -92,7 +92,7 @@ export default abstract class Collection {
     }
   }
 
-  protected async getMints<T extends { mint: MintToken; progress: { progress: number } }>(
+  protected async getMints<T extends { mint: MintToken; progress: { progress: number, message?: string } }>(
     emitter: Emittery<T>,
     resumeFromBlock?: number
   ): Promise<{
@@ -220,10 +220,21 @@ export default abstract class Collection {
         lastSuccessfulBlock = toBlock;
         void emitter.emit('progress', { progress });
 
+        const queue = new PQueue({ concurrency: 100 });
         const chunkPromises = mintEvents.map(async (event) => {
-          const token = await getTokenFromTransfer(event);
-          void emitter.emit('mint', token);
-          return token;
+          return await queue.add(async () => {
+            const token = await getTokenFromTransfer(event);
+            void emitter.emit('mint', token);
+            return token;
+          });
+        });
+
+        let lastUpdate = Date.now();
+        queue.on('next', () => {
+          if (Date.now() - lastUpdate > 5000) {
+            void emitter.emit('progress', { progress, message: `Waiting for chunk. Size: ${queue.size + queue.pending}` });
+            lastUpdate = Date.now();
+          }
         });
 
         /**
@@ -231,6 +242,7 @@ export default abstract class Collection {
          */
         const chunkPromise = Promise.allSettled(chunkPromises);
         tokenPromises = [...tokenPromises, chunkPromise];
+        await chunkPromise;
       }
     } catch (err) {
       logger.log('failed to get all mints for a collection');
