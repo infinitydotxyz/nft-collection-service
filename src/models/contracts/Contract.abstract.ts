@@ -157,26 +157,25 @@ export default abstract class Contract implements IContract {
       maxBlock,
       minBlock,
       from: minBlock,
-      to: minBlock + 2000, 
+      to: minBlock + 2000,
       pageSize: 2000,
-      maxPageSize: 2000,
-    }
+      maxPageSize: 2000
+    };
 
     const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000, blockRange);
 
     let pagesWithoutResults = 0;
     while (blockRange.from < blockRange.maxBlock) {
-      // we can get a max of 2k blocks at once
-      blockRange.to = blockRange.from + blockRange.pageSize;
-
-      if (blockRange.to > blockRange.maxBlock) {
-        blockRange.to = maxBlock;
-      }
-
-      const size = maxBlock - minBlock;
-      const progress = Math.floor(((blockRange.from - blockRange.minBlock) / size) * 100 * 100) / 100;
-
       yield errorHandler(async () => {
+        // we can get a max of 2k blocks at once
+        blockRange.to = blockRange.from + blockRange.pageSize;
+
+        if (blockRange.to > blockRange.maxBlock) {
+          blockRange.to = maxBlock;
+        }
+        const size = maxBlock - minBlock;
+        const progress = Math.floor(((blockRange.from - blockRange.minBlock) / size) * 100 * 100) / 100;
+        
         if (pagesWithoutResults > 5) {
           try {
             const events = await thunkedLogRequest(blockRange.from, blockRange.maxBlock);
