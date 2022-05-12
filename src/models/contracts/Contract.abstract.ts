@@ -194,7 +194,9 @@ export default abstract class Contract implements IContract {
           }
         }
 
-        const events = await thunkedLogRequest(blockRange.from, blockRange.to);
+        const from = blockRange.from;
+        const to = from === 0 && blockRange.pageSize <= 2000 ? blockRange.maxBlock : blockRange.to;
+        const events = await thunkedLogRequest(from, to);
 
         if (events.length === 0) {
           pagesWithoutResults += 1;

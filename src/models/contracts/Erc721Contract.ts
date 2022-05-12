@@ -174,35 +174,7 @@ export default class Erc721Contract extends AbstractContract {
     }
     return false;
   }
-
-  async getFirstMintBlock(): Promise<number> {
-    const filter = this.contract.filters.Transfer(NULL_ADDR);
-    const queryFilter = this.contract.queryFilter.bind(this.contract);
-    async function thunkedLogRequest(fromBlock: number, toBlock: number | 'latest'): Promise<ethers.Event[]> {
-      return await queryFilter(filter, fromBlock, toBlock);
-    }
-
-    try {
-      const response = await thunkedLogRequest(0, 'latest');
-      return response[0].blockNumber;
-    } catch (err: any) {
-      if (err?.code === 'SERVER_ERROR') {
-          const body = err.body as string;
-          const regex = /\[\w*, (\w*)]/;
-          const validMaxBlockHex = ((JSON.parse(body)?.error?.message ?? '') as string).match(regex)?.[1];
-          if (validMaxBlockHex) {
-            const validMaxBlock = parseInt(validMaxBlockHex, 16);
-            const res = await thunkedLogRequest(0, validMaxBlock);
-            const firstLog = res?.[0];
-            if (firstLog) {
-              return firstLog.blockNumber;
-            }
-          }
-      }
-      throw err;
-    }
-  }
-
+  
   /**
    * get all transfers from 0x0
    *
@@ -217,22 +189,8 @@ export default class Erc721Contract extends AbstractContract {
     }
 
     let fromBlock = options?.fromBlock;
-    if (typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
-      /**
-       * the first transaction for this contract
-       */
-      console.log(`No fromBlock attempting to detect`);
-      try {
-        fromBlock = await this.getFirstMintBlock();
-        // const firstTransaction = await this.getContractCreationTx();
-        console.log(`Found FromBlock: ${fromBlock}`);
-      } catch (err) {
-        console.log(`Failed to get first transaction for ${this.address}`);
-        console.error(err);
-      }
-      if (typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
-        throw new Error(`Failed to get mints. No fromBlock specified and failed to detect fromBlock`);
-      }
+    if(typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
+      fromBlock = 0;
     }
 
     const mintsReadable = await this.paginateLogs(thunkedLogRequest, this.provider, {
