@@ -14,7 +14,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { NULL_ADDR } from '../constants';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
 
 export async function createCollection(
@@ -77,7 +77,7 @@ export async function create(
   const batch = new BatchHandler();
 
   const data = await collectionDoc.get();
-  const currentCollection = reset ? {} : data.data() ?? {};
+  const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
@@ -85,11 +85,14 @@ export async function create(
       ...currentCollection,
       indexInitiator,
       state: {
+        export: {done: false},
         ...currentCollection?.state,
         create: {
           ...currentCollection?.state?.create,
           updatedAt: now
-        }
+        } as any,
+        version: COLLECTION_SCHEMA_VERSION,
+
       }
     };
 
@@ -138,15 +141,16 @@ export async function create(
       });
     }
   });
+  let collectionData: Partial<CollectionType> = currentCollection;
 
   const getCollectionData = () => {
-    const collectionData: Partial<Token> = {
-      collectionSlug: currentCollection?.slug ?? '',
-      collectionName: currentCollection?.name ?? '',
-      hasBlueCheck: currentCollection?.hasBlueCheck ?? '',
-      collectionAddress: currentCollection?.address ?? ''
+    const token: Partial<Token> = {
+      collectionSlug: collectionData?.slug ?? '',
+      collectionName: collectionData?.metadata?.name ?? '',
+      hasBlueCheck: collectionData?.hasBlueCheck ?? false,
+      collectionAddress: collectionData?.address ?? ''
     }
-    return collectionData;
+    return token;
   }
 
   emitter.on('token', (token) => {
@@ -183,7 +187,7 @@ export async function create(
   >;
   let done = false;
   let valueToInject: Token[] | null = null;
-  let collectionData: Partial<CollectionType> = currentCollection;
+
   let attempt = 0;
   while (!done) {
     try {
