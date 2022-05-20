@@ -464,7 +464,7 @@ export default class Collection extends AbstractCollection {
     collection: CollectionCreatorType,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+    const {hasBlueCheck, ...collectionMetadata} = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {
@@ -473,6 +473,7 @@ export default class Collection extends AbstractCollection {
 
     const collectionMetadataCollection: CollectionMetadataType = {
       ...collection,
+      hasBlueCheck: (hasBlueCheck || collection.hasBlueCheck) ?? false,
       metadata: collectionMetadata,
       slug: slug,
       state: {
