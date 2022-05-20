@@ -65,11 +65,11 @@ export async function create(
   const contractFactory = new ContractFactory();
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
   let contract: Contract;
-  try{
+  try {
     contract = await contractFactory.create(address, chainId);
-  }catch (err: any) {
+  } catch (err: any) {
     const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
-    await collectionDoc.set({ state: { create: { step: '', error: { message } } } }, { merge: true })
+    await collectionDoc.set({ state: { create: { step: '', error: { message } } } }, { merge: true });
     throw err;
   }
 
@@ -85,14 +85,13 @@ export async function create(
       ...currentCollection,
       indexInitiator,
       state: {
-        export: {done: false},
+        export: { done: false },
         ...currentCollection?.state,
         create: {
           ...currentCollection?.state?.create,
           updatedAt: now
         } as any,
-        version: COLLECTION_SCHEMA_VERSION,
-
+        version: COLLECTION_SCHEMA_VERSION
       }
     };
 
@@ -122,7 +121,7 @@ export async function create(
     image: ImageData & Partial<Token>;
     mint: MintToken;
     tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-    progress: { step: string; progress: number, message?: string };
+    progress: { step: string; progress: number; message?: string };
   }>();
 
   let lastLogAt = 0;
@@ -149,9 +148,9 @@ export async function create(
       collectionName: collectionData?.metadata?.name ?? '',
       hasBlueCheck: collectionData?.hasBlueCheck ?? false,
       collectionAddress: collectionData?.address ?? ''
-    }
+    };
     return token;
-  }
+  };
 
   emitter.on('token', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);

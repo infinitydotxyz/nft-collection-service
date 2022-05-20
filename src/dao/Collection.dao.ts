@@ -69,16 +69,17 @@ export default class CollectionDao {
     return generator();
   }
 
-  async getCollectionsSummary(): Promise<
-    { collections: Array<{
+  async getCollectionsSummary(): Promise<{
+    collections: Array<{
       address: string | undefined;
       chainId: string | undefined;
       numNfts: number | undefined;
       state: string;
       error: string | Record<string, any>;
       exported: boolean;
-    }>, numberComplete: number }
-  > {
+    }>;
+    numberComplete: number;
+  }> {
     const collections: Array<Partial<Collection>> = [];
     const iterator = this.streamCollections();
     for await (const { collection } of iterator) {

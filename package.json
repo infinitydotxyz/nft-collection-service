@@ -20,7 +20,8 @@
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",
-    "update:lib": "npm update @infinityxyz/lib"
+    "update:lib": "npm update @infinityxyz/lib",
+    "pre:push": "npm run fmt:write && npm run lint && npm run build"
   },
   "repository": {
     "type": "git",

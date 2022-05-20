@@ -174,7 +174,7 @@ export default class Erc721Contract extends AbstractContract {
     }
     return false;
   }
-  
+
   /**
    * get all transfers from 0x0
    *
@@ -189,7 +189,7 @@ export default class Erc721Contract extends AbstractContract {
     }
 
     let fromBlock = options?.fromBlock;
-    if(typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
+    if (typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
       fromBlock = 0;
     }
 

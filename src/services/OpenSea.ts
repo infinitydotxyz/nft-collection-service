@@ -41,10 +41,9 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       hooks: {
         beforeRequest: [
           (options) => {
-            if(!options?.headers?.['x-api-key']) {
-
-              if(!options.headers) {
-                options.headers = {}
+            if (!options?.headers?.['x-api-key']) {
+              if (!options.headers) {
+                options.headers = {};
               }
 
               const randomApiKey = randomItem(OPENSEA_API_KEYS);
@@ -80,7 +79,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
    *
    * etherscan has a similar endpoint that seems decent if this begins to fail
    */
-  async getCollectionMetadata(address: string): Promise<CollectionMetadata & {hasBlueCheck: boolean}> {
+  async getCollectionMetadata(address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean }> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
@@ -120,7 +119,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
         wiki: collection?.wiki_url ?? ''
       }
     };
-    return {...dataInInfinityFormat, hasBlueCheck };
+    return { ...dataInInfinityFormat, hasBlueCheck };
   }
 
   /**
@@ -201,7 +200,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for(;;) { 
+    for (;;) {
       attempt += 1;
 
       try {

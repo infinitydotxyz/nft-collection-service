@@ -18,16 +18,15 @@ export default class ContractFactory {
   async getTokenStandard(address: string, chainId: string): Promise<TokenStandard> {
     validateAddress(address);
     validateChainId(chainId);
-    
+
     const erc721 = new Erc721Contract(address, chainId);
-    
+
     const isErc721 = await erc721.supportsInterface();
 
-    if(isErc721) {
+    if (isErc721) {
       return TokenStandard.ERC721;
-    } 
+    }
 
     throw new Error('Failed to detect token standard');
   }
-
 }

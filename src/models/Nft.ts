@@ -152,14 +152,14 @@ export default class Nft {
     }
 
     try {
-      for(;;) {
+      for (;;) {
         switch (this.token.state?.metadata.step) {
           case RefreshTokenFlow.Uri:
             const mintToken = Nft.validateToken(this.token, RefreshTokenFlow.Mint);
             try {
               let attempt = 0;
               let tokenUri: string | undefined;
-              for(;;) {
+              for (;;) {
                 attempt += 1;
                 try {
                   tokenUri = await this.tokenUriQueue?.add(async () => {

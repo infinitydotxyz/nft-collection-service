@@ -32,7 +32,7 @@ const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
 
   let i = 0;
-  for(;;) {
+  for (;;) {
     try {
       const projectId = getEnvironmentVariable(`INFURA_IPFS_PROJECT_ID${i}`);
       const projectSecret = getEnvironmentVariable(`INFURA_IPFS_PROJECT_SECRET${i}`);
@@ -168,7 +168,6 @@ function getMaxConcurrency(): { limit: number; message: string } {
     message: 'process heap size'
   };
 }
-
 
 function getMultipleEnvVariables(prefix: string, minLength = 1): string[] {
   const variables = [];

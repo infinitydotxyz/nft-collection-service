@@ -12,7 +12,7 @@ import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
 export async function migrateToVersion1(): Promise<void> {
   const batchHandler = new BatchHandler();
   const iterator = collectionDao.streamCollections();
-  for await (const {collection, ref} of iterator) {
+  for await (const { collection, ref } of iterator) {
     const collectionRef = ref;
     if (collection?.state?.create?.step === CreationFlow.Complete) {
       const completedCollection: Collection = {

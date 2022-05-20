@@ -43,7 +43,7 @@ type EthersJsonRpcRequest<Response> = () => Promise<Response>;
 export function ethersErrorHandler<Response>(
   maxAttempts = 5,
   retryDelay = 1000,
-  blockRange?: { pageSize: number, from: number }
+  blockRange?: { pageSize: number; from: number }
 ): (request: EthersJsonRpcRequest<Response>) => Promise<Response> {
   return async (request: EthersJsonRpcRequest<Response>): Promise<Response> => {
     const attempt = async (attempts = 0): Promise<Response> => {
@@ -87,15 +87,14 @@ export function ethersErrorHandler<Response>(
               return await attempt(attempts);
 
             case 'SERVER_ERROR':
-              if(typeof err.body ==='string' && (err.body as string).includes('Consider reducing your block range')){
-                if(blockRange){
+              if (typeof err.body === 'string' && (err.body as string).includes('Consider reducing your block range')) {
+                if (blockRange) {
                   blockRange.pageSize = Math.floor(blockRange.pageSize / 2);
                   console.log(`\n\n Reducing block range to: ${blockRange.pageSize} \n\n`);
                   return await attempt(attempts);
                 }
               } else if (typeof err.body === 'string' && (err.body as string).includes('this block range should work')) {
-
-                if(blockRange) {
+                if (blockRange) {
                   const regex = /\[(\w*), (\w*)]/;
                   const matches = ((JSON.parse(err.body as string)?.error?.message ?? '') as string).match(regex);
                   const validMinBlockHex = matches?.[1];
@@ -107,7 +106,11 @@ export function ethersErrorHandler<Response>(
                     const range = validMaxBlock - validMinBlock;
                     blockRange.from = validMinBlock;
                     blockRange.pageSize = range;
-                    console.log(`\n\n Reducing block range to recommended range: ${blockRange.from} - ${blockRange.from + blockRange.pageSize}. \n\n`);
+                    console.log(
+                      `\n\n Reducing block range to recommended range: ${blockRange.from} - ${
+                        blockRange.from + blockRange.pageSize
+                      }. \n\n`
+                    );
                   }
                 }
               }

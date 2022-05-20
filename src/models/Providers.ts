@@ -14,7 +14,7 @@ export default class Providers {
 
     const goerliProviders = JSON_RPC_GOERLI_KEYS.map((item) => {
       return new JsonRpcProvider(item);
-    })
+    });
 
     this.providers = {
       '1': mainnetProviders,

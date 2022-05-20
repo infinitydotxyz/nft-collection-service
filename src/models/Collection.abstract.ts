@@ -22,7 +22,7 @@ export type CollectionEmitter = Emittery<{
   image: ImageData & Partial<Token>;
   mint: MintToken;
   tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-  progress: { step: string; progress: number, message?: string };
+  progress: { step: string; progress: number; message?: string };
 }>;
 
 export default abstract class Collection {
@@ -92,7 +92,7 @@ export default abstract class Collection {
     }
   }
 
-  protected async getMints<T extends { mint: MintToken; progress: { progress: number, message?: string } }>(
+  protected async getMints<T extends { mint: MintToken; progress: { progress: number; message?: string } }>(
     emitter: Emittery<T>,
     resumeFromBlock?: number
   ): Promise<{

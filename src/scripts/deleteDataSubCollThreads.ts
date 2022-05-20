@@ -8,9 +8,9 @@ import { firebase, logger } from 'container';
 
 export async function start(isEntryPoint = false) {
   if (!isMainThread || isEntryPoint) {
-    if(isEntryPoint) {
+    if (isEntryPoint) {
       for (let x = 0; x < 15; x += 1) {
-        await main()
+        await main();
       }
     } else {
       await main();
@@ -102,9 +102,9 @@ async function deleteGroup(group: string) {
   });
 
   emitter.on('error', (err) => {
-    console.log('emitter errored')
+    console.log('emitter errored');
     console.error(err);
-  })
+  });
 
   const recurseOnDoc = async (docSnap: FirebaseFirestore.QueryDocumentSnapshot) => {
     let batch = firebase.db.batch();

@@ -1,4 +1,3 @@
-
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
@@ -464,7 +463,9 @@ export default class Collection extends AbstractCollection {
     collection: CollectionCreatorType,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const {hasBlueCheck, ...collectionMetadata} = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+    const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
+      this.contract.address
+    );
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {
@@ -502,7 +503,7 @@ export default class Collection extends AbstractCollection {
       resumeFromBlock = collection.state.create.error?.lastSuccessfulBlock;
     }
 
-    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number, message?: string } }>();
+    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number; message?: string } }>();
 
     mintEmitter.on('mint', (mintToken) => {
       void emitter.emit('mint', mintToken);
@@ -572,8 +573,8 @@ export default class Collection extends AbstractCollection {
         }
         if (tokenId) {
           let title = datum.title ?? metadata?.name ?? '';
-          if(!title && 'title' in metadata) {
-            title = metadata.title ?? ''
+          if (!title && 'title' in metadata) {
+            title = metadata.title ?? '';
           }
           const tokenWithMetadata: MetadataData & Partial<Token> = {
             slug: getSearchFriendlyString(title),

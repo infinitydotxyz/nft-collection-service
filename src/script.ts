@@ -6,7 +6,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { firebase, logger, opensea, mnemonic, collectionDao } from './container';
 import { sleep } from './utils';
-import {readFile} from 'fs/promises';
+import { readFile } from 'fs/promises';
 import fs from 'fs';
 
 import path from 'path';
@@ -55,23 +55,27 @@ export async function main(): Promise<void> {
       return {
         ...acc,
         [collection.state]: [...(acc[collection.state] || []), collection]
-      }
+      };
     }, {});
 
     const nonErc721 = [];
 
-    for(const [state, collections] of Object.entries(collectionsByState)) {
+    for (const [state, collections] of Object.entries(collectionsByState)) {
       const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
       console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
-      for(const collection  of collections as any[]) {
-        if(collection.error.message === 'Failed to detect token standard') {
+      for (const collection of collections as any[]) {
+        if (collection.error.message === 'Failed to detect token standard') {
           nonErc721.push(collection);
         }
       }
     }
 
-    console.log(`Found: ${nonErc721.length} ${Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100}%  collections without ERC721 standard`);
-    
+    console.log(
+      `Found: ${nonErc721.length} ${
+        Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
+      }%  collections without ERC721 standard`
+    );
+
     // await collectionDao.getCollectionsSummary();
     // await appendDisplayTypeToCollections();
   } catch (err) {
