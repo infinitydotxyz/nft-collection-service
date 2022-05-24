@@ -32,7 +32,7 @@ export default class Firebase {
   }
 
   getCollectionDocRef(chainId: string, address: string): FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> {
-    const collectionDoc = this.db.collection('collections').doc(getCollectionDocId({chainId, collectionAddress: address}));
+    const collectionDoc = this.db.collection('collections').doc(getCollectionDocId({ chainId, collectionAddress: address }));
     return collectionDoc;
   }
 
@@ -56,7 +56,7 @@ export default class Firebase {
 
   async uploadReadable(readable: Readable, path: string, contentType: string): Promise<File> {
     let attempts = 0;
-    for(;;) {
+    for (;;) {
       attempts += 1;
       try {
         let remoteFile = this.bucket.file(path);

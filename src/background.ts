@@ -19,7 +19,7 @@ const tasks: BackgroundTask[] = [
     name: 'Collection numOwners',
     interval: ONE_HOUR,
     fn: updateCollectionNumOwners
-  },
+  }
 ];
 
 /**

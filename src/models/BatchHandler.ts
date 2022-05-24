@@ -2,7 +2,7 @@ import { sleep } from '../utils';
 import { firebase, logger } from '../container';
 
 const MAX_SIZE = 500;
-const MAX_PAYLOAD_SIZE = 11_534_336 * 3 / 4; // allocate 25% for any metadata that might be in the payload
+const MAX_PAYLOAD_SIZE = (11_534_336 * 3) / 4; // allocate 25% for any metadata that might be in the payload
 
 interface Batch {
   batch: FirebaseFirestore.WriteBatch;
@@ -44,7 +44,7 @@ export default class BatchHandler {
       let attempt = 0;
       const batch = this.currentBatch.batch;
       this.currentBatch = this.newBatch();
-      for(;;) {
+      for (;;) {
         attempt += 1;
         try {
           await batch.commit();

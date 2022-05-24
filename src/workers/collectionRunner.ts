@@ -14,7 +14,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { NULL_ADDR } from '../constants';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
 
 export async function createCollection(
@@ -65,11 +65,11 @@ export async function create(
   const contractFactory = new ContractFactory();
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
   let contract: Contract;
-  try{
+  try {
     contract = await contractFactory.create(address, chainId);
-  }catch (err: any) {
+  } catch (err: any) {
     const message = typeof err?.message === 'string' ? (err?.message as string) : 'Unknown';
-    await collectionDoc.set({ state: { create: { step: '', error: { message } } } }, { merge: true })
+    await collectionDoc.set({ state: { create: { step: '', error: { message } } } }, { merge: true });
     throw err;
   }
 
@@ -77,7 +77,7 @@ export async function create(
   const batch = new BatchHandler();
 
   const data = await collectionDoc.get();
-  const currentCollection = reset ? {} : data.data() ?? {};
+  const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
@@ -85,18 +85,20 @@ export async function create(
       ...currentCollection,
       indexInitiator,
       state: {
+        export: { done: false },
         ...currentCollection?.state,
         create: {
           ...currentCollection?.state?.create,
           updatedAt: now
-        }
+        } as any,
+        version: COLLECTION_SCHEMA_VERSION
       }
     };
 
     await collectionDoc.set(collection);
   }
 
-  const formatLog = (step: string, progress: number): string => {
+  const formatLog = (step: string, progress: number, message?: string): string => {
     const now = new Date();
     const formatNum = (num: number, padWith: string, minLength: number): string => {
       let numStr = `${num}`;
@@ -110,7 +112,7 @@ export async function create(
     const date = [now.getHours(), now.getMinutes(), now.getSeconds()];
     const dateStr = date.map((item) => formatNum(item, '0', 2)).join(':');
 
-    return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]`;
+    return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]${message ? ' ' + message : ''}`;
   };
 
   const emitter = new Emittery<{
@@ -119,16 +121,16 @@ export async function create(
     image: ImageData & Partial<Token>;
     mint: MintToken;
     tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-    progress: { step: string; progress: number };
+    progress: { step: string; progress: number; message?: string };
   }>();
 
   let lastLogAt = 0;
   let lastProgressUpdateAt = 0;
-  emitter.on('progress', ({ step, progress }) => {
+  emitter.on('progress', ({ step, progress, message }) => {
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
-      log(formatLog(step, progress));
+      log(formatLog(step, progress, message));
     }
     if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
       lastProgressUpdateAt = now;
@@ -138,20 +140,31 @@ export async function create(
       });
     }
   });
+  let collectionData: Partial<CollectionType> = currentCollection;
+
+  const getCollectionData = () => {
+    const token: Partial<Token> = {
+      collectionSlug: collectionData?.slug ?? '',
+      collectionName: collectionData?.metadata?.name ?? '',
+      hasBlueCheck: collectionData?.hasBlueCheck ?? false,
+      collectionAddress: collectionData?.address ?? ''
+    };
+    return token;
+  };
 
   emitter.on('token', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
   });
 
   emitter.on('image', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: true });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
   });
 
   emitter.on('mint', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, error: {} }, { merge: !reset });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: !reset });
   });
 
   emitter.on('tokenError', (data) => {
@@ -173,7 +186,7 @@ export async function create(
   >;
   let done = false;
   let valueToInject: Token[] | null = null;
-  let collectionData: Partial<CollectionType> = currentCollection;
+
   let attempt = 0;
   while (!done) {
     try {

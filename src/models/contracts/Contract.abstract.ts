@@ -2,7 +2,7 @@ import { MAX_UNCLE_ABLE_BLOCKS } from '../../constants';
 import { ethers } from 'ethers';
 import { Readable } from 'stream';
 import { CollectionAttributes, Token, TokenStandard } from '@infinityxyz/lib/types/core';
-import { ethersErrorHandler, getProviderByChainId, normalizeAddress } from 'utils/ethers';
+import { ethersErrorHandler, getProviderByChainId, normalizeAddress } from '../../utils/ethers';
 import IContract, { HistoricalLogs, HistoricalLogsChunk, HistoricalLogsOptions } from './Contract.interface';
 import { logger } from '../../container';
 
@@ -153,29 +153,35 @@ export default abstract class Contract implements IContract {
     maxBlock: number,
     maxAttempts: number
   ): Generator<Promise<HistoricalLogsChunk>, void, unknown> {
-    let from = minBlock;
+    const blockRange = {
+      maxBlock,
+      minBlock,
+      from: minBlock,
+      to: minBlock + 2000,
+      pageSize: 2000,
+      maxPageSize: 2000
+    };
 
-    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000);
+    const errorHandler = ethersErrorHandler<HistoricalLogsChunk>(maxAttempts, 1000, blockRange);
 
     let pagesWithoutResults = 0;
-    while (from < maxBlock) {
-      // we can get a max of 2k blocks at once
-      let to = from + 2000;
-
-      if (to > maxBlock) {
-        to = maxBlock;
-      }
-
-      const size = maxBlock - minBlock;
-      const progress = Math.floor(((from - minBlock) / size) * 100 * 100) / 100;
-
+    while (blockRange.from < blockRange.maxBlock) {
       yield errorHandler(async () => {
+        // we can get a max of 2k blocks at once
+        blockRange.to = blockRange.from + blockRange.pageSize;
+
+        if (blockRange.to > blockRange.maxBlock) {
+          blockRange.to = maxBlock;
+        }
+        const size = maxBlock - minBlock;
+        const progress = Math.floor(((blockRange.from - blockRange.minBlock) / size) * 100 * 100) / 100;
+
         if (pagesWithoutResults > 5) {
           try {
-            const events = await thunkedLogRequest(from, maxBlock);
-            const fromBlock = minBlock;
-            const toBlock = to;
-            to = maxBlock;
+            const events = await thunkedLogRequest(blockRange.from, blockRange.maxBlock);
+            const fromBlock = blockRange.minBlock;
+            const toBlock = blockRange.to;
+            blockRange.to = blockRange.maxBlock;
             return {
               progress,
               fromBlock,
@@ -188,6 +194,8 @@ export default abstract class Contract implements IContract {
           }
         }
 
+        const from = blockRange.from;
+        const to = from === 0 && blockRange.pageSize <= 2000 ? blockRange.maxBlock : blockRange.to;
         const events = await thunkedLogRequest(from, to);
 
         if (events.length === 0) {
@@ -196,8 +204,8 @@ export default abstract class Contract implements IContract {
           pagesWithoutResults = 0;
         }
 
-        const fromBlock = minBlock;
-        const toBlock = to;
+        const fromBlock = blockRange.minBlock;
+        const toBlock = blockRange.to;
         return {
           progress,
           fromBlock,
@@ -206,7 +214,7 @@ export default abstract class Contract implements IContract {
         };
       });
 
-      from = to + 1;
+      blockRange.from = blockRange.to + 1;
     }
   }
 }

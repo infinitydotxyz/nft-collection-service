@@ -160,7 +160,7 @@ export async function buildCollections(): Promise<void> {
     try {
       logger.log(`Committing batch of ${batch.size} collections`);
       await batch.flush();
-    // eslint-disable-next-line no-empty
+      // eslint-disable-next-line no-empty
     } catch {}
   }
 }

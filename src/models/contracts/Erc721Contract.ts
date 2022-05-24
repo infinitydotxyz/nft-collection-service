@@ -1,12 +1,12 @@
 import { BigNumber, ethers } from 'ethers';
 import { HistoricalLogs, HistoricalLogsOptions } from './Contract.interface';
-import { TokenStandard, Erc721Token, CollectionAttributes, DisplayType } from '@infinityxyz/lib/types/core';
+import { TokenStandard, CollectionAttributes, DisplayType, Token, Erc721Metadata } from '@infinityxyz/lib/types/core';
 import Erc721Abi from '../../abi/Erc721';
 import { NULL_ADDR } from '../../constants';
 import AbstractContract from './Contract.abstract';
 import { normalize } from 'path';
 import { normalizeAddress } from '../../utils/ethers';
-import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants'
+import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -40,7 +40,7 @@ export default class Erc721Contract extends AbstractContract {
     };
   }
 
-  calculateRarity(tokens: Erc721Token[], collectionAttributes?: CollectionAttributes): Erc721Token[] {
+  calculateRarity(tokens: Token[], collectionAttributes?: CollectionAttributes): Token[] {
     const attributes = collectionAttributes ?? this.aggregateTraits(tokens);
 
     const getRarityScore = (traitType: string | number, traitValue: string | number): number => {
@@ -48,14 +48,19 @@ export default class Erc721Contract extends AbstractContract {
       return rarityScore;
     };
 
-    const updatedTokens: Erc721Token[] = [];
+    const updatedTokens: Token[] = [];
 
     for (const token of tokens) {
-      const tokenRarityScore = (token?.metadata?.attributes ?? []).reduce((raritySum, attribute) => {
-        const traitType = attribute.trait_type ?? attribute.value;
-        const attributeRarityScore = getRarityScore(traitType, attribute.value);
-        return raritySum + attributeRarityScore;
-      }, 0);
+      const tokenMetadata = token?.metadata as Erc721Metadata;
+      const tokenRarityScore = (tokenMetadata?.attributes ?? []).reduce(
+        (raritySum: number, attribute: { trait_type?: any; value: string | number }) => {
+          const traitType = attribute.trait_type ?? attribute.value;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const attributeRarityScore = getRarityScore(traitType, attribute.value);
+          return raritySum + attributeRarityScore;
+        },
+        0
+      );
       updatedTokens.push({
         ...token,
         rarityScore: tokenRarityScore
@@ -72,7 +77,7 @@ export default class Erc721Contract extends AbstractContract {
     });
   }
 
-  aggregateTraits(tokens: Erc721Token[]): CollectionAttributes {
+  aggregateTraits(tokens: Token[]): CollectionAttributes {
     const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
 
@@ -119,13 +124,17 @@ export default class Erc721Contract extends AbstractContract {
     };
 
     for (const metadata of tokenMetadata) {
-      const attributes = Array.isArray(metadata.attributes) ? metadata.attributes : [];
+      const attributes = Array.isArray((metadata as any).attributes) ? (metadata as any).attributes : []; // TODO handle erc1155 metadata
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
-          incrementTrait(attribute.value, attribute.trait_type, attribute.display_type);
+          incrementTrait(
+            attribute.value as string | number,
+            attribute.trait_type as string | undefined,
+            attribute.display_type as DisplayType | undefined
+          );
         } else {
-          incrementTrait(attribute.value, attribute.trait_type);
+          incrementTrait(attribute.value as string | number, attribute.trait_type as string | undefined);
         }
       }
     }
@@ -180,12 +189,8 @@ export default class Erc721Contract extends AbstractContract {
     }
 
     let fromBlock = options?.fromBlock;
-    if (typeof fromBlock !== 'number') {
-      /**
-       * the first transaction for this contract
-       */
-      const firstTransaction = await this.getContractCreationTx();
-      fromBlock = firstTransaction.blockNumber;
+    if (typeof fromBlock !== 'number' || Number.isNaN(fromBlock)) {
+      fromBlock = 0;
     }
 
     const mintsReadable = await this.paginateLogs(thunkedLogRequest, this.provider, {
@@ -267,9 +272,9 @@ export default class Erc721Contract extends AbstractContract {
     try {
       const res = await this.contract.functions.supportsInterface(ERC721InterfaceId);
       const isSupported = res[0];
-      if(typeof isSupported === 'boolean') {
+      if (typeof isSupported === 'boolean') {
         return isSupported;
-      } 
+      }
       return false;
     } catch (err) {
       return false;

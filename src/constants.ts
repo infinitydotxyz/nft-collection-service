@@ -1,13 +1,23 @@
 import chalk from 'chalk';
 import v8 from 'v8';
 
-export const PROJECT = 'nftc-infinity';
+/**
+ *
+ * TODO adi change PROJECT for prod
+ * ---------------------------------------
+ */
+export const PROJECT: 'nftc-dev' | 'nftc-infinity' = 'nftc-infinity' as 'nftc-dev' | 'nftc-infinity';
 export const PROJECT_LOCATION = 'us-east1';
-export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
-export const FB_STORAGE_BUCKET = 'infinity-static';
-export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-infinity-task-queue.json';
+export const FIREBASE_SERVICE_ACCOUNT = PROJECT === 'nftc-dev' ? 'firebase-dev.json' : 'firebase-prod.json';
+
+export const FB_STORAGE_BUCKET = PROJECT === 'nftc-dev' ? 'nftc-dev.appspot.com' : 'infinity-static';
+export const TASK_QUEUE_SERVICE_ACCOUNT = PROJECT === 'nftc-dev' ? 'nftc-dev-task-queue.json' : 'nftc-infinity-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
-export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com';
+
+const collectionServiceUrlProd = 'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com';
+const collectionServiceUrlDev = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+export const COLLECTION_SERVICE_URL = PROJECT === 'nftc-dev' ? collectionServiceUrlDev : collectionServiceUrlProd;
+
 /**
  * ---------------------------------------
  */
@@ -25,7 +35,7 @@ const getInfuraIPFSAuthKeys = (): string[] => {
   const apiKeys = [];
 
   let i = 0;
-  for(;;) {
+  for (;;) {
     try {
       const projectId = getEnvironmentVariable(`INFURA_IPFS_PROJECT_ID${i}`);
       const projectSecret = getEnvironmentVariable(`INFURA_IPFS_PROJECT_SECRET${i}`);
@@ -47,8 +57,18 @@ export const JSON_RPC_MAINNET_KEYS = (() => {
   return apiKeys;
 })();
 
+export const JSON_RPC_GOERLI_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('JSON_RPC_GOERLI');
+  return apiKeys;
+})();
+
 export const OPENSEA_API_KEYS = (() => {
   const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
+  return apiKeys;
+})();
+
+export const MNEMONIC_API_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('MNEMONIC_API_KEY');
   return apiKeys;
 })();
 
@@ -151,7 +171,6 @@ function getMaxConcurrency(): { limit: number; message: string } {
     message: 'process heap size'
   };
 }
-
 
 function getMultipleEnvVariables(prefix: string, minLength = 1): string[] {
   const variables = [];

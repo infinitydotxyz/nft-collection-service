@@ -1,5 +1,6 @@
 # input files
 results*.json
+summary*.json
 
 # exported data files
 *exported.csv

@@ -2,7 +2,6 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
-  Erc721Token,
   ImageData,
   ImageToken,
   MetadataData,
@@ -426,7 +425,17 @@ export default class Collection extends AbstractCollection {
     hasBlueCheck: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionCreatorType> {
-    const creator = await this.getCreator();
+    let creator = {
+      deployedAt: Number.NaN,
+      deployer: '',
+      owner: '',
+      deployedAtBlock: Number.NaN
+    };
+    try {
+      creator = await this.getCreator();
+    } catch (err) {
+      console.error(`Failed to get creator`, err);
+    }
     const initialCollection: CollectionCreatorType = {
       indexInitiator: indexInitiator,
       chainId: this.contract.chainId,
@@ -454,7 +463,9 @@ export default class Collection extends AbstractCollection {
     collection: CollectionCreatorType,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const collectionMetadata = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+    const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
+      this.contract.address
+    );
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {
@@ -463,6 +474,7 @@ export default class Collection extends AbstractCollection {
 
     const collectionMetadataCollection: CollectionMetadataType = {
       ...collection,
+      hasBlueCheck: (hasBlueCheck || collection.hasBlueCheck) ?? false,
       metadata: collectionMetadata,
       slug: slug,
       state: {
@@ -491,14 +503,14 @@ export default class Collection extends AbstractCollection {
       resumeFromBlock = collection.state.create.error?.lastSuccessfulBlock;
     }
 
-    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number } }>();
+    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number; message?: string } }>();
 
     mintEmitter.on('mint', (mintToken) => {
       void emitter.emit('mint', mintToken);
     });
 
-    mintEmitter.on('progress', ({ progress }) => {
-      void emitter.emit('progress', { progress, step: CreationFlow.CollectionMints });
+    mintEmitter.on('progress', ({ progress, message }) => {
+      void emitter.emit('progress', { progress, step: CreationFlow.CollectionMints, message });
     });
 
     const { failedWithUnknownErrors, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(
@@ -560,11 +572,15 @@ export default class Collection extends AbstractCollection {
           tokenId = String(parseInt(tokenIdStr, 16));
         }
         if (tokenId) {
+          let title = datum.title ?? metadata?.name ?? '';
+          if (!title && 'title' in metadata) {
+            title = metadata.title ?? '';
+          }
           const tokenWithMetadata: MetadataData & Partial<Token> = {
-            slug: getSearchFriendlyString(datum.title ?? metadata.name ?? metadata.title ?? ''),
+            slug: getSearchFriendlyString(title),
             tokenId,
             tokenUri: datum.tokenUri?.raw,
-            numTraitTypes: metadata?.attributes?.length,
+            numTraitTypes: (metadata as any)?.attributes?.length ?? 0, // TODO handle erc1155 metadata
             metadata,
             updatedAt: Date.now()
           };
@@ -615,7 +631,7 @@ export default class Collection extends AbstractCollection {
       const iterator = nft.refreshToken();
       // eslint-disable-next-line no-async-promise-executor
       const tokenWithMetadataPromise = new Promise<MetadataToken>(async (resolve, reject) => {
-        let tokenWithMetadata = token as Partial<Erc721Token>;
+        let tokenWithMetadata = token as Partial<Token>;
         try {
           let prevTokenProgress = 0;
           for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {
