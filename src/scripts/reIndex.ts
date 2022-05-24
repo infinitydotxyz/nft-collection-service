@@ -2,17 +2,16 @@
 import axios, { AxiosError } from 'axios';
 const URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
 
-export async function reIndex(collections: {chainId: string, address: string}[]) {
-  for(const collection of collections) {
-    try{
+export async function reIndex(collections: { chainId: string; address: string }[]) {
+  for (const collection of collections) {
+    try {
       const res = await enqueueCollection(collection, URL);
-      console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`)
-    }
-    catch(err) {
+      console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`);
+    } catch (err) {
       console.error(err);
     }
   }
-};
+}
 
 export enum ResponseType {
   IndexingInitiated = 'INDEXING_INITIATED',
