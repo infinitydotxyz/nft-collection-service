@@ -3,18 +3,22 @@ import v8 from 'v8';
 
 /**
  *
- * TODO adi change these for prod
+ * TODO adi change PROJECT for prod
  * ---------------------------------------
  */
-export const PROJECT = 'nftc-dev';
+export const PROJECT: 'nftc-dev' | 'nftc-prod' = 'nftc-dev';
 export const PROJECT_LOCATION = 'us-east1';
-export const FIREBASE_SERVICE_ACCOUNT = 'firebase-dev.json';
-// export const FIREBASE_SERVICE_ACCOUNT = 'firebase-prod.json';
+export const FIREBASE_SERVICE_ACCOUNT = PROJECT === 'nftc-dev' ? 'firebase-dev.json' : 'firebase-prod.json';
 
 export const FB_STORAGE_BUCKET = `${PROJECT}.appspot.com`;
-export const TASK_QUEUE_SERVICE_ACCOUNT = 'nftc-dev-task-queue.json';
+export const TASK_QUEUE_SERVICE_ACCOUNT = PROJECT === 'nftc-dev' ? 'nftc-dev-task-queue.json' : 'nftc-infinity-task-queue.json';
 export const COLLECTION_QUEUE = 'collection-scraping-queue';
-export const COLLECTION_SERVICE_URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+
+const collectionServiceUrlProd = 'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com';
+const collectionServiceUrlDev = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com';
+export const COLLECTION_SERVICE_URL = PROJECT === 'nftc-dev' ? collectionServiceUrlDev : collectionServiceUrlProd;
+
+
 /**
  * ---------------------------------------
  */

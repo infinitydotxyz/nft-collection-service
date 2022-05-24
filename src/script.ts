@@ -14,41 +14,31 @@ import path from 'path';
 import { deleteCollectionGroups } from 'scripts/deleteDataSubColl';
 import { start } from 'scripts/deleteDataSubCollThreads';
 import { fixInfinityStats } from 'scripts/fixInfinityStats';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { CreationFlow } from '@infinityxyz/lib/types/core';
+import { reIndex } from 'scripts/reIndex';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    // await getCollectionsFromMnemonic();
-    // const collectionGroupsToDelete = [
-    //   'data',
-    //   'daily',
-    //   'hourly',
-    //   'weekly',
-    //   'monthly',
-    //   'yearly',
-    //   'collectionStats', // overlaps with current structure
-    //   'nftStats', // overlaps with current structure
-    //   'nft',
-    //   'collectionStatsAllTime',
-    //   'collectionStatsHourly',
-    //   'collectionStatsDaily',
-    //   'collectionStatsWeekly',
-    //   'collectionStatsMonthly',
-    //   'collectionStatsYearly',
-    //   'nftStatsAllTime',
-    //   'nftStatsHourly',
-    //   'nftStatsDaily',
-    //   'nftStatsWeekly',
-    //   'nftStatsMonthly',
-    //   'nftStatsYearly'
-    // ];
-    // await deleteCollectionGroups(collectionGroupsToDelete);
-    // await checkCollectionTokenStandard()
-    // const summary = await collectionDao.getCollectionsSummary();
-    // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+    // const collectionsSnap = await firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).where('state.create.step', '==', CreationFlow.CollectionCreator).get();
+    // const collectionIds = [...new Set(collectionsSnap.docs.map(doc => doc.ref.id))];
+    // const collections = collectionIds.map((item) => {
+    //   const [chainId, address] = item.split(':');
+    //   return {
+    //     chainId,
+    //     address
+    //   }
+    // })
+    // console.log(`Found: ${collections.length} collections to reindex`);
+    // console.log(JSON.stringify(collections, null, 2));
+    // await reIndex(collections);
 
-    const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
+    const summary = await collectionDao.getCollectionsSummary();
+    fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+
+    // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
     logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
 
     const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
@@ -75,9 +65,6 @@ export async function main(): Promise<void> {
         Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
       }%  collections without ERC721 standard`
     );
-
-    // await collectionDao.getCollectionsSummary();
-    // await appendDisplayTypeToCollections();
   } catch (err) {
     logger.error(err);
   }
