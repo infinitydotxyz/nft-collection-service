@@ -24,55 +24,38 @@ import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await updateGoerliDoodlesImages();
-    // await addBlueCheck();
+    await reIndex(CreationFlow.CollectionCreator);
 
-    // const collectionsSnap = await firebase.db
-    //   .collection(firestoreConstants.COLLECTIONS_COLL)
-    //   .where('state.create.step', '==', CreationFlow.CollectionCreator)
-    //   .get();
-    // const collectionIds = [...new Set(collectionsSnap.docs.map((doc) => doc.ref.id))];
-    // const collections = collectionIds.map((item) => {
-    //   const [chainId, address] = item.split(':');
+    // const summary = await collectionDao.getCollectionsSummary();
+    // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+
+    // // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
+    // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+
+    // const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
     //   return {
-    //     chainId,
-    //     address
+    //     ...acc,
+    //     [collection.state]: [...(acc[collection.state] || []), collection]
     //   };
-    // });
-    // console.log(JSON.stringify(collections, null, 2));
-    // console.log(`Found: ${collections.length} collections to reindex`);
-    // await reIndex(collections);
+    // }, {});
 
-    const summary = await collectionDao.getCollectionsSummary();
-    fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+    // const nonErc721 = [];
 
-    // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
-    logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+    // for (const [state, collections] of Object.entries(collectionsByState)) {
+    //   const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
+    //   console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
+    //   for (const collection of collections as any[]) {
+    //     if (collection.error.message === 'Failed to detect token standard') {
+    //       nonErc721.push(collection);
+    //     }
+    //   }
+    // }
 
-    const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
-      return {
-        ...acc,
-        [collection.state]: [...(acc[collection.state] || []), collection]
-      };
-    }, {});
-
-    const nonErc721 = [];
-
-    for (const [state, collections] of Object.entries(collectionsByState)) {
-      const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
-      console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
-      for (const collection of collections as any[]) {
-        if (collection.error.message === 'Failed to detect token standard') {
-          nonErc721.push(collection);
-        }
-      }
-    }
-
-    console.log(
-      `Found: ${nonErc721.length} ${
-        Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
-      }%  collections without ERC721 standard`
-    );
+    // console.log(
+    //   `Found: ${nonErc721.length} ${
+    //     Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
+    //   }%  collections without ERC721 standard`
+    // );
   } catch (err) {
     logger.error(err);
   }

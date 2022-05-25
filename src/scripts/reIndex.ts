@@ -3,12 +3,28 @@ import axios, { AxiosError } from 'axios';
 import { COLLECTION_SERVICE_URL } from '../constants';
 import { join } from 'path';
 import PQueue from 'p-queue';
+import { CreationFlow } from '@infinityxyz/lib/types/core';
+import { firebase } from 'container';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-export async function reIndex(collections: { chainId: string; address: string }[]) {
+export async function reIndex(step: CreationFlow) {
+  const collectionsSnap = await firebase.db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .where('state.create.step', '==', step)
+    .get();
+  const collectionIds = [...new Set(collectionsSnap.docs.map((doc) => doc.ref.id))];
+  const collections = collectionIds.map((item) => {
+    const [chainId, address] = item.split(':');
+    return {
+      chainId,
+      address
+    };
+  });
+  console.log(`Found: ${collections.length} collections to re-index`);
+
   const url = new URL(join(COLLECTION_SERVICE_URL, 'collection')).toString();
-
   const queue = new PQueue({ concurrency: 50 });
-  setInterval(() => {
+  const interval = setInterval(() => {
     console.log(`Queue size: ${queue.size}`);
   }, 5_000);
 
@@ -26,6 +42,7 @@ export async function reIndex(collections: { chainId: string; address: string }[
   }
 
   await queue.onIdle();
+  clearInterval(interval);
 }
 
 export enum ResponseType {
