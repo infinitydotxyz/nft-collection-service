@@ -1,16 +1,30 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import axios, { AxiosError } from 'axios';
-const URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
+import { COLLECTION_SERVICE_URL } from '../constants';
+import { join } from 'path';
+import PQueue from 'p-queue';
 
 export async function reIndex(collections: { chainId: string; address: string }[]) {
+  const url = new URL(join(COLLECTION_SERVICE_URL, 'collection')).toString();
+
+  const queue = new PQueue({concurrency: 50});
+  setInterval(() => {
+    console.log(`Queue size: ${queue.size}`);
+  }, 5_000);
+
   for (const collection of collections) {
     try {
-      const res = await enqueueCollection(collection, URL);
-      console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`);
+      queue.add(async () => {
+        const res = await enqueueCollection(collection, url);
+        console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`);
+      }).catch(console.error);
     } catch (err) {
       console.error(err);
     }
   }
+
+  await queue.onIdle();
+
 }
 
 export enum ResponseType {
