@@ -24,7 +24,6 @@ import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-
     await updateGoerliDoodlesImages();
     // await addBlueCheck();
 

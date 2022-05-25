@@ -8,9 +8,9 @@ import { sleep } from 'utils';
 export async function addBlueCheck() {
   const queue = new PQueue({ concurrency: 1 });
   console.log(`Adding blue check to collections`);
-  const collectionStream = firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).orderBy('address').startAfter('0x180ce135fffdc4e47c58ae7b7e5463b62fc4d4c2').stream() as AsyncIterable<
-    FirebaseFirestore.DocumentSnapshot<Partial<Collection>>
-  >;
+  const collectionStream = firebase.db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .stream() as AsyncIterable<FirebaseFirestore.DocumentSnapshot<Partial<Collection>>>;
   const batchHandler = new BatchHandler();
 
   const updateBlueCheck = async (collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference) => {
