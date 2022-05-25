@@ -18,11 +18,14 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { CreationFlow } from '@infinityxyz/lib/types/core';
 import { reIndex } from 'scripts/reIndex';
 import { addBlueCheck } from 'scripts/addBlueCheck';
+import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
+
+    await updateGoerliDoodlesImages();
     // await addBlueCheck();
 
     // const collectionsSnap = await firebase.db
