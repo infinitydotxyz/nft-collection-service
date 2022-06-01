@@ -718,11 +718,12 @@ export default class Collection extends AbstractCollection {
         // safely ignore
       });
     }
+    void emitter.emit('attributes', attributes);
 
     const aggregatedCollection: CollectionType = {
       ...collection,
-      attributes,
       numTraitTypes: Object.keys(attributes).length,
+      attributes: {}, // TODO: actually remove attributes from parent collection & update types lib to support this change
       numOwnersUpdatedAt: 0,
       state: {
         ...collection.state,
