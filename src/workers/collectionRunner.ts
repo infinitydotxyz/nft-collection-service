@@ -169,9 +169,11 @@ export async function create(
     batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: !reset });
   });
 
-  emitter.on('attributes', (attributes) => {
-    const attributesDoc = collectionDoc.collection('attributes').doc('all');
-    batch.add(attributesDoc, attributes, { merge: true });
+  emitter.on('attributes', (attributes: CollectionAttributes) => {
+    for (const attribute in attributes) {
+      const attributesDoc = collectionDoc.collection('attributes').doc(attribute);
+      batch.add(attributesDoc, attributes[attribute], { merge: true });
+    }
   });
 
   emitter.on('tokenError', (data) => {
