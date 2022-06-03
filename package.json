@@ -16,6 +16,7 @@
     "start:dev": "npm run build && cross-env NODE_ENV_SCRIPT=serve cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "dev": "npm run build && cross-env NODE_ENV_SCRIPT=script cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
     "cli": "npm run build && cross-env NODE_ENV_SCRIPT=cli cross-env NODE_PATH=./dist node -r dotenv/config ./dist/bootstrap.js",
+    "migrate": "npm run build && cross-env NODE_PATH=./dist node -r dotenv/config ./dist/migrate.js",
     "deploy:server:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity",
     "fmt:check": "prettier -c ./src",
