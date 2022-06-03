@@ -1,6 +1,6 @@
-import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../../constants';
-import { collectionDao } from '../../container';
-import BatchHandler from '../../models/BatchHandler';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
+import { collectionDao } from '../container';
+import BatchHandler from '../models/BatchHandler';
 import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
 
 /**
