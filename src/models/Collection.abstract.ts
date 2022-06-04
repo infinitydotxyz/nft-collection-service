@@ -8,7 +8,8 @@ import {
   MintToken,
   RefreshTokenFlow,
   Token,
-  Collection as CollectionType
+  Collection as CollectionType,
+  CollectionAttributes
 } from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
 import { ethers } from 'ethers';
@@ -21,6 +22,7 @@ export type CollectionEmitter = Emittery<{
   metadata: MetadataData & Partial<Token>;
   image: ImageData & Partial<Token>;
   mint: MintToken;
+  attributes: CollectionAttributes;
   tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
   progress: { step: string; progress: number; message?: string };
 }>;
