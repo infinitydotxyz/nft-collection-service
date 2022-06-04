@@ -17,10 +17,8 @@ export async function migrateAttributes(): Promise<void> {
         batch.add(attributesDoc, collection.attributes[attribute], { merge: true });
       }
       batch.add(collectionRef, {attributes: FieldValue.delete()}, {merge: true});
+      console.log(`migrating collection: ${collection.chainId}:${collection.address} (batch size: ${batch.size})`);
+      await batch.flush();
     }
   }
-
-  console.log(`batch size: ${batch.size}`);
-
-  await batch.flush();
 }
