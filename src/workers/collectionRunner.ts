@@ -79,6 +79,12 @@ export async function create(
   const data = await collectionDoc.get();
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
+  const oneHourAgo = new Date(Date.now() - 3600000).getTime();
+  if(!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+    log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
+    return;
+  }
+
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
     const collection: Partial<CollectionType> = {
