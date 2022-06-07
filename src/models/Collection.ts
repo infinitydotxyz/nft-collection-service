@@ -14,7 +14,7 @@ import {
   CreationFlow
 } from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
-import { COLLECTION_SCHEMA_VERSION } from '../constants';
+import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
@@ -27,7 +27,8 @@ import {
   CollectionTokenMetadataError,
   CollectionImageValidationError,
   CreationFlowError,
-  UnknownError
+  UnknownError,
+  CollectionTotalSupplyExceededError
 } from './errors/CreationFlow';
 import Nft from './Nft';
 import { alchemy, logger, opensea } from '../container';
@@ -107,6 +108,15 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CollectionMints:
             try {
+              const slug = (collection as CollectionMetadataType).metadata.links.slug;
+              if(!slug) {
+                throw new Error('Failed to get collection slug');
+              }
+              const totalSupply = await this.collectionMetadataProvider.getTotalSupply(slug);
+              if (Number.isNaN(totalSupply) || totalSupply > COLLECTION_MAX_SUPPLY) {
+                throw new CollectionTotalSupplyExceededError(`Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`);
+              }
+
               collection = await this.getCollectionMints(
                 collection as CollectionMetadataType,
                 emitter,
@@ -116,7 +126,7 @@ export default class Collection extends AbstractCollection {
               yield { collection }; // update collection
             } catch (err: any) {
               logger.error('Failed to get collection mints', err);
-              if (err instanceof CollectionMintsError) {
+              if (err instanceof CollectionMintsError || err instanceof CollectionTotalSupplyExceededError) {
                 throw err;
               }
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection mints';
@@ -372,6 +382,7 @@ export default class Collection extends AbstractCollection {
           // todo: needs impl
           case CreationFlow.Incomplete:
           case CreationFlow.Unknown:
+          case CreationFlow.Invalid:
           default:
             return;
         }
