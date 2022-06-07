@@ -6,6 +6,7 @@ import ContractFactory from '../models/contracts/ContractFactory';
 import Collection from '../models/Collection';
 import {
   Collection as CollectionType,
+  CollectionAttributes,
   CreationFlow,
   ImageData,
   MetadataData,
@@ -126,6 +127,7 @@ export async function create(
     metadata: MetadataData & Partial<Token>;
     image: ImageData & Partial<Token>;
     mint: MintToken;
+    attributes: CollectionAttributes;
     tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
     progress: { step: string; progress: number; message?: string };
   }>();
@@ -171,6 +173,13 @@ export async function create(
   emitter.on('mint', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
     batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: !reset });
+  });
+
+  emitter.on('attributes', (attributes: CollectionAttributes) => {
+    for (const attribute in attributes) {
+      const attributesDoc = collectionDoc.collection('attributes').doc(attribute);
+      batch.add(attributesDoc, attributes[attribute], { merge: true });
+    }
   });
 
   emitter.on('tokenError', (data) => {
