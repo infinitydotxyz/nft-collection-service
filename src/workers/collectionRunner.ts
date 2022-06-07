@@ -15,7 +15,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
-import { COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
 
 export async function createCollection(
@@ -79,6 +79,12 @@ export async function create(
 
   const data = await collectionDoc.get();
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
+
+  const oneHourAgo = Date.now() - ONE_HOUR;
+  if(!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+    log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
+    return;
+  }
 
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
