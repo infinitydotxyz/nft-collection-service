@@ -1,16 +1,48 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import axios, { AxiosError } from 'axios';
-const URL = 'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
+import { COLLECTION_SERVICE_URL } from '../constants';
+import { join } from 'path';
+import PQueue from 'p-queue';
+import { CreationFlow } from '@infinityxyz/lib/types/core';
+import { firebase } from 'container';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-export async function reIndex(collections: { chainId: string; address: string }[]) {
+export async function reIndex(step: CreationFlow) {
+  const collectionsSnap = await firebase.db
+    .collection(firestoreConstants.COLLECTIONS_COLL)
+    .where('state.create.step', '==', step)
+    .get();
+  const collectionIds = [...new Set(collectionsSnap.docs.map((doc) => doc.ref.id))];
+  const collections = collectionIds.map((item) => {
+    const [chainId, address] = item.split(':');
+    return {
+      chainId,
+      address
+    };
+  });
+  console.log(`Found: ${collections.length} collections to re-index`);
+
+  const url = new URL(join(COLLECTION_SERVICE_URL, 'collection')).toString();
+  const queue = new PQueue({ concurrency: 50 });
+  const interval = setInterval(() => {
+    console.log(`Queue size: ${queue.size}`);
+  }, 5_000);
+
   for (const collection of collections) {
     try {
-      const res = await enqueueCollection(collection, URL);
-      console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`);
+      queue
+        .add(async () => {
+          const res = await enqueueCollection(collection, url);
+          console.log(`Collection: ${collection.chainId}:${collection.address} ${res}`);
+        })
+        .catch(console.error);
     } catch (err) {
       console.error(err);
     }
   }
+
+  await queue.onIdle();
+  clearInterval(interval);
 }
 
 export enum ResponseType {

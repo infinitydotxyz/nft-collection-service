@@ -96,7 +96,6 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
      * not sure why opensea formats names like (BoredApeYachtClub)
      */
     const name = formatName(data.name ?? '');
-    console.log(`Safelist request status: ${collection.safelist_request_status}`);
     const hasBlueCheck = collection.safelist_request_status === 'verified';
     const dataInInfinityFormat: CollectionMetadata = {
       name,

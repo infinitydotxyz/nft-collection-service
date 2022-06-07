@@ -17,23 +17,14 @@ import { fixInfinityStats } from 'scripts/fixInfinityStats';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { CreationFlow } from '@infinityxyz/lib/types/core';
 import { reIndex } from 'scripts/reIndex';
+import { addBlueCheck } from 'scripts/addBlueCheck';
+import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    // const collectionsSnap = await firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).where('state.create.step', '==', CreationFlow.CollectionCreator).get();
-    // const collectionIds = [...new Set(collectionsSnap.docs.map(doc => doc.ref.id))];
-    // const collections = collectionIds.map((item) => {
-    //   const [chainId, address] = item.split(':');
-    //   return {
-    //     chainId,
-    //     address
-    //   }
-    // })
-    // console.log(`Found: ${collections.length} collections to reindex`);
-    // console.log(JSON.stringify(collections, null, 2));
-    // await reIndex(collections);
+    // await reIndex(CreationFlow.ValidateImage);
 
     const summary = await collectionDao.getCollectionsSummary();
     fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
@@ -111,5 +102,3 @@ export async function getCollectionsFromMnemonic(): Promise<void> {
   const data = await mnemonic.getERC721Collections();
   console.log(data);
 }
-
-void main();
