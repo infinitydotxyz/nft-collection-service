@@ -71,6 +71,18 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
     });
   }
 
+  async getTotalSupply(openseaSlug: string): Promise<number> {
+    let numNfts = NaN;
+    try {
+      const collectionStats = await this.getCollectionStats(openseaSlug);
+      numNfts = collectionStats.stats.total_supply;
+    } catch (err) {
+      console.error(err);
+    }
+
+    return numNfts;
+  }
+
   /**
    * getCollectionMetadata gets basic info about a collection: name, description, links, images
    *
@@ -79,7 +91,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
    *
    * etherscan has a similar endpoint that seems decent if this begins to fail
    */
-  async getCollectionMetadata(address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean }> {
+  async getCollectionMetadata(address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean; }> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
@@ -118,6 +130,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
         wiki: collection?.wiki_url ?? ''
       }
     };
+
     return { ...dataInInfinityFormat, hasBlueCheck };
   }
 

@@ -217,6 +217,7 @@ export async function create(
         const successful = collectionData?.state?.create?.step === CreationFlow.Complete;
         const indexerRan = collectionData?.state?.create?.step === CreationFlow.Incomplete;
         const unknownError = collectionData?.state?.create?.step === CreationFlow.Unknown;
+        const invalid = collectionData?.state?.create?.step === CreationFlow.Invalid;
         if (successful) {
           log(`Collection Completed: ${chainId}:${address}`);
           return;
@@ -226,7 +227,10 @@ export async function create(
         } else if (unknownError) {
           log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
-        } else {
+        } else if(invalid) { 
+          log(`Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`);
+          return;
+        }else {
           attempt += 1;
           if (attempt >= 3) {
             log(`Failed to complete collection: ${chainId}:${address}`);
