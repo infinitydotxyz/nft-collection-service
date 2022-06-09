@@ -3,7 +3,7 @@ import BatchHandler from '../models/BatchHandler';
 import { FieldValue } from 'firebase-admin/firestore';
 import { encodeDocId } from '@infinityxyz/lib/utils';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
-import { CollectionAttribute } from '@infinityxyz/lib/types/core';
+import { Collection, CollectionAttribute } from '@infinityxyz/lib/types/core';
 
 /**
  * Verify that the specified value is not null, undefined or {}.
@@ -38,8 +38,31 @@ export async function migrateAttributes(): Promise<void> {
   // list of batches to flush
   const batches: BatchHandler[] = [];
 
-  try {
-    for await (const { collection, ref: collectionRef } of collectionDao.streamCollections()) {
+  let errors = 0;
+
+  let startAfter;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    let query = collectionDao.database
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .orderBy('address', 'asc')
+      .limit(500);
+
+    if (startAfter) {
+      query = query.startAfter(startAfter);
+    }
+
+    const snapshot = await query.get();
+
+    if (snapshot.size === 0) {
+      break;
+    }
+
+    for (const doc of snapshot.docs) {
+      const collection = doc.data() as Collection;
+      const collectionRef = doc.ref;
+
       const attributesRef = collectionRef.collection(firestoreConstants.COLLECTION_ATTRIBUTES);
 
       // check if the 'attributes' field is set directly on the collection document
@@ -51,7 +74,7 @@ export async function migrateAttributes(): Promise<void> {
           const attributeDoc = attributesRef.doc(encodeDocId(attribute));
           batch.add(attributeDoc, { ...collection.attributes[attribute], values: FieldValue.delete() }, { merge: true });
 
-          // write attribute values to another subcollection wuthin the attributes subcollection (collection > attributes > values)
+          // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
           const values = collection.attributes[attribute].values;
           if (isSet(values)) {
             for (const value in values) {
@@ -66,8 +89,11 @@ export async function migrateAttributes(): Promise<void> {
       // check and migrate if the collection has the 'attributes' subcollection, but not the 'values' subcollection within
       const attributesSnapshot = await attributesRef.get();
       if (attributesSnapshot.docs.length > 0) {
-        console.log(`scheduled migration of partially migrated collection: ${collection.chainId}:${collection.address}`);
+        const currentBatchSize = batch.size;
         batch = writeAtrributes(attributesSnapshot.docs, batch);
+        if (currentBatchSize != batch.size) {
+          console.log(`scheduled migration of partially migrated collection: ${collection.chainId}:${collection.address}`);
+        }
       }
 
       if (batch.size >= 100) {
@@ -75,27 +101,29 @@ export async function migrateAttributes(): Promise<void> {
         batch = new BatchHandler();
       }
     }
-  } catch (err: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    if ((err.toString() as string).includes('FAILED_PRECONDITION')) {
-      console.log('snapshot too old, should retry');
-    } else {
-      console.error(err);
+
+    // push last batch
+    if (batch.size > 0) {
+      batches.push(batch);
     }
+
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      console.log(`writing batch ${i + 1} / ${batches.length}`);
+      try {
+        await batch.flush();
+      } catch (err) {
+        console.error(err);
+        errors++;
+      }
+    }
+    
+    startAfter = (snapshot.docs[snapshot.size - 1].get('address'));
+    
+    console.log(`selecting next collections after ${startAfter}`);
   }
 
-  // push last batch
-  if (batch.size > 0) {
-    batches.push(batch);
-  }
-
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i];
-    console.log(`writing batch ${i + 1} / ${batches.length}`);
-    try {
-      await batch.flush();
-    } catch (err) {
-      console.error(err);
-    }
+  if (errors > 0) {
+    console.warn(`caught ${errors} errors. `);
   }
 }

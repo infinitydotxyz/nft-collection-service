@@ -13,6 +13,10 @@ export default class CollectionDao {
     this.firebase = firebase;
   }
 
+  get database() {
+    return this.firebase.db;
+  }
+
   async get(chainId: string, address: string): Promise<Collection> {
     const collectionRef = this.firebase.getCollectionDocRef(chainId, normalizeAddress(address));
 
