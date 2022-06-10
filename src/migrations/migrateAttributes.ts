@@ -44,10 +44,7 @@ export async function migrateAttributes(): Promise<void> {
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    let query = collectionDao.database
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .orderBy('address', 'asc')
-      .limit(500);
+    let query = collectionDao.database.collection(firestoreConstants.COLLECTIONS_COLL).orderBy('address', 'asc').limit(500);
 
     if (startAfter) {
       query = query.startAfter(startAfter);
@@ -117,9 +114,9 @@ export async function migrateAttributes(): Promise<void> {
         errors++;
       }
     }
-    
-    startAfter = (snapshot.docs[snapshot.size - 1].get('address'));
-    
+
+    startAfter = snapshot.docs[snapshot.size - 1].get('address');
+
     console.log(`selecting next collections after ${startAfter}`);
   }
 
