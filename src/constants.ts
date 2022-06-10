@@ -1,12 +1,7 @@
 import chalk from 'chalk';
 import v8 from 'v8';
 
-/**
- *
- * TODO adi change PROJECT for prod
- * ---------------------------------------
- */
-export const PROJECT: 'nftc-dev' | 'nftc-infinity' = 'nftc-infinity' as 'nftc-dev' | 'nftc-infinity';
+export const PROJECT: 'nftc-dev' | 'nftc-infinity' = 'nftc-dev' as 'nftc-dev' | 'nftc-infinity';
 export const PROJECT_LOCATION = 'us-east1';
 export const FIREBASE_SERVICE_ACCOUNT = PROJECT === 'nftc-dev' ? 'firebase-dev.json' : 'firebase-prod.json';
 
