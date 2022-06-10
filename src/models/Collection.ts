@@ -15,7 +15,6 @@ import {
 } from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
-import { getSearchFriendlyString } from '../utils';
 import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
@@ -40,6 +39,7 @@ import {
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
+import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
 
 type CollectionCreatorType = Pick<
   CollectionType,

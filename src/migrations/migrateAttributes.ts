@@ -1,7 +1,7 @@
 import { collectionDao } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { FieldValue } from 'firebase-admin/firestore';
-import { encodeDocId } from '@infinityxyz/lib/utils';
+import { encodeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { Collection, CollectionAttribute } from '@infinityxyz/lib/types/core';
 
@@ -75,6 +75,7 @@ export async function migrateAttributes(): Promise<void> {
           const attributeDoc = attributesRef.doc(encodeDocId(attribute));
           const attributeData = {
             attributeType: attribute,
+            attributeTypeSlug: getSearchFriendlyString(attribute),
             ...collection.attributes[attribute],
           }
           batch.add(attributeDoc, { attributeData, values: FieldValue.delete() }, { merge: true });
@@ -86,8 +87,9 @@ export async function migrateAttributes(): Promise<void> {
               const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
               const valueData = {
                 attributeValue: value,
+                attributeValueSlug: getSearchFriendlyString(value),
                 ...values[value]
-              }
+              };
               batch.add(valueDoc, valueData, { merge: true });
             }
           }

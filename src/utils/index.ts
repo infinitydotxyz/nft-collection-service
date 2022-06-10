@@ -39,15 +39,6 @@ export function getEnv(): Env {
   }
 }
 
-export function getSearchFriendlyString(input: string): string {
-  if (!input) {
-    return '';
-  }
-  // remove spaces, dashes and underscores only
-  const output = input.replace(/[\s-_]/g, '');
-  return output.toLowerCase();
-}
-
 /**
  * returns a random int between min (inclusive) and max (inclusive)
  */

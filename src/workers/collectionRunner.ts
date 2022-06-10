@@ -17,7 +17,7 @@ import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
-import { encodeDocId, firestoreConstants } from '@infinityxyz/lib/utils';
+import { encodeDocId, firestoreConstants, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 
 export async function createCollection(
   address: string,
@@ -182,6 +182,7 @@ export async function create(
       const attributeDoc = collectionDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES).doc(encodeDocId(attribute));
       const attributeData = {
         attributeType: attribute,
+        attributeTypeSlug: getSearchFriendlyString(attribute),
         ...attributes[attribute]
       };
       batch.add(attributeDoc, attributeData, { merge: true });
@@ -192,6 +193,7 @@ export async function create(
         const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
         const valueData = {
           attributeValue: value,
+          attributeValueSlug: getSearchFriendlyString(value),
           ...values[value]
         };
         batch.add(valueDoc, valueData, { merge: true });
