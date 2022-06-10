@@ -17,6 +17,7 @@ import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
+import { encodeDocId, firestoreConstants } from '@infinityxyz/lib/utils';
 
 export async function createCollection(
   address: string,
@@ -81,7 +82,7 @@ export async function create(
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
   const oneHourAgo = Date.now() - ONE_HOUR;
-  if(!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+  if (!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
     log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
     return;
   }
@@ -177,8 +178,24 @@ export async function create(
 
   emitter.on('attributes', (attributes: CollectionAttributes) => {
     for (const attribute in attributes) {
-      const attributesDoc = collectionDoc.collection('attributes').doc(attribute);
-      batch.add(attributesDoc, attributes[attribute], { merge: true });
+      // write attributes to subcollection (collection > attributes)
+      const attributeDoc = collectionDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES).doc(encodeDocId(attribute));
+      const attributeData = {
+        attributeType: attribute,
+        ...attributes[attribute]
+      };
+      batch.add(attributeDoc, attributeData, { merge: true });
+
+      // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
+      const values = attributes[attribute].values;
+      for (const value in values) {
+        const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
+        const valueData = {
+          attributeValue: value,
+          ...values[value]
+        };
+        batch.add(valueDoc, valueData, { merge: true });
+      }
     }
   });
 
@@ -227,10 +244,12 @@ export async function create(
         } else if (unknownError) {
           log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
           return;
-        } else if(invalid) { 
-          log(`Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`);
+        } else if (invalid) {
+          log(
+            `Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`
+          );
           return;
-        }else {
+        } else {
           attempt += 1;
           if (attempt >= 3) {
             log(`Failed to complete collection: ${chainId}:${address}`);
