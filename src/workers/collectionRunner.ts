@@ -179,28 +179,34 @@ export async function create(
   emitter.on('attributes', (attributes: CollectionAttributes) => {
     for (const attribute in attributes) {
       // write attributes to subcollection (collection > attributes)
-      const attributeDoc = collectionDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES).doc(getAttributeDocId(attribute));
-      const attributeData = {
-        attributeType: attribute,
-        attributeTypeSlug: getSearchFriendlyString(attribute),
-        count: attributes[attribute].count,
-        percent: attributes[attribute].percent,
-        displayType: attributes[attribute].displayType
-      };
-      batch.add(attributeDoc, attributeData, { merge: true });
-
-      // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
-      const values = attributes[attribute].values;
-      for (const value in values) {
-        const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(getAttributeDocId(value));
-        const valueData = {
-          ...values[value],
+      const docId = getAttributeDocId(attribute);
+      if (docId) {
+        const attributeDoc = collectionDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES).doc(docId);
+        const attributeData = {
           attributeType: attribute,
           attributeTypeSlug: getSearchFriendlyString(attribute),
-          attributeValue: value,
-          attributeValueSlug: getSearchFriendlyString(value)
+          count: attributes[attribute].count,
+          percent: attributes[attribute].percent,
+          displayType: attributes[attribute].displayType
         };
-        batch.add(valueDoc, valueData, { merge: true });
+        batch.add(attributeDoc, attributeData, { merge: true });
+
+        // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
+        const values = attributes[attribute].values;
+        for (const value in values) {
+          const docId = getAttributeDocId(value);
+          if (docId) {
+            const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(docId);
+            const valueData = {
+              ...values[value],
+              attributeType: attribute,
+              attributeTypeSlug: getSearchFriendlyString(attribute),
+              attributeValue: value,
+              attributeValueSlug: getSearchFriendlyString(value)
+            };
+            batch.add(valueDoc, valueData, { merge: true });
+          }
+        }
       }
     }
   });
