@@ -198,7 +198,7 @@ export async function create(
           attributeType: attribute,
           attributeTypeSlug: getSearchFriendlyString(attribute),
           attributeValue: value,
-          attributeValueSlug: getSearchFriendlyString(value),
+          attributeValueSlug: getSearchFriendlyString(value)
         };
         batch.add(valueDoc, valueData, { merge: true });
       }
