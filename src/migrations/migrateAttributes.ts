@@ -1,7 +1,11 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable eslint-comments/disable-enable-pair */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { collectionDao } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { FieldValue } from 'firebase-admin/firestore';
-import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { Collection, CollectionAttribute } from '@infinityxyz/lib/types/core';
 
@@ -9,7 +13,6 @@ import { Collection, CollectionAttribute } from '@infinityxyz/lib/types/core';
  * Verify that the specified value is not null, undefined or {}.
  */
 function isSet(field: any | null | undefined) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   return field != null && Object.entries(field).length != 0;
 }
 
@@ -21,11 +24,10 @@ function writeAtrributes(docs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseF
       for (const value in attributeData.values) {
         const valueDoc = attributeDoc.ref
           .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
-          .doc(getSearchFriendlyString(value));
+          .doc(getAttributeDocId(value));
         const valueData = {
           ...attributeData.values[value],
           attributeType: attributeData.attributeType ?? attributeDoc.id,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           attributeTypeSlug: getSearchFriendlyString(attributeData.attributeType ?? attributeDoc.id),
           attributeValue: value,
           attributeValueSlug: getSearchFriendlyString(value)
@@ -79,7 +81,7 @@ export async function migrateAttributes(): Promise<void> {
 
         for (const attribute in collection.attributes) {
           // write attributes to subcollection (collection > attributes)
-          const attributeDoc = attributesRef.doc(getSearchFriendlyString(attribute));
+          const attributeDoc = attributesRef.doc(getAttributeDocId(attribute));
           const attributeData = {
             attributeType: attribute,
             attributeTypeSlug: getSearchFriendlyString(attribute),
@@ -95,7 +97,7 @@ export async function migrateAttributes(): Promise<void> {
             for (const value in values) {
               const valueDoc = attributeDoc
                 .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
-                .doc(getSearchFriendlyString(value));
+                .doc(getAttributeDocId(value));
               const valueData = {
                 ...values[value],
                 attributeType: attribute,
