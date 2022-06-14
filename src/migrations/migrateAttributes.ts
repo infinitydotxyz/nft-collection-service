@@ -22,17 +22,18 @@ function writeAtrributes(docs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseF
 
     if (isSet(attributeData?.values)) {
       for (const value in attributeData.values) {
-        const valueDoc = attributeDoc.ref
-          .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
-          .doc(getAttributeDocId(value));
-        const valueData = {
-          ...attributeData.values[value],
-          attributeType: attributeData.attributeType ?? attributeDoc.id,
-          attributeTypeSlug: getSearchFriendlyString(attributeData.attributeType ?? attributeDoc.id),
-          attributeValue: value,
-          attributeValueSlug: getSearchFriendlyString(value)
-        };
-        batch.add(valueDoc, valueData, { merge: true });
+        const docId = getAttributeDocId(value);
+        if (docId) {
+          const valueDoc = attributeDoc.ref.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(docId);
+          const valueData = {
+            ...attributeData.values[value],
+            attributeType: attributeData.attributeType ?? attributeDoc.id,
+            attributeTypeSlug: getSearchFriendlyString(attributeData.attributeType ?? attributeDoc.id),
+            attributeValue: value,
+            attributeValueSlug: getSearchFriendlyString(value)
+          };
+          batch.add(valueDoc, valueData, { merge: true });
+        }
       }
       batch.add(attributeDoc.ref, { values: FieldValue.delete() }, { merge: true });
     }
@@ -75,37 +76,40 @@ export async function migrateAttributes(): Promise<void> {
       const attributesRef = collectionRef.collection(firestoreConstants.COLLECTION_ATTRIBUTES);
 
       // check if the 'attributes' field is set directly on the collection document
-      console.log('checking collection', collection.address);
       if (isSet(collection?.attributes)) {
         console.log(`scheduled migration of collection: ${collection.chainId}:${collection.address}`);
 
         for (const attribute in collection.attributes) {
           // write attributes to subcollection (collection > attributes)
-          const attributeDoc = attributesRef.doc(getAttributeDocId(attribute));
-          const attributeData = {
-            attributeType: attribute,
-            attributeTypeSlug: getSearchFriendlyString(attribute),
-            count: collection.attributes[attribute].count,
-            percent: collection.attributes[attribute].percent,
-            displayType: collection.attributes[attribute].displayType
-          };
-          batch.add(attributeDoc, { attributeData, values: FieldValue.delete() }, { merge: true });
+          const docId = getAttributeDocId(attribute);
+          if (docId) {
+            const attributeDoc = attributesRef.doc(docId);
+            const attributeData = {
+              attributeType: attribute,
+              attributeTypeSlug: getSearchFriendlyString(attribute),
+              count: collection.attributes[attribute].count,
+              percent: collection.attributes[attribute].percent,
+              displayType: collection.attributes[attribute].displayType
+            };
+            batch.add(attributeDoc, { attributeData, values: FieldValue.delete() }, { merge: true });
 
-          // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
-          const values = collection.attributes[attribute].values;
-          if (isSet(values)) {
-            for (const value in values) {
-              const valueDoc = attributeDoc
-                .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
-                .doc(getAttributeDocId(value));
-              const valueData = {
-                ...values[value],
-                attributeType: attribute,
-                attributeTypeSlug: getSearchFriendlyString(attribute),
-                attributeValue: value,
-                attributeValueSlug: getSearchFriendlyString(value),
-              };
-              batch.add(valueDoc, valueData, { merge: true });
+            // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
+            const values = collection.attributes[attribute].values;
+            if (isSet(values)) {
+              for (const value in values) {
+                const docId = getAttributeDocId(value);
+                if (docId) {
+                  const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(docId);
+                  const valueData = {
+                    ...values[value],
+                    attributeType: attribute,
+                    attributeTypeSlug: getSearchFriendlyString(attribute),
+                    attributeValue: value,
+                    attributeValueSlug: getSearchFriendlyString(value)
+                  };
+                  batch.add(valueDoc, valueData, { merge: true });
+                }
+              }
             }
           }
         }
