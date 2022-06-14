@@ -79,11 +79,11 @@ async function runAFew(colls: QuerySnapshot) {
 async function run(chainId: string, address: string, collectionData: BaseCollection) {
   try {
     // check if collection indexing is complete
-    const status = collectionData?.state.create.step;
-    if (status !== 'complete') {
-      console.error('Collection indexing is not complete for', address);
-      return;
-    }
+    // const status = collectionData?.state.create.step;
+    // if (status !== 'complete') {
+    //   console.error('Collection indexing is not complete for', address);
+    //   return;
+    // }
 
     // exception for ENS
     if (address === '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85') {
