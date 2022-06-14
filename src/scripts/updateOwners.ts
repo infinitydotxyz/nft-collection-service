@@ -71,13 +71,13 @@ async function run(chainId: string, address: string, collectionData: BaseCollect
     }
     console.log(`============================== Fetching tokens from firestore for ${address} =================================`);
     const tokens = await db.collection('collections').doc(`${chainId}:${address}`).collection('nfts').get();
-    await fetchAndUpdateOwners(chainId, address, tokens, collectionData);
+    await updateOwners(chainId, address, tokens, collectionData);
   } catch (e) {
     console.error('Error in running collection', address, e);
   }
 }
 
-async function fetchAndUpdateOwners(
+async function updateOwners(
   chainId: string,
   collectionAddress: string,
   tokens: QuerySnapshot<DocumentData>,

@@ -73,6 +73,7 @@ export async function migrateAttributes(): Promise<void> {
       const attributesRef = collectionRef.collection(firestoreConstants.COLLECTION_ATTRIBUTES);
 
       // check if the 'attributes' field is set directly on the collection document
+      console.log('checking collection', collection.address);
       if (isSet(collection?.attributes)) {
         console.log(`scheduled migration of collection: ${collection.chainId}:${collection.address}`);
 
