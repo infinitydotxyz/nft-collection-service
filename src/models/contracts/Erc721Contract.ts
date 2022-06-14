@@ -7,6 +7,7 @@ import AbstractContract from './Contract.abstract';
 import { normalize } from 'path';
 import { normalizeAddress } from '../../utils/ethers';
 import { ERC721InterfaceId } from '@infinityxyz/lib/utils/constants';
+import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
 
 export default class Erc721Contract extends AbstractContract {
   readonly standard = TokenStandard.ERC721;
@@ -95,7 +96,9 @@ export default class Erc721Contract extends AbstractContract {
           ...displayTypeField,
           count: 0,
           percent: 0,
-          values: {}
+          values: {},
+          attributeType: traitType,
+          attributeTypeSlug: getSearchFriendlyString(traitType)
         };
       }
 
@@ -106,7 +109,15 @@ export default class Erc721Contract extends AbstractContract {
         const prevValues = collectionTraits[traitType].values ?? {};
         collectionTraits[traitType].values = {
           ...prevValues,
-          [value]: { count: 0, percent: 0, rarityScore: 0 }
+          [value]: {
+            count: 0,
+            percent: 0,
+            rarityScore: 0,
+            attributeType: traitType,
+            attributeTypeSlug: getSearchFriendlyString(traitType),
+            attributeValue: value,
+            attributeValueSlug: getSearchFriendlyString(String(value))
+          }
         };
       }
 
