@@ -17,7 +17,7 @@ import BatchHandler from '../models/BatchHandler';
 import Emittery from 'emittery';
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import Contract from 'models/contracts/Contract.interface';
-import { encodeDocId, firestoreConstants, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 
 export async function createCollection(
   address: string,
@@ -179,22 +179,30 @@ export async function create(
   emitter.on('attributes', (attributes: CollectionAttributes) => {
     for (const attribute in attributes) {
       // write attributes to subcollection (collection > attributes)
-      const attributeDoc = collectionDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES).doc(encodeDocId(attribute));
+      const attributeDoc = collectionDoc
+        .collection(firestoreConstants.COLLECTION_ATTRIBUTES)
+        .doc(getSearchFriendlyString(attribute));
       const attributeData = {
         attributeType: attribute,
         attributeTypeSlug: getSearchFriendlyString(attribute),
-        ...attributes[attribute]
+        count: attributes[attribute].count,
+        percent: attributes[attribute].percent,
+        displayType: attributes[attribute].displayType
       };
       batch.add(attributeDoc, attributeData, { merge: true });
 
       // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
       const values = attributes[attribute].values;
       for (const value in values) {
-        const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
+        const valueDoc = attributeDoc
+          .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
+          .doc(getSearchFriendlyString(value));
         const valueData = {
+          ...values[value],
+          attributeType: attribute,
+          attributeTypeSlug: getSearchFriendlyString(attribute),
           attributeValue: value,
           attributeValueSlug: getSearchFriendlyString(value),
-          ...values[value]
         };
         batch.add(valueDoc, valueData, { merge: true });
       }
