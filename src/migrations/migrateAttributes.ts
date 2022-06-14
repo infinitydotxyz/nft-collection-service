@@ -86,6 +86,8 @@ export async function migrateAttributes(): Promise<void> {
             for (const value in values) {
               const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
               const valueData = {
+                attributeType: attribute,
+                attributeTypeSlug: getSearchFriendlyString(attribute),
                 attributeValue: value,
                 attributeValueSlug: getSearchFriendlyString(value),
                 ...values[value]
