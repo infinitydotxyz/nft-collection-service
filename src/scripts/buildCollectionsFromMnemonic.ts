@@ -1,11 +1,11 @@
 import { Collection, TokenStandard } from '@infinityxyz/lib/types/core';
+import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import chalk from 'chalk';
 import PQueue from 'p-queue';
 import { firebase, logger } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import MnemonicClient, { Contract } from '../services/Mnemonic';
 import OpenSeaClient from '../services/OpenSea';
-import { getSearchFriendlyString, sleep } from '../utils';
 
 /**
  * buildCollections gets collections from opensea

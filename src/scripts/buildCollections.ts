@@ -1,6 +1,6 @@
 import OpenSeaClient, { Collection as OpenSeaCollection } from '../services/OpenSea';
 import { firebase, logger } from '../container';
-import { filterDuplicates, getSearchFriendlyString, sleep } from '../utils';
+import { filterDuplicates } from '../utils';
 import PQueue from 'p-queue';
 import BatchHandler from '../models/BatchHandler';
 import { Collection } from '@infinityxyz/lib/types/core';
@@ -8,6 +8,7 @@ import chalk from 'chalk';
 import { AssertionError } from 'assert';
 import { writeFile } from 'fs/promises';
 import { normalizeAddress } from '../utils/ethers';
+import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 
 /**
  * buildCollections gets collections from opensea

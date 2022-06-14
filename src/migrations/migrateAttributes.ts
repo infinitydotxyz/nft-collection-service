@@ -1,7 +1,7 @@
 import { collectionDao } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import { FieldValue } from 'firebase-admin/firestore';
-import { encodeDocId } from '@infinityxyz/lib/utils';
+import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { Collection, CollectionAttribute } from '@infinityxyz/lib/types/core';
 
@@ -15,12 +15,22 @@ function isSet(field: any | null | undefined) {
 
 function writeAtrributes(docs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>[], batch: BatchHandler) {
   for (const attributeDoc of docs) {
-    const attribute = attributeDoc.data() as CollectionAttribute;
+    const attributeData = attributeDoc.data() as CollectionAttribute;
 
-    if (isSet(attribute?.values)) {
-      for (const value in attribute.values) {
-        const valueDoc = attributeDoc.ref.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
-        batch.add(valueDoc, attribute.values[value], { merge: true });
+    if (isSet(attributeData?.values)) {
+      for (const value in attributeData.values) {
+        const valueDoc = attributeDoc.ref
+          .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
+          .doc(getSearchFriendlyString(value));
+        const valueData = {
+          ...attributeData.values[value],
+          attributeType: attributeData.attributeType ?? attributeDoc.id,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          attributeTypeSlug: getSearchFriendlyString(attributeData.attributeType ?? attributeDoc.id),
+          attributeValue: value,
+          attributeValueSlug: getSearchFriendlyString(value)
+        };
+        batch.add(valueDoc, valueData, { merge: true });
       }
       batch.add(attributeDoc.ref, { values: FieldValue.delete() }, { merge: true });
     }
@@ -63,20 +73,37 @@ export async function migrateAttributes(): Promise<void> {
       const attributesRef = collectionRef.collection(firestoreConstants.COLLECTION_ATTRIBUTES);
 
       // check if the 'attributes' field is set directly on the collection document
+      console.log('checking collection', collection.address);
       if (isSet(collection?.attributes)) {
         console.log(`scheduled migration of collection: ${collection.chainId}:${collection.address}`);
 
         for (const attribute in collection.attributes) {
           // write attributes to subcollection (collection > attributes)
-          const attributeDoc = attributesRef.doc(encodeDocId(attribute));
-          batch.add(attributeDoc, { ...collection.attributes[attribute], values: FieldValue.delete() }, { merge: true });
+          const attributeDoc = attributesRef.doc(getSearchFriendlyString(attribute));
+          const attributeData = {
+            attributeType: attribute,
+            attributeTypeSlug: getSearchFriendlyString(attribute),
+            count: collection.attributes[attribute].count,
+            percent: collection.attributes[attribute].percent,
+            displayType: collection.attributes[attribute].displayType
+          };
+          batch.add(attributeDoc, { attributeData, values: FieldValue.delete() }, { merge: true });
 
           // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
           const values = collection.attributes[attribute].values;
           if (isSet(values)) {
             for (const value in values) {
-              const valueDoc = attributeDoc.collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES).doc(encodeDocId(value));
-              batch.add(valueDoc, values[value], { merge: true });
+              const valueDoc = attributeDoc
+                .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
+                .doc(getSearchFriendlyString(value));
+              const valueData = {
+                ...values[value],
+                attributeType: attribute,
+                attributeTypeSlug: getSearchFriendlyString(attribute),
+                attributeValue: value,
+                attributeValueSlug: getSearchFriendlyString(value),
+              };
+              batch.add(valueDoc, valueData, { merge: true });
             }
           }
         }
