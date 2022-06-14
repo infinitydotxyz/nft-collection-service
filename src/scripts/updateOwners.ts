@@ -1,7 +1,12 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import 'reflect-metadata';
-import { BaseCollection, TokenStandard, UserOwnedCollection, UserOwnedToken } from '@infinityxyz/lib/types/core';
+import {
+  BaseCollection,
+  TokenStandard,
+  UserOwnedCollection,
+  UserOwnedToken
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { firebase } from 'container';
 import { QuerySnapshot } from 'firebase-admin/firestore';
@@ -9,9 +14,9 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { gql, GraphQLClient } from 'graphql-request';
 import BatchHandler from 'models/BatchHandler';
 import path from 'path';
-import { ZoraTokensResponse } from 'types/Zora';
 import { ZORA_API_KEY } from '../constants';
 import { firestore } from 'firebase-admin';
+import { ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora/tokens';
 
 const ZORA_API_ENDPOINT = 'https://api.zora.co/graphql';
 const zoraClient = new GraphQLClient(ZORA_API_ENDPOINT, {
@@ -230,6 +235,7 @@ async function fetchZoraData(collectionAddress: string, limit: number, cursor: s
       ) {
         nodes {
           token {
+            collectionName
             owner
             tokenId
             name
@@ -321,6 +327,7 @@ async function fetchZoraData(collectionAddress: string, limit: number, cursor: s
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   const data = (await zoraClient.request(query)) as ZoraTokensResponse;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return data;
 }
 
