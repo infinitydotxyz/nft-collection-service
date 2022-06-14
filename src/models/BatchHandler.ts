@@ -28,7 +28,6 @@ export default class BatchHandler {
   ): void {
     const objectSize = Buffer.byteLength(JSON.stringify(object ?? {}), 'utf8');
     if (this.currentBatch.size + 1 >= MAX_SIZE || this.currentBatch.payloadSize + objectSize >= MAX_PAYLOAD_SIZE) {
-      console.log('Flushing batch');
       this.flush().catch((err) => {
         logger.error(err);
       });

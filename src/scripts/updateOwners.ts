@@ -1,16 +1,15 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import 'reflect-metadata';
-import { BaseCollection, BaseToken, TokenStandard, UserOwnedCollection, UserOwnedToken } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { BaseCollection, TokenStandard, UserOwnedCollection, UserOwnedToken } from '@infinityxyz/lib/types/core';
+import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { firebase } from 'container';
 import { QuerySnapshot } from 'firebase-admin/firestore';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { gql, GraphQLClient } from 'graphql-request';
 import BatchHandler from 'models/BatchHandler';
 import path from 'path';
-import 'reflect-metadata';
-import { ZoraTokensOwnerContentImageResponse } from 'types/Zora';
+import { ZoraTokensResponse } from 'types/Zora';
 import { ZORA_API_KEY } from '../constants';
 import { firestore } from 'firebase-admin';
 
@@ -22,6 +21,8 @@ const zoraClient = new GraphQLClient(ZORA_API_ENDPOINT, {
 });
 
 const db = firebase.db;
+
+const errorFile = path.join(__dirname, 'errors.txt');
 
 export async function main() {
   // fetch collections from firestore
@@ -91,6 +92,7 @@ async function run(chainId: string, address: string, collectionData: BaseCollect
     await updateOwners(chainId, address, collectionData);
   } catch (e) {
     console.error('Error in running collection', address, e);
+    appendFileSync(errorFile, `${address}\n`);
   }
 }
 
@@ -108,10 +110,11 @@ async function updateOwners(chainId: string, collectionAddress: string, collecti
       console.log('Total fetched so far', totalFetchedSoFar);
       cursor = zoraData.tokens.pageInfo.endCursor;
       // write to firestore
-      await updateDataInFirestore(chainId, collectionAddress, collectionDocData, zoraData, fsBatchHandler);
+      updateDataInFirestore(chainId, collectionAddress, collectionDocData, zoraData, fsBatchHandler);
       done = !zoraData.tokens.pageInfo.hasNextPage;
     } catch (err) {
       console.error(err);
+      appendFileSync(errorFile, `${collectionAddress}\n`);
       throw err;
     }
   }
@@ -129,55 +132,30 @@ async function updateOwners(chainId: string, collectionAddress: string, collecti
     })
     .catch((e) => {
       console.error('Error updating owners for collection', collectionAddress, e);
+      appendFileSync(errorFile, `${collectionAddress}\n`);
     });
 }
 
-async function updateDataInFirestore(
+function updateDataInFirestore(
   chainId: string,
   collectionAddress: string,
   collectionDocData: BaseCollection,
-  zoraData: ZoraTokensOwnerContentImageResponse,
+  zoraData: ZoraTokensResponse,
   fsBatchHandler: BatchHandler
 ) {
   console.log('Updating data in firestore for', collectionAddress);
-  // first fetch token data from collections/nfts
-  const nfts = [];
-  for (const zoraTokenData of zoraData.tokens.nodes) {
-    nfts.push({ chainId, address: collectionAddress, tokenId: zoraTokenData.token.tokenId });
-  }
-  const tokenDataDocs = await getNftsFromInfinityFirestore(nfts);
-
-  console.log('Updating data...');
   for (let i = 0; i < zoraData.tokens.nodes.length; i++) {
     const zoraTokenData = zoraData.tokens.nodes[i];
-    const tokenDataDoc = tokenDataDocs[i];
-    if (tokenDataDoc?.tokenId !== zoraTokenData.token.tokenId) {
-      console.error('Token id mismatch', tokenDataDoc?.tokenId, zoraTokenData.token.tokenId);
-      continue;
-    }
     const owner = zoraTokenData.token.owner;
-    // update in firestore
     if (owner) {
-      // update asset in collection/nfts collection
-      const assetData: Partial<BaseToken> = {
-        owner,
-        zoraContent: zoraTokenData.token.content,
-        zoraImage: zoraTokenData.token.image
-      };
       const collectionDocId = `${chainId}:${collectionAddress}`;
       const tokenId = zoraTokenData.token.tokenId;
-      const tokenRef = db
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(collectionDocId)
-        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-        .doc(tokenId);
-      fsBatchHandler.add(tokenRef, assetData, { merge: true });
 
-      // update toUser
-      const toUserDocRef = db.collection(firestoreConstants.USERS_COLL).doc(owner);
-      const toUserCollectionDocRef = toUserDocRef.collection(firestoreConstants.USER_COLLECTIONS_COLL).doc(collectionDocId);
-      const toUserTokenDocRef = toUserCollectionDocRef.collection(firestoreConstants.USER_NFTS_COLL).doc(tokenId);
-      fsBatchHandler.add(toUserDocRef, { numNftsOwned: firestore.FieldValue.increment(1) }, { merge: true });
+      // update userAsset
+      const userAssetDocRef = db.collection(firestoreConstants.USERS_COLL).doc(owner);
+      const userAssetCollectionDocRef = userAssetDocRef.collection(firestoreConstants.USER_COLLECTIONS_COLL).doc(collectionDocId);
+      const userAssetTokenDocRef = userAssetCollectionDocRef.collection(firestoreConstants.USER_NFTS_COLL).doc(tokenId);
+      fsBatchHandler.add(userAssetDocRef, { numNftsOwned: firestore.FieldValue.increment(1) }, { merge: true });
 
       const userOwnedCollectionData: Omit<UserOwnedCollection, 'numCollectionNftsOwned'> = {
         chainId: collectionDocData.chainId,
@@ -192,51 +170,56 @@ async function updateDataInFirestore(
         hasBlueCheck: collectionDocData.hasBlueCheck,
         tokenStandard: TokenStandard.ERC721
       };
-      fsBatchHandler.add(toUserCollectionDocRef, userOwnedCollectionData, { merge: true });
-      fsBatchHandler.add(toUserCollectionDocRef, { numCollectionNftsOwned: firestore.FieldValue.increment(1) }, { merge: true });
+      fsBatchHandler.add(userAssetCollectionDocRef, userOwnedCollectionData, { merge: true });
+      fsBatchHandler.add(
+        userAssetCollectionDocRef,
+        { numCollectionNftsOwned: firestore.FieldValue.increment(1) },
+        { merge: true }
+      );
 
-      const tokenData = tokenDataDoc;
-      const data: UserOwnedToken = {
+      const userAssetData: Partial<UserOwnedToken> = {
         ...userOwnedCollectionData,
-        ...tokenData
+        tokenId: zoraTokenData.token.tokenId,
+        slug: getSearchFriendlyString(zoraTokenData.token.name),
+        metadata: {
+          name: zoraTokenData.token.name,
+          description: zoraTokenData.token.description,
+          image: zoraTokenData.token.image?.url,
+          attributes: zoraTokenData.token.attributes
+        },
+        minter: zoraTokenData.token.mintInfo?.originatorAddress,
+        mintedAt: new Date(zoraTokenData.token.mintInfo?.mintContext?.blockTimestamp).getTime(),
+        mintTxHash: zoraTokenData.token.mintInfo?.mintContext?.transactionHash,
+        mintPrice: zoraTokenData.token.mintInfo?.price?.chainTokenPrice?.decimal,
+        owner,
+        tokenStandard: TokenStandard.ERC721,
+        numTraitTypes: zoraTokenData.token.attributes?.length,
+        zoraImage: zoraTokenData.token.image,
+        zoraContent: zoraTokenData.token.content,
+        image: {
+          url: zoraTokenData.token.image?.mediaEncoding?.preview ?? zoraTokenData.token.image?.mediaEncoding?.large,
+          updatedAt: Date.now(),
+          originalUrl: zoraTokenData.token.image?.url
+        },
+        tokenUri: zoraTokenData.token.tokenUrl,
+        updatedAt: Date.now()
       };
-      fsBatchHandler.add(toUserTokenDocRef, data, { merge: false });
+
+      // add token data to user assets
+      fsBatchHandler.add(userAssetTokenDocRef, userAssetData, { merge: true });
+
+      // update asset in collection/nfts collection
+      const tokenRef = db
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(collectionDocId)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(tokenId);
+      fsBatchHandler.add(tokenRef, userAssetData, { merge: true });
     }
   }
 }
 
-async function getNftsFromInfinityFirestore(nfts: { address: string; chainId: string; tokenId: string }[]) {
-  console.log('Fetching NFTs from Infinity...');
-  const refs = nfts.map((item) => {
-    const collectionDocId = getCollectionDocId({
-      collectionAddress: item.address,
-      chainId: item.chainId
-    });
-    return db
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(collectionDocId)
-      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(item.tokenId);
-  });
-
-  if (refs.length === 0) {
-    return [];
-  }
-  const snapshots = await db.getAll(...refs);
-
-  const retrievedNfts = snapshots.map((snapshot) => {
-    const nft = snapshot.data() as BaseToken | undefined;
-    return nft;
-  });
-
-  return retrievedNfts;
-}
-
-async function fetchZoraData(
-  collectionAddress: string,
-  limit: number,
-  cursor: string
-): Promise<ZoraTokensOwnerContentImageResponse> {
+async function fetchZoraData(collectionAddress: string, limit: number, cursor: string): Promise<ZoraTokensResponse> {
   console.log('Fetching zora data for', collectionAddress, 'with limit', limit, 'and cursor', cursor);
   const query = gql`
     query PreviewTokens {
@@ -249,6 +232,34 @@ async function fetchZoraData(
           token {
             owner
             tokenId
+            name
+            description
+            tokenUrl
+            tokenUrlMimeType
+            attributes {
+              displayType
+              traitType
+              value
+            }
+            mintInfo {
+              mintContext {
+                blockNumber
+                blockTimestamp
+                transactionHash
+              }
+              price {
+                chainTokenPrice {
+                  currency {
+                    address
+                    decimals
+                    name
+                  }
+                  decimal
+                }
+              }
+              toAddress
+              originatorAddress
+            }
             content {
               mediaEncoding {
                 ... on ImageEncodingTypes {
@@ -309,7 +320,7 @@ async function fetchZoraData(
   `;
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  const data = (await zoraClient.request(query)) as ZoraTokensOwnerContentImageResponse;
+  const data = (await zoraClient.request(query)) as ZoraTokensResponse;
   return data;
 }
 
