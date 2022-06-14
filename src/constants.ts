@@ -21,6 +21,7 @@ export const COLLECTION_SCHEMA_VERSION = 1;
 export const COLLECTION_MAX_SUPPLY = 110_000;
 
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
+export const ZORA_API_KEY = getEnvironmentVariable('ZORA_API_KEY');
 
 /**
  * can be any randomly generated key as long as it's consistent across
