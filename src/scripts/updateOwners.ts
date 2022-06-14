@@ -57,12 +57,18 @@ export async function main() {
 async function runAFew(colls: QuerySnapshot) {
   try {
     for (const coll of colls.docs) {
-      const data = coll.data() as BaseCollection;
+      const data = coll.data();
       if (!data) {
         console.error('Data is null for collection', coll);
         continue;
       }
-      await run(data.chainId, data.address, data);
+      // check if owners are already fetched
+      const ownersFetched = data.ownersFetched;
+      if (ownersFetched) {
+        console.error('Collection owners already fetched for', data.address);
+        continue;
+      }
+      await run(data.chainId, data.address, data as BaseCollection);
     }
   } catch (e) {
     console.error('Error running a few', e);
@@ -96,20 +102,25 @@ async function updateOwners(chainId: string, collectionAddress: string, collecti
   let done = false;
   let totalFetchedSoFar = 0;
   while (!done) {
-    const zoraData = await fetchZoraData(collectionAddress, limit, cursor);
-    totalFetchedSoFar += zoraData.tokens.nodes.length;
-    console.log('Total fetched so far', totalFetchedSoFar);
-    cursor = zoraData.tokens.pageInfo.endCursor;
-    // write to firestore
-    await updateDataInFirestore(chainId, collectionAddress, collectionDocData, zoraData, fsBatchHandler);
-    done = !zoraData.tokens.pageInfo.hasNextPage;
+    try {
+      const zoraData = await fetchZoraData(collectionAddress, limit, cursor);
+      totalFetchedSoFar += zoraData.tokens.nodes.length;
+      console.log('Total fetched so far', totalFetchedSoFar);
+      cursor = zoraData.tokens.pageInfo.endCursor;
+      // write to firestore
+      await updateDataInFirestore(chainId, collectionAddress, collectionDocData, zoraData, fsBatchHandler);
+      done = !zoraData.tokens.pageInfo.hasNextPage;
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   }
 
   // set collection ownersFetched status to true
   const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
   const collectionDocRef = db.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId);
   fsBatchHandler.add(collectionDocRef, { ownersFetched: true }, { merge: true });
-  
+
   // write batch
   fsBatchHandler
     .flush()
@@ -136,6 +147,7 @@ async function updateDataInFirestore(
   }
   const tokenDataDocs = await getNftsFromInfinityFirestore(nfts);
 
+  console.log('Updating data...');
   for (let i = 0; i < zoraData.tokens.nodes.length; i++) {
     const zoraTokenData = zoraData.tokens.nodes[i];
     const tokenDataDoc = tokenDataDocs[i];
@@ -147,6 +159,11 @@ async function updateDataInFirestore(
     // update in firestore
     if (owner) {
       // update asset in collection/nfts collection
+      const assetData: Partial<BaseToken> = {
+        owner,
+        zoraContent: zoraTokenData.token.content,
+        zoraImage: zoraTokenData.token.image
+      };
       const collectionDocId = `${chainId}:${collectionAddress}`;
       const tokenId = zoraTokenData.token.tokenId;
       const tokenRef = db
@@ -154,7 +171,7 @@ async function updateDataInFirestore(
         .doc(collectionDocId)
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
         .doc(tokenId);
-      fsBatchHandler.add(tokenRef, { owner }, { merge: true });
+      fsBatchHandler.add(tokenRef, assetData, { merge: true });
 
       // update toUser
       const toUserDocRef = db.collection(firestoreConstants.USERS_COLL).doc(owner);
@@ -189,6 +206,7 @@ async function updateDataInFirestore(
 }
 
 async function getNftsFromInfinityFirestore(nfts: { address: string; chainId: string; tokenId: string }[]) {
+  console.log('Fetching NFTs from Infinity...');
   const refs = nfts.map((item) => {
     const collectionDocId = getCollectionDocId({
       collectionAddress: item.address,
