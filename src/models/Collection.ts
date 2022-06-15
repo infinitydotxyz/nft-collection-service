@@ -39,7 +39,7 @@ import {
   RefreshTokenUriError
 } from './errors/RefreshTokenFlow';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
-import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { getSearchFriendlyString, hexToDecimalTokenId } from '@infinityxyz/lib/utils';
 
 type CollectionCreatorType = Pick<
   CollectionType,
@@ -579,21 +579,20 @@ export default class Collection extends AbstractCollection {
         metadata.description = datum.description ?? '';
         metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
         const tokenIdStr = datum?.id?.tokenId;
-        let tokenId;
-        if (tokenIdStr?.startsWith('0x')) {
-          tokenId = String(parseInt(tokenIdStr, 16));
-        }
+        const tokenId = hexToDecimalTokenId(tokenIdStr);
         if (tokenId) {
           let title = datum.title ?? metadata?.name ?? '';
           if (!title && 'title' in metadata) {
             title = metadata.title ?? '';
           }
+          const alchemyCachedImage = datum.media?.[0]?.gateway;
           const tokenWithMetadata: MetadataData & Partial<Token> = {
             slug: getSearchFriendlyString(title),
             tokenId,
             tokenUri: datum.tokenUri?.raw,
             numTraitTypes: (metadata as any)?.attributes?.length ?? 0, // TODO handle erc1155 metadata
             metadata,
+            alchemyCachedImage,
             updatedAt: Date.now()
           };
           void emitter.emit('metadata', tokenWithMetadata);
@@ -735,7 +734,6 @@ export default class Collection extends AbstractCollection {
     const aggregatedCollection: CollectionType = {
       ...collection,
       numTraitTypes: Object.keys(attributes).length,
-      attributes: {}, // TODO: actually remove attributes from parent collection & update types lib to support this change
       numOwnersUpdatedAt: 0,
       state: {
         ...collection.state,
@@ -779,6 +777,7 @@ export default class Collection extends AbstractCollection {
     const numImagelessTokens = imageLessTokens.length;
     const numTokens = tokens.length;
     const percentFailed = Math.floor((numImagelessTokens / numTokens) * 100);
+    // fetch images from OS
     if (percentFailed < 40) {
       const numIters = Math.ceil(numImagelessTokens / openseaTokenIdsLimit);
       for (let i = 0; i < numIters; i++) {

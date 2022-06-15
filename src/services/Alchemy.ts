@@ -1,8 +1,8 @@
 // alchemy-nft-api/alchemy-web3-script.js
 import { AlchemyWeb3, createAlchemyWeb3 } from '@alch/alchemy-web3';
+import { AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
 import axios from 'axios';
 import { singleton } from 'tsyringe';
-import { AlchemyNftWithMetadata } from 'types/Alchemy';
 import { logger } from '../container';
 
 @singleton()
@@ -59,6 +59,7 @@ interface CollectionNFTsResponse {
     title?: string;
     description?: string;
     tokenUri: { raw: string; gateway: string };
+    media?: Array<{raw: string; gateway: string; thumbnail: string}>
     metadata?: { tokenId: number; name: string; image: string; attributes: Array<{ value: string; trait_type: string }> };
   }>;
 }
