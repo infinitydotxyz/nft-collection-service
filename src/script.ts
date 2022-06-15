@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import 'dotenv/config';
 import 'reflect-metadata';
-import { firebase, logger, opensea, mnemonic, collectionDao } from './container';
+import { firebase, logger, opensea, mnemonic, collectionDao, alchemy } from './container';
 import { sleep } from './utils';
 import { readFile } from 'fs/promises';
 import fs from 'fs';
@@ -56,6 +56,8 @@ export async function main(): Promise<void> {
         Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
       }%  collections without ERC721 standard`
     );
+
+    // await getCollectionNFTsFromAlchemy();
   } catch (err) {
     logger.error(err);
   }
@@ -101,4 +103,10 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
 export async function getCollectionsFromMnemonic(): Promise<void> {
   const data = await mnemonic.getERC721Collections();
   console.log(data);
+}
+
+export async function getCollectionNFTsFromAlchemy(): Promise<void> {
+  // bayc
+  const data = await alchemy.getNFTsOfCollection('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', '0');
+  console.log(JSON.stringify(data, null, 2));
 }
