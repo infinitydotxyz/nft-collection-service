@@ -7,7 +7,7 @@ import {
   UserOwnedCollection,
   UserOwnedToken
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, trimLowerCase } from '@infinityxyz/lib/utils';
 import { firebase } from 'container';
 import { QuerySnapshot } from 'firebase-admin/firestore';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
@@ -28,6 +28,21 @@ const zoraClient = new GraphQLClient(ZORA_API_ENDPOINT, {
 const db = firebase.db;
 
 const errorFile = path.join(__dirname, 'errors.txt');
+
+// these addresses are used to ignore 'to' ownership transfers
+const DEAD_ADDRESSES = new Set([
+  '0x000000000000000000000000000000000000dead',
+  '0x0000000000000000000000000000000000000000',
+  '0x0000000000000000000000000000000000000001',
+  '0x0000000000000000000000000000000000000002',
+  '0x0000000000000000000000000000000000000003',
+  '0x0000000000000000000000000000000000000004',
+  '0x0000000000000000000000000000000000000005',
+  '0x0000000000000000000000000000000000000006',
+  '0x0000000000000000000000000000000000000007',
+  '0x0000000000000000000000000000000000000008',
+  '0x0000000000000000000000000000000000000009'
+]);
 
 export async function main() {
   // fetch collections from firestore
@@ -151,10 +166,17 @@ function updateDataInFirestore(
   console.log('Updating data in firestore for', collectionAddress);
   for (let i = 0; i < zoraData.tokens.nodes.length; i++) {
     const zoraTokenData = zoraData.tokens.nodes[i];
-    const owner = zoraTokenData.token.owner;
-    if (owner) {
+    if (!zoraTokenData.token) {
+      console.error('Token is null for', zoraTokenData);
+      continue;
+    }
+    const owner = trimLowerCase(zoraTokenData.token.owner);
+    if (owner && !DEAD_ADDRESSES.has(owner)) {
       const collectionDocId = `${chainId}:${collectionAddress}`;
       const tokenId = zoraTokenData.token.tokenId;
+      if (!tokenId) {
+        continue;
+      }
 
       // update userAsset
       const userAssetDocRef = db.collection(firestoreConstants.USERS_COLL).doc(owner);
@@ -181,34 +203,81 @@ function updateDataInFirestore(
         { numCollectionNftsOwned: firestore.FieldValue.increment(1) },
         { merge: true }
       );
+      
+      const isCollectionComplete = collectionDocData.state.create.step === 'complete';
+      const metadata = {} as any;
+      let slug;
+      let numTraitTypes;
+      let minter, mintedAt, mintTxHash, mintPrice;
+      let tokenUri;
+      
+      if (zoraTokenData.token.name) {
+        metadata.name = zoraTokenData.token.name;
+        slug = getSearchFriendlyString(zoraTokenData.token.name);
+      }
+      if (zoraTokenData.token.description) {
+        metadata.description = zoraTokenData.token.name;
+      }
+      if (zoraTokenData.token.image) {
+        metadata.image = zoraTokenData.token.image?.url;
+      }
+      const attributes = zoraTokenData.token.attributes;
+      if (!isCollectionComplete && attributes && attributes.length > 0) {
+        metadata.attributes = attributes;
+        numTraitTypes = attributes.length;
+      }
+
+      if (!isCollectionComplete && zoraTokenData.token.mintInfo?.originatorAddress) {
+        minter = zoraTokenData.token.mintInfo.originatorAddress;
+      }
+      if (!isCollectionComplete && zoraTokenData.token.mintInfo?.mintContext?.blockTimestamp) {
+        mintedAt = new Date(zoraTokenData.token.mintInfo.mintContext.blockTimestamp).getTime();
+      }
+      if (!isCollectionComplete && zoraTokenData.token.mintInfo?.mintContext?.transactionHash) {
+        mintTxHash = zoraTokenData.token.mintInfo.mintContext.transactionHash;
+      }
+      if (!isCollectionComplete && zoraTokenData.token.mintInfo?.price?.chainTokenPrice?.decimal !== undefined) {
+        mintPrice = zoraTokenData.token.mintInfo.price.chainTokenPrice.decimal;
+      }
+
+      if (!isCollectionComplete && zoraTokenData.token.tokenUrl) {
+        tokenUri = zoraTokenData.token.tokenUrl;
+      }
 
       const userAssetData: Partial<UserOwnedToken> = {
         ...userOwnedCollectionData,
-        tokenId: zoraTokenData.token.tokenId,
-        slug: getSearchFriendlyString(zoraTokenData.token.name),
-        metadata: {
-          name: zoraTokenData.token.name,
-          description: zoraTokenData.token.description,
-          image: zoraTokenData.token.image?.url,
-          attributes: zoraTokenData.token.attributes
-        },
-        minter: zoraTokenData.token.mintInfo?.originatorAddress,
-        mintedAt: new Date(zoraTokenData.token.mintInfo?.mintContext?.blockTimestamp).getTime(),
-        mintTxHash: zoraTokenData.token.mintInfo?.mintContext?.transactionHash,
-        mintPrice: zoraTokenData.token.mintInfo?.price?.chainTokenPrice?.decimal,
+        tokenId,
         owner,
         tokenStandard: TokenStandard.ERC721,
-        numTraitTypes: zoraTokenData.token.attributes?.length,
         zoraImage: zoraTokenData.token.image,
         zoraContent: zoraTokenData.token.content,
-        image: {
-          url: zoraTokenData.token.image?.mediaEncoding?.preview ?? zoraTokenData.token.image?.mediaEncoding?.large,
-          updatedAt: Date.now(),
-          originalUrl: zoraTokenData.token.image?.url
-        },
-        tokenUri: zoraTokenData.token.tokenUrl,
         updatedAt: Date.now()
       };
+
+      if (slug) {
+        userAssetData.slug = slug;
+      }
+      if (metadata) {
+        userAssetData.metadata = metadata;
+      }
+      if (numTraitTypes) {
+        userAssetData.numTraitTypes = numTraitTypes;
+      }
+      if (minter) {
+        userAssetData.minter = minter;
+      }
+      if (mintedAt) {
+        userAssetData.mintedAt = mintedAt;
+      }
+      if (mintTxHash) {
+        userAssetData.mintTxHash = mintTxHash;
+      }
+      if (mintPrice) {
+        userAssetData.mintPrice = mintPrice;
+      }
+      if (tokenUri) {
+        userAssetData.tokenUri = tokenUri;
+      }
 
       // add token data to user assets
       fsBatchHandler.add(userAssetTokenDocRef, userAssetData, { merge: true });
