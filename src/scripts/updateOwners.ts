@@ -134,7 +134,6 @@ async function updateOwners(chainId: string, collectionAddress: string, collecti
       done = !zoraData.tokens.pageInfo.hasNextPage;
     } catch (err) {
       console.error(err);
-      appendFileSync(errorFile, `${collectionAddress}\n`);
       throw err;
     }
   }
