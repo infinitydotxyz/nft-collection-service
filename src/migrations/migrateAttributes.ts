@@ -42,6 +42,28 @@ function writeAtrributes(docs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseF
   return batch;
 }
 
+function rewriteMalformedAtrributes(
+  docs: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>[],
+  batch: BatchHandler
+) {
+  for (const attributeDoc of docs) {
+    const attributeDocData = attributeDoc.data();
+
+    if (attributeDocData?.attributeData) {
+      batch.add(attributeDoc.ref, { ...attributeDocData?.attributeData, attributeData: FieldValue.delete() }, { merge: true });
+    } else {
+      const data = {
+        ...attributeDocData,
+        attributeType: attributeDocData?.attributeType || attributeDoc.id,
+        attributeTypeSlug: attributeDocData?.attributeTypeSlug || getSearchFriendlyString(attributeDoc.id),
+      }
+      batch.add(attributeDoc.ref, data, { merge: true });
+    }
+  }
+
+  return batch;
+}
+
 /**
  * Migrates all collections that don't have a 'attributes' subcollection yet.
  */
@@ -91,7 +113,7 @@ export async function migrateAttributes(): Promise<void> {
               percent: collection.attributes[attribute].percent,
               displayType: collection.attributes[attribute].displayType
             };
-            batch.add(attributeDoc, { attributeData, values: FieldValue.delete() }, { merge: true });
+            batch.add(attributeDoc, { ...attributeData, values: FieldValue.delete() }, { merge: true });
 
             // write attribute values to another subcollection within the attributes subcollection (collection > attributes > values)
             const values = collection.attributes[attribute].values;
@@ -123,6 +145,15 @@ export async function migrateAttributes(): Promise<void> {
         batch = writeAtrributes(attributesSnapshot.docs, batch);
         if (currentBatchSize != batch.size) {
           console.log(`scheduled migration of partially migrated collection: ${collection.chainId}:${collection.address}`);
+        }
+      }
+
+      // check if the collection has the 'values' subcollection within the 'attributes' subcollection but attributes is malformed
+      if (attributesSnapshot.docs.length > 0) {
+        const currentBatchSize = batch.size;
+        batch = rewriteMalformedAtrributes(attributesSnapshot.docs, batch);
+        if (currentBatchSize != batch.size) {
+          console.log(`scheduled migration of malformed collection: ${collection.chainId}:${collection.address}`);
         }
       }
 
