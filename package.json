@@ -21,6 +21,7 @@
     "deploy:server:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity && npm run deploy:queue:prod",
     "deploy:queue:prod": "gcloud app deploy queue.yaml --project=nftc-infinity",
     "migrate": "npm run build && cross-env NODE_PATH=./dist node -r dotenv/config ./dist/migrate.js",
+    "script": "tsc && cross-env NODE_PATH=./dist node -r dotenv/config ./dist/script.js",
     "updateOwners": "tsc && cross-env NODE_PATH=./dist node -r dotenv/config ./dist/scripts/updateOwners.js",
     "fmt:check": "prettier -c ./src",
     "fmt:write": "prettier -w ./src",

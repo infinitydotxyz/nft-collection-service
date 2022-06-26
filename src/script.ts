@@ -19,12 +19,16 @@ import { CreationFlow } from '@infinityxyz/lib/types/core';
 import { reIndex } from 'scripts/reIndex';
 import { addBlueCheck } from 'scripts/addBlueCheck';
 import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
+import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
     // await reIndex(CreationFlow.ValidateImage);
+
+    // await updateCollectionMetadata();
+    // return;
 
     const summary = await collectionDao.getCollectionsSummary();
     fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
@@ -110,3 +114,5 @@ export async function getCollectionNFTsFromAlchemy(): Promise<void> {
   const data = await alchemy.getNFTsOfCollection('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', '0');
   console.log(JSON.stringify(data, null, 2));
 }
+
+void main();

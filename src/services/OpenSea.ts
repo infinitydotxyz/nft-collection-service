@@ -11,8 +11,8 @@ import { gotErrorHandler } from '../utils/got';
  * formatName takes a name from opensea and adds spaces before capital letters
  * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
  * Adi - this funcion is not used anymore, but I'm keeping it here for reference. Opensea names collections with proper casing 
- * inside the collection object in api response. Previously, we were using this function to format the name on the top level 
- * object which was had wrong casing.
+ * inside the collection object in api response for most cases (exceptions still exist). Previously, we were using this function to format the name on the top level 
+ * object which had wrong casing.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatName(name: string): string {
