@@ -10,8 +10,8 @@ import { gotErrorHandler } from '../utils/got';
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
  * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
- * Adi - this funcion is not used anymore, but I'm keeping it here for reference. Opensea names collections with proper casing 
- * inside the collection object in api response for most cases (exceptions still exist). Previously, we were using this function to format the name on the top level 
+ * Adi - this funcion is not used anymore, but I'm keeping it here for reference. Opensea names collections with proper casing
+ * inside the collection object in api response for most cases (exceptions still exist). Previously, we were using this function to format the name on the top level
  * object which had wrong casing.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -95,7 +95,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
    *
    * etherscan has a similar endpoint that seems decent if this begins to fail
    */
-  async getCollectionMetadata(address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean; }> {
+  async getCollectionMetadata(address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean }> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
@@ -114,7 +114,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
       name,
       description: collection.description || data.description || '',
       symbol: data.symbol || collection.primary_asset_contracts?.[0]?.symbol || '',
-      profileImage: collection.image_url ?? '',
+      profileImage: collection.image_url || collection.featured_image_url || data.image_url || '',
       bannerImage: collection.banner_image_url ?? '',
       displayType: collection.display_data?.card_display_style,
       links: {
