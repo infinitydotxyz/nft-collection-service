@@ -14,6 +14,18 @@ export async function updateCollectionMetadata() {
   const batchHandler = new BatchHandler();
 
   const updateMetadata = async (collection: Partial<Collection>, ref: FirebaseFirestore.DocumentReference) => {
+    const recentlyUpdated = collection?.metadata?.updatedAt
+      ? collection.metadata.updatedAt > Date.now() - 1000 * 60 * 60 * 24 // 1 day
+      : false;
+    if (recentlyUpdated) {
+      console.log(
+        `[${collection.chainId}:${collection?.address}] Metadata for collection: ${
+          collection?.metadata?.name ?? collection.address
+        } was recently updated`
+      );
+      return;
+    }
+
     if (collection?.address) {
       console.log(
         `[${collection.chainId}:${collection?.address}] Getting metadata for collection: ${
@@ -71,7 +83,7 @@ export async function updateCollectionMetadata() {
         }
 
         const update: Partial<Collection> = {
-          metadata: { ...metadata }
+          metadata: { ...metadata, updatedAt: Date.now() }
         };
 
         // add to batch
