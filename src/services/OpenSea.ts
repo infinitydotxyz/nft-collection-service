@@ -10,7 +10,11 @@ import { gotErrorHandler } from '../utils/got';
 /**
  * formatName takes a name from opensea and adds spaces before capital letters
  * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
+ * Adi - this funcion is not used anymore, but I'm keeping it here for reference. Opensea names collections with proper casing 
+ * inside the collection object in api response. Previously, we were using this function to format the name on the top level 
+ * object which was had wrong casing.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatName(name: string): string {
   let formattedName = '';
 
@@ -104,15 +108,12 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
     const data = response.body as OpenSeaContractResponse;
     const collection = data.collection;
 
-    /**
-     * not sure why opensea formats names like (BoredApeYachtClub)
-     */
-    const name = formatName(data.name ?? '');
+    const name = collection.name || data.name;
     const hasBlueCheck = collection.safelist_request_status === 'verified';
     const dataInInfinityFormat: CollectionMetadata = {
       name,
-      description: data.description ?? '',
-      symbol: data.symbol ?? '',
+      description: collection.description || data.description || '',
+      symbol: data.symbol || collection.primary_asset_contracts?.[0]?.symbol || '',
       profileImage: collection.image_url ?? '',
       bannerImage: collection.banner_image_url ?? '',
       displayType: collection.display_data?.card_display_style,
@@ -320,7 +321,6 @@ interface OpenSeaContractResponse {
   buyer_fee_basis_points: number;
   seller_fee_basis_points: number;
   payout_address?: unknown;
-  display_data?: { card_display_style: string };
 }
 export interface Collection {
   banner_image_url: string;
