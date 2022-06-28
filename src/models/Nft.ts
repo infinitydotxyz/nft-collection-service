@@ -71,10 +71,10 @@ export default class Nft {
     /**
      * validate mint token
      */
-    if (!token.mintedAt || !token.minter || !token.tokenId || typeof token.mintPrice !== 'number' || !token.mintTxHash) {
+    if (!token.tokenId) {
       // validate token
       throw new RefreshTokenMintError(
-        `Invalid mint token property. Token Id: ${token.tokenId} Minted At: ${token.mintedAt} Minter: ${token.minter} `
+        `Invalid mint token property. TokenId is required. tokenId: ${token.tokenId}`
       );
     }
     if (step === RefreshTokenFlow.Mint) {
