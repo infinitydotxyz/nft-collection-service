@@ -1,7 +1,7 @@
 queue:
 - name: collection-scraping-queue
   rate: 5/s
-  bucket_size: 10000
+  bucket_size: 500
   max_concurrent_requests: 160 # TODO adi 4 times the max num instances in app.yaml
   mode: push
   retry_parameters:
