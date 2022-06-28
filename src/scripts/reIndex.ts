@@ -7,11 +7,19 @@ import { CreationFlow } from '@infinityxyz/lib/types/core';
 import { firebase } from 'container';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
-export async function reIndex(step: CreationFlow) {
-  const collectionsSnap = await firebase.db
-    .collection(firestoreConstants.COLLECTIONS_COLL)
-    .where('state.create.step', '==', step)
-    .get();
+export async function reIndex(step?: CreationFlow) {
+  let collectionsSnap;
+  if (step) {
+    collectionsSnap = await firebase.db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .where('state.create.step', '==', step)
+      .get();
+  } else {
+    collectionsSnap = await firebase.db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .where('state.create.step', '!=', CreationFlow.Complete)
+      .get();
+  }
   const collectionIds = [...new Set(collectionsSnap.docs.map((doc) => doc.ref.id))];
   const collections = collectionIds.map((item) => {
     const [chainId, address] = item.split(':');

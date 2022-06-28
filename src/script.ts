@@ -20,6 +20,7 @@ import { reIndex } from 'scripts/reIndex';
 import { addBlueCheck } from 'scripts/addBlueCheck';
 import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
+import { resetStep } from 'scripts/resetStep';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
@@ -28,6 +29,9 @@ export async function main(): Promise<void> {
     // await reIndex(CreationFlow.ValidateImage);
 
     // await updateCollectionMetadata();
+    // return;
+
+    // await resetStep();
     // return;
 
     const summary = await collectionDao.getCollectionsSummary();

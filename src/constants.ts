@@ -20,6 +20,7 @@ export const COLLECTION_SERVICE_URL = PROJECT === 'nftc-dev' ? collectionService
 export const COLLECTION_SCHEMA_VERSION = 1;
 export const COLLECTION_MAX_SUPPLY = 110_000;
 
+export const RESERVOIR_API_KEY = getEnvironmentVariable('RESERVOIR_API_KEY');
 export const MORALIS_API_KEY = getEnvironmentVariable('MORALIS_API_KEY');
 export const ZORA_API_KEY = getEnvironmentVariable('ZORA_API_KEY');
 

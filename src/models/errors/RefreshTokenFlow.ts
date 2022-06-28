@@ -33,6 +33,12 @@ export class RefreshTokenMetadataError extends RefreshTokenError {
   }
 }
 
+export class RefreshTokenImageError extends RefreshTokenError {
+  constructor(message?: string) {
+    super(RefreshTokenFlow.Metadata, message);
+  }
+}
+
 export class RefreshTokenCacheImageError extends RefreshTokenError {
   constructor(message?: string) {
     super(RefreshTokenFlow.CacheImage, message);
