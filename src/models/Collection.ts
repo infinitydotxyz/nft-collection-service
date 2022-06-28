@@ -7,9 +7,11 @@ import {
   Erc721Metadata,
   Erc721Token,
   ImageData,
-  ImageToken, MintToken,
+  ImageToken,
+  MintToken,
   RefreshTokenFlow,
-  Token, TokenStandard
+  Token,
+  TokenStandard
 } from '@infinityxyz/lib/types/core';
 import { getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
@@ -63,7 +65,7 @@ export default class Collection extends AbstractCollection {
     emitter: CollectionEmitter,
     indexInitiator: string,
     batch: BatchHandler,
-    hasBlueCheck?: boolean,
+    hasBlueCheck?: boolean
   ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined> {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
@@ -129,7 +131,12 @@ export default class Collection extends AbstractCollection {
                 throw new CollectionTokenMetadataError('Client failed to inject tokens');
               }
               tokens = injectedTokens as Token[];
-              collection = await this.getCollectionTokenMetadataFromOS(tokens, collection as CollectionTokenMetadataType, emitter,  CreationFlow.TokenMetadataUri);
+              collection = await this.getCollectionTokenMetadataFromOS(
+                tokens,
+                collection as CollectionTokenMetadataType,
+                emitter,
+                CreationFlow.AggregateMetadata
+              );
 
               yield { collection };
             } catch (err: any) {
@@ -516,7 +523,7 @@ export default class Collection extends AbstractCollection {
               url: token.image,
               updatedAt: Date.now()
             },
-            tokenStandard: TokenStandard.ERC721, // default
+            tokenStandard: TokenStandard.ERC721 // default
           };
           void emitter.emit('token', tokenWithMetadata);
         }
@@ -670,7 +677,12 @@ export default class Collection extends AbstractCollection {
     return cachedImageCollection;
   }
 
-  private async getCollectionTokenMetadataFromOS(tokens: Array<Partial<Token>>, collection: CollectionTokenMetadataType, emitter: CollectionEmitter, nextStep: CreationFlow): Promise<CollectionTokenMetadataType> {
+  private async getCollectionTokenMetadataFromOS(
+    tokens: Array<Partial<Token>>,
+    collection: CollectionTokenMetadataType,
+    emitter: CollectionEmitter,
+    nextStep: CreationFlow
+  ): Promise<CollectionTokenMetadataType> {
     // metadata less tokens
     const metadataLessTokens = [];
     for (const token of tokens) {
@@ -720,7 +732,7 @@ export default class Collection extends AbstractCollection {
     }
 
     const collectionMetadataCollection: CollectionTokenMetadataType = {
-      ...(collection ),
+      ...collection,
       numNfts: tokens.length,
       state: {
         ...collection.state,
