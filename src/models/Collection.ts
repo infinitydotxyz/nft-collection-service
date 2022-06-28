@@ -7,19 +7,13 @@ import {
   Erc721Metadata,
   Erc721Token,
   ImageData,
-  ImageToken,
-  MetadataData,
-  MetadataToken,
-  MintToken,
+  ImageToken, MintToken,
   RefreshTokenFlow,
-  Token,
-  TokenMetadata,
-  TokenStandard
+  Token, TokenStandard
 } from '@infinityxyz/lib/types/core';
-import { getSearchFriendlyString, hexToDecimalTokenId, normalizeAddress } from '@infinityxyz/lib/utils';
-import Emittery from 'emittery';
+import { getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
-import { alchemy, logger, opensea, reservoir, zora } from '../container';
+import { logger, opensea, reservoir, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
 import {
@@ -127,7 +121,6 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
-          // leave this code commented; might use in the future
           case CreationFlow.TokenMetadataOS:
             try {
               let tokens: Token[] = [];
@@ -155,24 +148,6 @@ export default class Collection extends AbstractCollection {
                 throw new CollectionAggregateMetadataError('Client failed to inject tokens');
               }
               tokens = injectedTokens as Token[];
-
-              // const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
-              // const numNfts = tokens.length;
-
-              // const invalidTokens = [];
-              // for (const token of tokens) {
-              //   try {
-              //     Nft.validateToken(token, RefreshTokenFlow.Metadata);
-              //   } catch (err) {
-              //     invalidTokens.push(token);
-              //   }
-              // }
-
-              // if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
-              //   throw new CollectionTokenMetadataError(
-              //     `Received invalid tokens. Expected: ${expectedNumNfts} Received: ${numNfts}. Invalid tokens: ${invalidTokens.length}`
-              //   );
-              // }
 
               collection = this.getCollectionAggregatedMetadata(
                 tokens,
@@ -216,70 +191,6 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
-          // this is skipped in the reservoir/zora flow
-          case CreationFlow.ValidateImage:
-            try {
-              /**
-               * validate tokens
-               */
-              const tokens: Array<Partial<Token>> | undefined = yield {
-                collection: collection,
-                action: 'tokenRequest'
-              };
-
-              if (!tokens) {
-                throw new CollectionTokenMetadataError('Client failed to inject tokens');
-              }
-
-              const invalidCacheImageTokens = [];
-              for (const token of tokens) {
-                try {
-                  Nft.validateToken(token, RefreshTokenFlow.CacheImage);
-                } catch (err) {
-                  invalidCacheImageTokens.push(token);
-                }
-              }
-
-              // try invalid cache image tokens another way
-              let j = 0;
-              for (const token of invalidCacheImageTokens) {
-                j++;
-                const metadata = await opensea.getNFTMetadata(this.contract.address, token.tokenId ?? '');
-                const imageToken: ImageData & Partial<Token> = {
-                  tokenId: token.tokenId,
-                  image: { url: metadata.image, originalUrl: token.metadata?.image, updatedAt: Date.now() }
-                } as ImageToken;
-                void emitter.emit('image', imageToken);
-                void emitter.emit('progress', {
-                  step: CreationFlow.ValidateImage,
-                  progress: Math.floor((j / invalidCacheImageTokens.length) * 100 * 100) / 100
-                });
-              }
-
-              const collectionMetadataCollection: CollectionTokenMetadataType = {
-                ...(collection as CollectionTokenMetadataType),
-                numNfts: tokens.length,
-                state: {
-                  ...collection.state,
-                  create: {
-                    progress: 0,
-                    updatedAt: Date.now(),
-                    step: CreationFlow.CollectionMints // update step
-                  }
-                }
-              };
-              collection = collectionMetadataCollection; // update collection
-              yield { collection };
-            } catch (err: any) {
-              logger.error('Failed to validate tokens', err);
-              if (err instanceof CollectionTokenMetadataError || err instanceof CollectionCacheImageError) {
-                throw err;
-              }
-              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to validate tokens';
-              throw new CollectionImageValidationError(message);
-            }
-            break;
-
           case CreationFlow.CollectionMints:
             try {
               const slug = (collection as CollectionMetadataType).metadata.links.slug;
@@ -309,29 +220,6 @@ export default class Collection extends AbstractCollection {
               }
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection mints';
               throw new CollectionMintsError(message);
-            }
-            break;
-
-          // this is skipped in the reservoir/zora flow
-          case CreationFlow.TokenMetadataUri:
-            try {
-              let tokens: Token[] = [];
-              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-              if (!injectedTokens) {
-                throw new CollectionTokenMetadataError('Client failed to inject tokens');
-              }
-              tokens = injectedTokens as Token[];
-
-              collection = await this.getCollectionTokenMetadataUri(
-                tokens,
-                collection as CollectionMetadataType,
-                emitter,
-                CreationFlow.Complete
-              );
-              yield { collection };
-            } catch (err: any) {
-              logger.error('Failed to get token metadata from uri', err);
-              throw err;
             }
             break;
 
@@ -365,14 +253,10 @@ export default class Collection extends AbstractCollection {
               logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
               if (invalidTokens[0].err instanceof RefreshTokenMintError) {
                 throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
-                // } else if (invalidTokens[0].err instanceof RefreshTokenUriError) {
-                //   throw new CollectionTokenMetadataUriError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenMetadataError) {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
                 throw new CollectionImageValidationError(`Received ${invalidTokens.length} invalid tokens`);
-                // } else if (invalidTokens[0].err instanceof RefreshTokenOriginalImageError) {
-                //   throw new CollectionOriginalImageError(`Received ${invalidTokens.length} invalid tokens`);
               } else {
                 throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
               }
@@ -570,52 +454,6 @@ export default class Collection extends AbstractCollection {
     return collectionMintsCollection;
   }
 
-  private async getCollectionMints(
-    collection: CollectionMetadataType,
-    emitter: CollectionEmitter,
-    nextStep: CreationFlow
-  ): Promise<CollectionMintsType> {
-    let resumeFromBlock: number | undefined;
-    if (collection.state.create.error?.discriminator === CreationFlow.CollectionMints) {
-      resumeFromBlock = collection.state.create.error?.lastSuccessfulBlock;
-    }
-
-    const mintEmitter = new Emittery<{ mint: MintToken; progress: { progress: number; message?: string } }>();
-
-    mintEmitter.on('mint', (mintToken) => {
-      void emitter.emit('mint', mintToken);
-    });
-
-    mintEmitter.on('progress', ({ progress, message }) => {
-      void emitter.emit('progress', { progress, step: CreationFlow.CollectionMints, message });
-    });
-
-    const { failedWithUnknownErrors, gotAllBlocks, lastSuccessfulBlock } = await this.getMints(
-      mintEmitter,
-      resumeFromBlock ?? collection.deployedAtBlock
-    );
-
-    if (failedWithUnknownErrors > 0) {
-      throw new CollectionMintsError(`Failed to get mints for ${failedWithUnknownErrors} tokens with unknown errors`); // get all blocks again
-    } else if (!gotAllBlocks) {
-      throw new CollectionMintsError(`Failed to get mints for all blocks`, lastSuccessfulBlock);
-    }
-
-    const collectionMintsCollection: CollectionMintsType = {
-      ...collection,
-      state: {
-        ...collection.state,
-        create: {
-          progress: 0,
-          step: nextStep,
-          updatedAt: Date.now()
-        }
-      }
-    };
-
-    return collectionMintsCollection;
-  }
-
   private async getCollectionTokenMetadataFromReservoir(
     totalSupply: number,
     collection: CollectionMintsType,
@@ -705,170 +543,6 @@ export default class Collection extends AbstractCollection {
     };
 
     return collectionTokenMetadataCollection;
-  }
-
-  private async getCollectionTokenMetadata(
-    mintTokens: Array<Partial<Token>>,
-    collection: CollectionMintsType,
-    emitter: CollectionEmitter,
-    nextStep: CreationFlow
-  ): Promise<CollectionTokenMetadataType> {
-    let tokensValid = true;
-    for (const token of mintTokens) {
-      try {
-        Nft.validateToken(token, RefreshTokenFlow.Mint);
-      } catch (err) {
-        console.error(err);
-        tokensValid = false;
-      }
-    }
-    if (!tokensValid) {
-      throw new CollectionMintsError('Token metadata received invalid mint tokens');
-    }
-    const alchemyLimit = 100;
-    const numIters = Math.ceil(mintTokens.length / alchemyLimit);
-    let startToken = '';
-    for (let i = 0; i < numIters; i++) {
-      const data = await alchemy.getNFTsOfCollection(this.contract.address, startToken);
-      startToken = data.nextToken;
-      for (const datum of data.nfts) {
-        const metadata = (JSON.parse(JSON.stringify(datum.metadata)) ?? {}) as TokenMetadata;
-        metadata.description = datum.description ?? '';
-        metadata.image = datum.metadata?.image ?? datum.tokenUri?.gateway;
-        const tokenIdStr = datum?.id?.tokenId;
-        const tokenId = hexToDecimalTokenId(tokenIdStr);
-        if (tokenId) {
-          let title = datum.title ?? metadata?.name ?? '';
-          if (!title && 'title' in metadata) {
-            title = metadata.title ?? '';
-          }
-          const alchemyCachedImage = datum.media?.[0]?.gateway;
-          const tokenWithMetadata: MetadataData & Partial<Token> = {
-            slug: getSearchFriendlyString(title),
-            tokenId,
-            tokenUri: datum.tokenUri?.raw,
-            numTraitTypes: (metadata as any)?.attributes?.length ?? 0, // TODO handle erc1155 metadata
-            metadata,
-            alchemyCachedImage,
-            updatedAt: Date.now()
-          };
-          void emitter.emit('metadata', tokenWithMetadata);
-        }
-      }
-      void emitter.emit('progress', {
-        step: CreationFlow.TokenMetadata,
-        progress: Math.floor(((i * alchemyLimit) / mintTokens.length) * 100 * 100) / 100
-      });
-    }
-
-    const collectionMetadataCollection: CollectionTokenMetadataType = {
-      ...collection,
-      numNfts: mintTokens.length,
-      state: {
-        ...collection.state,
-        create: {
-          progress: 0,
-          step: nextStep,
-          updatedAt: Date.now()
-        }
-      }
-    };
-
-    return collectionMetadataCollection;
-  }
-
-  private async getCollectionTokenMetadataUri(
-    tokens: Token[],
-    collection: CollectionMintsType,
-    emitter: CollectionEmitter,
-    nextStep: CreationFlow
-  ): Promise<CollectionTokenMetadataType> {
-    const metadataLessTokens = [];
-    for (const token of tokens) {
-      try {
-        Nft.validateToken(token, RefreshTokenFlow.Metadata);
-      } catch (err) {
-        metadataLessTokens.push(token);
-      }
-    }
-
-    const tokenPromises: Array<Promise<MetadataToken>> = [];
-    let progress = 0;
-    for (const token of metadataLessTokens) {
-      const nft = new Nft(token as MintToken, this.contract, this.ethersQueue);
-      const iterator = nft.refreshToken();
-      // eslint-disable-next-line no-async-promise-executor
-      const tokenWithMetadataPromise = new Promise<MetadataToken>(async (resolve, reject) => {
-        let tokenWithMetadata = token as Partial<Token>;
-        try {
-          let prevTokenProgress = 0;
-          for await (const { token: intermediateToken, failed, progress: tokenProgress } of iterator) {
-            progress = progress - prevTokenProgress + tokenProgress;
-            prevTokenProgress = tokenProgress;
-
-            void emitter.emit('progress', {
-              step: CreationFlow.TokenMetadataUri,
-              progress: Math.floor((progress / metadataLessTokens.length) * 100 * 100) / 100
-            });
-            if (failed) {
-              reject(new Error(intermediateToken.state?.metadata.error?.message));
-            } else {
-              tokenWithMetadata = intermediateToken;
-            }
-          }
-          if (!tokenWithMetadata) {
-            throw new Error('Failed to refresh token');
-          }
-
-          progress = progress - prevTokenProgress + 1;
-          void emitter.emit('progress', {
-            step: nextStep,
-            progress: Math.floor((progress / metadataLessTokens.length) * 100 * 100) / 100
-          });
-
-          void emitter.emit('token', tokenWithMetadata as Token);
-          resolve(tokenWithMetadata as MetadataToken);
-        } catch (err) {
-          logger.error(err);
-          if (err instanceof RefreshTokenMintError) {
-            reject(new Error('Invalid mint data'));
-          }
-          reject(err);
-        }
-      });
-
-      tokenPromises.push(tokenWithMetadataPromise);
-    }
-
-    const results = await Promise.allSettled(tokenPromises);
-    let res = { reason: '', failed: false };
-    for (const result of results) {
-      if (result.status === 'rejected') {
-        const message = typeof result?.reason === 'string' ? result.reason : 'Failed to refresh token';
-        res = { reason: message, failed: true };
-        if (result.reason === 'Invalid mint data') {
-          throw new CollectionMintsError('Tokens contained invalid mint data');
-        }
-      }
-    }
-
-    if (res.failed) {
-      throw new Error(res.reason);
-    }
-
-    const collectionMetadataCollection: CollectionTokenMetadataType = {
-      ...collection,
-      numNfts: tokens.length,
-      state: {
-        ...collection.state,
-        create: {
-          progress: 0,
-          step: nextStep, // update step
-          updatedAt: Date.now()
-        }
-      }
-    };
-    return collectionMetadataCollection; // update collection
   }
 
   private getCollectionAggregatedMetadata(
