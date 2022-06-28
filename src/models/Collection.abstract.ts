@@ -55,13 +55,12 @@ export default abstract class Collection {
   }> {
     const deployer = await this.getDeployer();
     let owner;
-
     try {
       owner = await this.contract.getOwner();
       // eslint-disable-next-line no-empty
     } catch {}
 
-    if (!owner) {
+    if (!owner || owner === NULL_ADDR) {
       owner = deployer.address;
     }
 
@@ -199,7 +198,11 @@ export default abstract class Collection {
         mintedAt,
         minter: normalizeAddress(transfer.to),
         mintTxHash: event.transactionHash,
-        mintPrice
+        mintPrice,
+        image: {
+          updatedAt: 0
+        },
+        tokenUri: ''
       };
 
       return Nft.validateToken(token, RefreshTokenFlow.Mint);

@@ -173,7 +173,7 @@ export async function create(
 
   emitter.on('mint', (token) => {
     const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: !reset });
+    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
   });
 
   emitter.on('attributes', (attributes: CollectionAttributes) => {

@@ -2,6 +2,10 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
+  Collection as CollectionType,
+  CreationFlow,
+  Erc721Metadata,
+  Erc721Token,
   ImageData,
   ImageToken,
   MetadataData,
@@ -10,36 +14,28 @@ import {
   RefreshTokenFlow,
   Token,
   TokenMetadata,
-  Collection as CollectionType,
-  CreationFlow
+  TokenStandard
 } from '@infinityxyz/lib/types/core';
+import { getSearchFriendlyString, hexToDecimalTokenId, normalizeAddress } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
+import { alchemy, logger, opensea, reservoir, zora } from '../container';
+import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
 import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
   CollectionCreatorError,
+  CollectionImageValidationError,
   CollectionIndexingError,
   CollectionMetadataError,
   CollectionMintsError,
-  CollectionOriginalImageError,
   CollectionTokenMetadataError,
-  CollectionImageValidationError,
+  CollectionTotalSupplyExceededError,
   CreationFlowError,
-  UnknownError,
-  CollectionTotalSupplyExceededError
+  UnknownError
 } from './errors/CreationFlow';
+import { RefreshTokenImageError, RefreshTokenMetadataError, RefreshTokenMintError } from './errors/RefreshTokenFlow';
 import Nft from './Nft';
-import { alchemy, logger, opensea } from '../container';
-import {
-  RefreshTokenCacheImageError,
-  RefreshTokenMetadataError,
-  RefreshTokenMintError,
-  RefreshTokenOriginalImageError,
-  RefreshTokenUriError
-} from './errors/RefreshTokenFlow';
-import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
-import { getSearchFriendlyString, hexToDecimalTokenId } from '@infinityxyz/lib/utils';
 
 type CollectionCreatorType = Pick<
   CollectionType,
@@ -76,6 +72,7 @@ export default class Collection extends AbstractCollection {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
     let step: CreationFlow = collection?.state?.create?.step || CreationFlow.CollectionCreator;
+
     try {
       while (true) {
         step = collection?.state?.create?.step || CreationFlow.CollectionCreator;
@@ -98,7 +95,7 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CollectionMetadata:
             try {
-              collection = await this.getCollectionMetadata(collection, CreationFlow.CollectionMints);
+              collection = await this.getCollectionMetadata(collection, CreationFlow.TokenMetadata);
               yield { collection };
             } catch (err: any) {
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection metadata';
@@ -106,56 +103,22 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
-          case CreationFlow.CollectionMints:
+          case CreationFlow.TokenMetadata:
             try {
               const slug = (collection as CollectionMetadataType).metadata.links.slug;
-              if(!slug) {
+              if (!slug) {
                 throw new Error('Failed to get collection slug');
               }
               const totalSupply = await this.collectionMetadataProvider.getTotalSupply(slug);
-              if (Number.isNaN(totalSupply) || totalSupply > COLLECTION_MAX_SUPPLY) {
-                throw new CollectionTotalSupplyExceededError(`Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`);
-              }
-
-              collection = await this.getCollectionMints(
+              collection = await this.getCollectionTokenMetadataFromReservoir(
+                totalSupply,
                 collection as CollectionMetadataType,
                 emitter,
-                CreationFlow.TokenMetadata
-              );
-
-              yield { collection }; // update collection
-            } catch (err: any) {
-              logger.error('Failed to get collection mints', err);
-              if (err instanceof CollectionMintsError || err instanceof CollectionTotalSupplyExceededError) {
-                throw err;
-              }
-              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection mints';
-              throw new CollectionMintsError(message);
-            }
-            break;
-
-          case CreationFlow.TokenMetadata:
-            try {
-              const mintTokens: Array<Partial<Token>> | undefined = yield {
-                collection: collection,
-                action: 'tokenRequest'
-              };
-              if (!mintTokens) {
-                throw new CollectionMintsError('Token metadata received undefined mint tokens');
-              }
-
-              collection = await this.getCollectionTokenMetadata(
-                mintTokens,
-                collection as CollectionMetadataType,
-                emitter,
-                CreationFlow.TokenMetadataUri
+                CreationFlow.AggregateMetadata
               );
               yield { collection };
             } catch (err: any) {
-              logger.error('Failed to get collection mint tokens', err);
-              if (err instanceof CollectionMintsError) {
-                throw err;
-              }
+              logger.error('Failed to get collection tokens', err);
               // if any token fails we should throw an error
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
               throw new CollectionTokenMetadataError(message);
@@ -185,28 +148,6 @@ export default class Collection extends AbstractCollection {
           //   }
           //   break;
 
-          case CreationFlow.TokenMetadataUri:
-            try {
-              let tokens: Token[] = [];
-              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-              if (!injectedTokens) {
-                throw new CollectionTokenMetadataError('Client failed to inject tokens');
-              }
-              tokens = injectedTokens as Token[];
-
-              collection = await this.getCollectionTokenMetadataUri(
-                tokens,
-                collection as CollectionMetadataType,
-                emitter,
-                CreationFlow.AggregateMetadata
-              );
-              yield { collection };
-            } catch (err: any) {
-              logger.error('Failed to get token metadata from uri', err);
-              throw err;
-            }
-            break;
-
           case CreationFlow.AggregateMetadata:
             try {
               let tokens: Token[] = [];
@@ -216,22 +157,23 @@ export default class Collection extends AbstractCollection {
               }
               tokens = injectedTokens as Token[];
 
-              const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
-              const numNfts = tokens.length;
-              const invalidTokens = [];
-              for (const token of tokens) {
-                try {
-                  Nft.validateToken(token, RefreshTokenFlow.Metadata);
-                } catch (err) {
-                  invalidTokens.push(token);
-                }
-              }
+              // const expectedNumNfts = (collection as CollectionTokenMetadataType).numNfts;
+              // const numNfts = tokens.length;
 
-              if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
-                throw new CollectionTokenMetadataError(
-                  `Received invalid tokens. Expected: ${expectedNumNfts} Received: ${numNfts}. Invalid tokens: ${invalidTokens.length}`
-                );
-              }
+              // const invalidTokens = [];
+              // for (const token of tokens) {
+              //   try {
+              //     Nft.validateToken(token, RefreshTokenFlow.Metadata);
+              //   } catch (err) {
+              //     invalidTokens.push(token);
+              //   }
+              // }
+
+              // if (expectedNumNfts !== numNfts || invalidTokens.length > 0) {
+              //   throw new CollectionTokenMetadataError(
+              //     `Received invalid tokens. Expected: ${expectedNumNfts} Received: ${numNfts}. Invalid tokens: ${invalidTokens.length}`
+              //   );
+              // }
 
               collection = this.getCollectionAggregatedMetadata(
                 tokens,
@@ -264,7 +206,7 @@ export default class Collection extends AbstractCollection {
                 tokens,
                 collection as CollectionType,
                 emitter,
-                CreationFlow.ValidateImage
+                CreationFlow.CollectionMints // skipping validate image
               );
               yield { collection };
             } catch (err: any) {
@@ -275,6 +217,7 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
+          // this is skipped in the reservoir/zora flow
           case CreationFlow.ValidateImage:
             try {
               /**
@@ -322,7 +265,7 @@ export default class Collection extends AbstractCollection {
                   create: {
                     progress: 0,
                     updatedAt: Date.now(),
-                    step: CreationFlow.Complete // update step
+                    step: CreationFlow.CollectionMints // update step
                   }
                 }
               };
@@ -338,6 +281,61 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
+          case CreationFlow.CollectionMints:
+            try {
+              const slug = (collection as CollectionMetadataType).metadata.links.slug;
+              if (!slug) {
+                throw new Error('Failed to get collection slug');
+              }
+              const totalSupply = await this.collectionMetadataProvider.getTotalSupply(slug);
+
+              if (Number.isNaN(totalSupply) || totalSupply > COLLECTION_MAX_SUPPLY) {
+                throw new CollectionTotalSupplyExceededError(
+                  `Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`
+                );
+              }
+
+              collection = await this.getCollectionMintsFromZora(
+                totalSupply,
+                collection as CollectionMetadataType,
+                emitter,
+                CreationFlow.Complete // skipping token metadata uri step
+              );
+
+              yield { collection }; // update collection
+            } catch (err: any) {
+              logger.error('Failed to get collection mints', err);
+              if (err instanceof CollectionTotalSupplyExceededError) {
+                throw err;
+              }
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection mints';
+              throw new CollectionMintsError(message);
+            }
+            break;
+
+          // this is skipped in the reservoir/zora flow
+          case CreationFlow.TokenMetadataUri:
+            try {
+              let tokens: Token[] = [];
+              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+              if (!injectedTokens) {
+                throw new CollectionTokenMetadataError('Client failed to inject tokens');
+              }
+              tokens = injectedTokens as Token[];
+
+              collection = await this.getCollectionTokenMetadataUri(
+                tokens,
+                collection as CollectionMetadataType,
+                emitter,
+                CreationFlow.Complete
+              );
+              yield { collection };
+            } catch (err: any) {
+              logger.error('Failed to get token metadata from uri', err);
+              throw err;
+            }
+            break;
+
           case CreationFlow.Complete:
             /**
              * validate tokens
@@ -348,7 +346,7 @@ export default class Collection extends AbstractCollection {
             };
 
             if (!finalTokens) {
-              throw new CollectionMintsError('Token metadata received undefined tokens');
+              throw new CollectionTokenMetadataError('Token metadata received undefined tokens');
             }
 
             const invalidTokens = [];
@@ -356,7 +354,9 @@ export default class Collection extends AbstractCollection {
               try {
                 Nft.validateToken(token, RefreshTokenFlow.Complete);
               } catch (err) {
-                invalidTokens.push({ token, err });
+                if (token.tokenId) {
+                  invalidTokens.push({ token, err });
+                }
               }
             }
 
@@ -364,14 +364,14 @@ export default class Collection extends AbstractCollection {
               logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
               if (invalidTokens[0].err instanceof RefreshTokenMintError) {
                 throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenUriError) {
-                throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
+                // } else if (invalidTokens[0].err instanceof RefreshTokenUriError) {
+                //   throw new CollectionTokenMetadataUriError(`Received ${invalidTokens.length} invalid tokens`);
               } else if (invalidTokens[0].err instanceof RefreshTokenMetadataError) {
                 throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenCacheImageError) {
-                throw new CollectionCacheImageError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenOriginalImageError) {
-                throw new CollectionOriginalImageError(`Received ${invalidTokens.length} invalid tokens`);
+              } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
+                throw new CollectionImageValidationError(`Received ${invalidTokens.length} invalid tokens`);
+                // } else if (invalidTokens[0].err instanceof RefreshTokenOriginalImageError) {
+                //   throw new CollectionOriginalImageError(`Received ${invalidTokens.length} invalid tokens`);
               } else {
                 throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
               }
@@ -392,10 +392,7 @@ export default class Collection extends AbstractCollection {
       logger.error(err);
       let error;
       let stepToSave: CreationFlow = step;
-      if (err instanceof CreationFlowError && stepToSave === CreationFlow.Complete) {
-        error = err;
-        stepToSave = CreationFlow.Incomplete;
-      } else if (err instanceof CreationFlowError) {
+      if (err instanceof CreationFlowError) {
         error = err;
         if (err.discriminator === 'unknown') {
           stepToSave = CreationFlow.CollectionCreator;
@@ -504,6 +501,74 @@ export default class Collection extends AbstractCollection {
     return collectionMetadataCollection;
   }
 
+  private async getCollectionMintsFromZora(
+    totalSupply: number,
+    collection: CollectionMetadataType,
+    emitter: CollectionEmitter,
+    nextStep: CreationFlow
+  ): Promise<CollectionMintsType> {
+    const zoraLimit = 500;
+    let after = '';
+    let hasNextPage = true;
+    let numPages = 0;
+    while (hasNextPage) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      const response = await zora.fetchTokensInfoFromZora(this.contract.chainId, this.contract.address, after, zoraLimit);
+      after = response?.tokens?.pageInfo?.endCursor ?? '';
+      hasNextPage = response?.tokens?.pageInfo?.hasNextPage ?? false;
+
+      const tokens = response?.tokens?.nodes ?? [];
+      for (const mintToken of tokens) {
+        const minter = mintToken.token.mintInfo.originatorAddress;
+        const blockTimestamp = mintToken.token.mintInfo.mintContext.blockTimestamp;
+        const mintedAt = blockTimestamp ? new Date(blockTimestamp).getTime() : 0;
+        const txHash = mintToken.token.mintInfo.mintContext.transactionHash;
+        const mintPrice = mintToken.token.mintInfo.price.chainTokenPrice.decimal;
+        const mintCurrencyAddress = mintToken.token.mintInfo.price.chainTokenPrice.currency.address;
+        const mintCurrencyDecimals = mintToken.token.mintInfo.price.chainTokenPrice.currency.decimals;
+        const mintCurrencyName = mintToken.token.mintInfo.price.chainTokenPrice.currency.name;
+
+        const token: MintToken = {
+          chainId: this.contract.chainId,
+          tokenId: mintToken.token.tokenId,
+          tokenUri: mintToken.token.tokenUrl,
+          mintedAt,
+          minter: normalizeAddress(minter),
+          mintTxHash: txHash,
+          image: {
+            originalUrl: mintToken.token.image.url,
+            updatedAt: Date.now()
+          },
+          mintPrice,
+          mintCurrencyAddress,
+          mintCurrencyDecimals,
+          mintCurrencyName
+        };
+        void emitter.emit('mint', token);
+      }
+
+      ++numPages;
+      void emitter.emit('progress', {
+        step: CreationFlow.CollectionMints,
+        progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100
+      });
+    }
+
+    const collectionMintsCollection: CollectionMintsType = {
+      ...collection,
+      state: {
+        ...collection.state,
+        create: {
+          progress: 0,
+          step: nextStep,
+          updatedAt: Date.now()
+        }
+      }
+    };
+
+    return collectionMintsCollection;
+  }
+
   private async getCollectionMints(
     collection: CollectionMetadataType,
     emitter: CollectionEmitter,
@@ -548,6 +613,105 @@ export default class Collection extends AbstractCollection {
     };
 
     return collectionMintsCollection;
+  }
+
+  private async getCollectionTokenMetadataFromReservoir(
+    totalSupply: number,
+    collection: CollectionMintsType,
+    emitter: CollectionEmitter,
+    nextStep: CreationFlow
+  ): Promise<CollectionTokenMetadataType> {
+    const reservoirLimit = 50;
+    let continuation = '';
+    let hasNextPage = true;
+    let numNfts = 0;
+    let numPages = 0;
+    while (hasNextPage) {
+      const data = await reservoir.fetchDetailedTokensInfoFromReservoir(
+        this.contract.chainId,
+        this.contract.address,
+        continuation,
+        reservoirLimit
+      );
+      if (data?.continuation) {
+        continuation = data.continuation;
+      } else {
+        hasNextPage = false;
+      }
+      const tokens = data?.tokens ?? [];
+      numNfts += tokens.length;
+      for (const reservoirToken of tokens) {
+        const token = reservoirToken.token;
+        const tokenId = token.tokenId;
+        if (tokenId) {
+          const name = token.name;
+          const metadata: Erc721Metadata = {
+            attributes: [],
+            name,
+            title: name,
+            image: token.image,
+            image_data: '',
+            description: token.description,
+            external_url: '',
+            background_color: '',
+            youtube_url: '',
+            animation_url: ''
+          };
+
+          for (const attr of token.attributes) {
+            metadata.attributes.push({
+              trait_type: attr.key,
+              value: attr.value
+            });
+          }
+
+          const tokenWithMetadata: Erc721Token = {
+            slug: getSearchFriendlyString(name),
+            tokenId,
+            chainId: this.contract.chainId,
+            numTraitTypes: token.attributes.length ?? 0,
+            metadata,
+            updatedAt: Date.now(),
+            owner: token.owner,
+            image: {
+              url: token.image,
+              updatedAt: Date.now()
+            },
+            // placeholder data; // filled in collection mints step
+            tokenUri: '',
+            tokenStandard: TokenStandard.ERC721, // default
+            minter: '',
+            mintedAt: 0,
+            mintTxHash: '',
+            mintPrice: 0,
+            rarityScore: 0,
+            rarityRank: 0
+          };
+          void emitter.emit('token', tokenWithMetadata);
+        }
+      }
+
+      ++numPages;
+      void emitter.emit('progress', {
+        step: CreationFlow.TokenMetadata,
+        progress: Math.floor(((numPages * reservoirLimit) / totalSupply) * 100 * 100) / 100
+      });
+    }
+
+    const collectionTokenMetadataCollection: CollectionTokenMetadataType = {
+      ...collection,
+      numNfts,
+      state: {
+        ...collection.state,
+        create: {
+          progress: 0,
+          step: nextStep,
+          updatedAt: Date.now()
+        }
+      }
+    };
+
+    return collectionTokenMetadataCollection;
   }
 
   private async getCollectionTokenMetadata(
@@ -770,7 +934,7 @@ export default class Collection extends AbstractCollection {
     // fetch tokens that don't have images
     const imageLessTokens = [];
     for (const token of tokens) {
-      if (!token.image || !token.image.originalUrl || !token.image.url || !token.image.updatedAt) {
+      if (!token.image || !token.image.url) {
         imageLessTokens.push(token);
       }
     }
@@ -824,7 +988,7 @@ export default class Collection extends AbstractCollection {
       }
     }
 
-    const collectionMetadataCollection: CollectionTokenMetadataType = {
+    const cachedImageCollection: CollectionTokenMetadataType = {
       ...(collection as CollectionTokenMetadataType),
       numNfts: tokens.length,
       state: {
@@ -836,7 +1000,7 @@ export default class Collection extends AbstractCollection {
         }
       }
     };
-    return collectionMetadataCollection;
+    return cachedImageCollection;
   }
 
   // private async getCollectionTokenMetadataFromOS(tokens: Array<Partial<Token>>, collection: CollectionTokenMetadataType, emitter: CollectionEmitter, nextStep: CreationFlow): Promise<CollectionTokenMetadataType> {
