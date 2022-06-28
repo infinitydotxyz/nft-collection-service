@@ -116,7 +116,7 @@ export default class Collection extends AbstractCollection {
                 totalSupply,
                 collection as CollectionMetadataType,
                 emitter,
-                CreationFlow.AggregateMetadata
+                CreationFlow.TokenMetadataOS
               );
               yield { collection };
             } catch (err: any) {
@@ -128,27 +128,24 @@ export default class Collection extends AbstractCollection {
             break;
 
           // leave this code commented; might use in the future
-          // case CreationFlow.TokenMetadataOS:
-          //   try {
-          //     let tokens: Token[] = [];
-          //     const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-          //     if (!injectedTokens) {
-          //       throw new CollectionCacheImageError('Client failed to inject tokens');
-          //     }
-          //     tokens = injectedTokens as Token[];
-          //     collection = await this.getCollectionTokenMetadataFromOS(tokens, collection as CollectionTokenMetadataType, emitter,  CreationFlow.TokenMetadataUri);
+          case CreationFlow.TokenMetadataOS:
+            try {
+              let tokens: Token[] = [];
+              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+              if (!injectedTokens) {
+                throw new CollectionTokenMetadataError('Client failed to inject tokens');
+              }
+              tokens = injectedTokens as Token[];
+              collection = await this.getCollectionTokenMetadataFromOS(tokens, collection as CollectionTokenMetadataType, emitter,  CreationFlow.TokenMetadataUri);
 
-          //     yield { collection };
-          //   } catch (err: any) {
-          //     logger.error('Failed to get token metadata from OS', err);
-          //     if (err instanceof CollectionMintsError) {
-          //       throw err;
-          //     }
-          //     // if any token fails we should throw an error
-          //     const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
-          //     throw new CollectionTokenMetadataError(message);
-          //   }
-          //   break;
+              yield { collection };
+            } catch (err: any) {
+              logger.error('Failed to get token metadata from OS', err);
+              // if any token fails we should throw an error
+              const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
+              throw new CollectionTokenMetadataError(message);
+            }
+            break;
 
           case CreationFlow.AggregateMetadata:
             try {
@@ -681,15 +678,7 @@ export default class Collection extends AbstractCollection {
               url: token.image,
               updatedAt: Date.now()
             },
-            // placeholder data; // filled in collection mints step
-            tokenUri: '',
             tokenStandard: TokenStandard.ERC721, // default
-            minter: '',
-            mintedAt: 0,
-            mintTxHash: '',
-            mintPrice: 0,
-            rarityScore: 0,
-            rarityRank: 0
           };
           void emitter.emit('token', tokenWithMetadata);
         }
@@ -1007,67 +996,68 @@ export default class Collection extends AbstractCollection {
     return cachedImageCollection;
   }
 
-  // private async getCollectionTokenMetadataFromOS(tokens: Array<Partial<Token>>, collection: CollectionTokenMetadataType, emitter: CollectionEmitter, nextStep: CreationFlow): Promise<CollectionTokenMetadataType> {
-  //   // metadata less tokens
-  //   const metadataLessTokens = [];
-  //   for (const token of tokens) {
-  //     try {
-  //       Nft.validateToken(token, RefreshTokenFlow.Metadata);
-  //     } catch (err) {
-  //       metadataLessTokens.push(token);
-  //     }
-  //   }
-  //   const numTokens = metadataLessTokens.length;
-  //   const openseaLimit = 20;
-  //   const numIters = Math.ceil(numTokens / openseaLimit);
-  //   for (let i = 0; i < numIters; i++) {
-  //     const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
-  //     let tokenIdsConcat = '';
-  //     for (const tokenId of tokenIds) {
-  //       tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
-  //     }
-  //     const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
-  //     for (const datum of data.assets) {
-  //       const metaToken: MetadataData & Partial<Token> = {
-  //         updatedAt: Date.now(),
-  //         tokenId: datum.token_id,
-  //         slug: getSearchFriendlyString(datum.name),
-  //         numTraitTypes: datum.traits?.length,
-  //         metadata: {
-  //           name: datum.name ?? null,
-  //           title: datum.name ?? null,
-  //           image: datum.image_url ?? '',
-  //           image_data: '',
-  //           external_url: datum?.external_link ?? '',
-  //           description: datum.description ?? '',
-  //           attributes: datum.traits,
-  //           background_color: datum.background_color ?? '',
-  //           animation_url: datum?.animation_url ?? '',
-  //           youtube_url: ''
-  //         },
-  //         image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
-  //       };
-  //       void emitter.emit('metadata', metaToken);
-  //     }
-  //     void emitter.emit('progress', {
-  //       step: CreationFlow.TokenMetadataOS,
-  //       progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
-  //     });
-  //   }
+  private async getCollectionTokenMetadataFromOS(tokens: Array<Partial<Token>>, collection: CollectionTokenMetadataType, emitter: CollectionEmitter, nextStep: CreationFlow): Promise<CollectionTokenMetadataType> {
+    // metadata less tokens
+    const metadataLessTokens = [];
+    for (const token of tokens) {
+      try {
+        Nft.validateToken(token, RefreshTokenFlow.Metadata);
+      } catch (err) {
+        metadataLessTokens.push(token);
+      }
+    }
+    const numTokens = metadataLessTokens.length;
+    const openseaLimit = 20;
+    const numIters = Math.ceil(numTokens / openseaLimit);
+    for (let i = 0; i < numIters; i++) {
+      const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
+      let tokenIdsConcat = '';
+      for (const tokenId of tokenIds) {
+        tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
+      }
+      const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
+      for (const datum of data.assets) {
+        const token: Erc721Token = {
+          updatedAt: Date.now(),
+          tokenId: datum.token_id,
+          slug: getSearchFriendlyString(datum.name),
+          numTraitTypes: datum.traits?.length,
+          tokenStandard: TokenStandard.ERC721, // default
+          metadata: {
+            name: datum.name ?? null,
+            title: datum.name ?? null,
+            image: datum.image_url ?? '',
+            image_data: '',
+            external_url: datum?.external_link ?? '',
+            description: datum.description ?? '',
+            attributes: datum.traits,
+            background_color: datum.background_color ?? '',
+            animation_url: datum?.animation_url ?? '',
+            youtube_url: ''
+          },
+          image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+        };
+        void emitter.emit('token', token);
+      }
+      void emitter.emit('progress', {
+        step: CreationFlow.TokenMetadataOS,
+        progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+      });
+    }
 
-  //   const collectionMetadataCollection: CollectionTokenMetadataType = {
-  //     ...(collection ),
-  //     numNfts: tokens.length,
-  //     state: {
-  //       ...collection.state,
-  //       create: {
-  //         updatedAt: Date.now(),
-  //         progress: 100,
-  //         step: nextStep // update step
-  //       }
-  //     }
-  //   };
+    const collectionMetadataCollection: CollectionTokenMetadataType = {
+      ...(collection ),
+      numNfts: tokens.length,
+      state: {
+        ...collection.state,
+        create: {
+          updatedAt: Date.now(),
+          progress: 100,
+          step: nextStep // update step
+        }
+      }
+    };
 
-  //   return collectionMetadataCollection;
-  // }
+    return collectionMetadataCollection;
+  }
 }
