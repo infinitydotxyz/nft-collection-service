@@ -11,12 +11,11 @@ import {
 } from '@infinityxyz/lib/types/core';
 import Contract from './contracts/Contract.interface';
 import {
-  RefreshTokenCacheImageError,
   RefreshTokenError,
-  RefreshTokenOriginalImageError,
   RefreshTokenMetadataError,
   RefreshTokenMintError,
-  RefreshTokenUriError
+  RefreshTokenUriError,
+  RefreshTokenImageError
 } from './errors/RefreshTokenFlow';
 import { metadataClient, moralis, opensea, logger } from '../container';
 import Moralis from '../services/Moralis';
@@ -72,10 +71,10 @@ export default class Nft {
     /**
      * validate mint token
      */
-    if (!token.mintedAt || !token.minter || !token.tokenId || typeof token.mintPrice !== 'number' || !token.mintTxHash) {
+    if (!token.tokenId) {
       // validate token
       throw new RefreshTokenMintError(
-        `Invalid mint token property. Token Id: ${token.tokenId} Minted At: ${token.mintedAt} Minter: ${token.minter} `
+        `Invalid mint token property. TokenId is required. tokenId: ${token.tokenId}`
       );
     }
     if (step === RefreshTokenFlow.Mint) {
@@ -107,24 +106,12 @@ export default class Nft {
     /**
      * validate cache image token
      */
-    if (step === RefreshTokenFlow.CacheImage && !token.image?.url) {
-      throw new RefreshTokenCacheImageError(
-        `Invalid cache image token. Token Id: ${token.tokenId} Image: ${token.image?.url} Updated At: ${token.image?.updatedAt}`
+    if (!token.image?.url && !token.image?.originalUrl) {
+      throw new RefreshTokenImageError(
+        `Invalid image token. Token Id: ${token.tokenId} Cached Image: ${token.image?.url} Original Image: ${token.image?.originalUrl} Updated At: ${token.image?.updatedAt}`
       );
     }
-    if (step === RefreshTokenFlow.CacheImage) {
-      return token as ReturnType<T>;
-    }
-
-    /**
-     * validate original image token
-     */
-    if (!token.image?.originalUrl) {
-      throw new RefreshTokenOriginalImageError(
-        `Invalid original image token. Token Id: ${token.tokenId} Image: ${token.image?.originalUrl} Updated At: ${token.image?.updatedAt}`
-      );
-    }
-    if (step === RefreshTokenFlow.Image) {
+    if (step === RefreshTokenFlow.CacheImage || step === RefreshTokenFlow.Mint) {
       return token as ReturnType<T>;
     }
 

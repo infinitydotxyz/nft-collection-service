@@ -80,13 +80,13 @@ export class CollectionCacheImageError extends CreationFlowError {
 
 export class CollectionOriginalImageError extends CreationFlowError {
   constructor(message?: string) {
-    super(CreationFlow.ValidateImage, message);
+    super(CreationFlow.CollectionMints, message);
   }
 }
 
 export class CollectionImageValidationError extends CreationFlowError {
   constructor(message?: string) {
-    super(CreationFlow.ValidateImage, message);
+    super(CreationFlow.TokenMetadata, message);
   }
 }
 

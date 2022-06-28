@@ -79,7 +79,6 @@ export default class Erc721Contract extends AbstractContract {
   }
 
   aggregateTraits(tokens: Token[]): CollectionAttributes {
-    const tokenMetadata = tokens.map((item) => item.metadata);
     const collectionTraits: CollectionAttributes = {};
 
     const incrementTrait = (value: string | number, traitType?: string, displayType?: DisplayType): void => {
@@ -134,7 +133,12 @@ export default class Erc721Contract extends AbstractContract {
       collectionTraits[traitType].values[value].rarityScore = 1 / proportion;
     };
 
-    for (const metadata of tokenMetadata) {
+    for (const token of tokens) {
+      const metadata = token.metadata;
+      if (!metadata) {
+        console.log('missing metadata for', token.tokenId);
+        continue;
+      }
       const attributes = Array.isArray((metadata as any).attributes) ? (metadata as any).attributes : []; // TODO handle erc1155 metadata
 
       for (const attribute of attributes) {

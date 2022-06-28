@@ -3,7 +3,7 @@
 ## Scripts
 <!-- * `npm run serve` - starts the program in production mode (not yet implemented) -->
 * `npm run dev` - runs `script.ts` for developing/testing flows
-* `npm run cli` - start in cli mode. Example: `npm run cli -- address=0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D chain=1 task=create`
+* `npm run cli` - start in cli mode. Example: `npm run cli -- address=0x08d7c0242953446436f34b4c78fe9da38c73668d chain=1 task=create`
 * `npm run cli-server` - start in cli mode with a heap size of 60GB
 * `npm run queue` - starts a collection queue listener to scrape collections based off a db subscription 
 ## CLI 
