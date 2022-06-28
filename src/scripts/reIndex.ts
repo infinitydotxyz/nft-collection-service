@@ -31,7 +31,7 @@ export async function reIndex(step?: CreationFlow) {
   console.log(`Found: ${collections.length} collections to re-index`);
 
   const url = new URL(join(COLLECTION_SERVICE_URL, 'collection')).toString();
-  const queue = new PQueue({ concurrency: 50 });
+  const queue = new PQueue({ concurrency: 100 });
   const interval = setInterval(() => {
     console.log(`Queue size: ${queue.size}`);
   }, 5_000);
