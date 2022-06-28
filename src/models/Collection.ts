@@ -428,7 +428,7 @@ export default class Collection extends AbstractCollection {
           minter: normalizeAddress(minter),
           mintTxHash: txHash,
           image: {
-            originalUrl: mintToken.token.image.url,
+            originalUrl: mintToken?.token?.image?.url ?? '',
             updatedAt: Date.now()
           },
           mintPrice,
