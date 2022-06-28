@@ -20,6 +20,7 @@ import { getSearchFriendlyString, hexToDecimalTokenId, normalizeAddress } from '
 import Emittery from 'emittery';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { alchemy, logger, opensea, reservoir, zora } from '../container';
+import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
 import {
   CollectionAggregateMetadataError,
@@ -67,7 +68,8 @@ export default class Collection extends AbstractCollection {
     initialCollection: Partial<CollectionType>,
     emitter: CollectionEmitter,
     indexInitiator: string,
-    hasBlueCheck?: boolean
+    batch: BatchHandler,
+    hasBlueCheck?: boolean,
   ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined> {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
@@ -340,6 +342,8 @@ export default class Collection extends AbstractCollection {
             /**
              * validate tokens
              */
+            await batch.flush();
+
             const finalTokens: Array<Partial<Token>> | undefined = yield {
               collection: collection,
               action: 'tokenRequest'

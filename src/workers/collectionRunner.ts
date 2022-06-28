@@ -222,7 +222,7 @@ export async function create(
     }
   });
 
-  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, hasBlueCheck);
+  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck);
 
   let next: IteratorResult<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
@@ -270,7 +270,7 @@ export async function create(
           }
 
           log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
-          iterator = collection.createCollection(collectionData, emitter, indexInitiator, hasBlueCheck);
+          iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck);
           done = false;
         }
       } else {

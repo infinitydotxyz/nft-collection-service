@@ -16,6 +16,7 @@ import { ethers } from 'ethers';
 import Nft from './Nft';
 import { logger } from '../container';
 import { normalizeAddress } from '../utils/ethers';
+import BatchHandler from './BatchHandler';
 
 export type CollectionEmitter = Emittery<{
   token: Token;
@@ -44,6 +45,7 @@ export default abstract class Collection {
     initialCollection: Partial<CollectionType>,
     emitter: CollectionEmitter,
     indexInitiator: string,
+    batch: BatchHandler,
     hasBlueCheck?: boolean
   ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined>;
 
