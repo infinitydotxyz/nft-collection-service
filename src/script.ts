@@ -26,7 +26,7 @@ import { resetStep } from 'scripts/resetStep';
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await reIndex(CreationFlow.CollectionCreator);
+    await reIndex(CreationFlow.TokenMetadataOS);
     return;
 
     // await updateCollectionMetadata();
