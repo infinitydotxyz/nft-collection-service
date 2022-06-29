@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import 'dotenv/config';
 import 'reflect-metadata';
-import { firebase, logger, opensea, mnemonic, collectionDao, alchemy } from './container';
+import { firebase, logger, opensea, mnemonic, collectionDao, alchemy, zora } from './container';
 import { sleep } from './utils';
 import { readFile } from 'fs/promises';
 import fs from 'fs';

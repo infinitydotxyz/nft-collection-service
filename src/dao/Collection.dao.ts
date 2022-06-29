@@ -1,7 +1,7 @@
 import Firebase from '../database/Firebase';
 import { singleton } from 'tsyringe';
-import { Collection, CreationFlow } from '@infinityxyz/lib/types/core';
-import { NUM_OWNERS_TTS } from '../constants';
+import { Collection, CollectionStats, CreationFlow } from '@infinityxyz/lib/types/core';
+import { COLLECTION_AGGREGATED_STATS_TTS, NUM_OWNERS_TTS } from '../constants';
 import { normalizeAddress } from '../utils/ethers';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
@@ -40,7 +40,7 @@ export default class CollectionDao {
     const now = Date.now();
     const staleIfUpdatedBefore = now - NUM_OWNERS_TTS;
     const collectionSnapshots = await this.firebase.db
-      .collection('collections')
+      .collection(firestoreConstants.COLLECTIONS_COLL)
       .limit(1000)
       .where('numOwnersUpdatedAt', '<', staleIfUpdatedBefore)
       .get();
@@ -48,6 +48,24 @@ export default class CollectionDao {
     const collections: Collection[] = [];
     collectionSnapshots.docs.forEach((doc) => {
       collections.push(doc.data() as Collection);
+    });
+
+    return collections;
+  }
+
+  async getCollectionsWithStaleAggregatedStats(): Promise<CollectionStats[]> {
+    const now = Date.now();
+    const staleIfUpdatedBefore = now - COLLECTION_AGGREGATED_STATS_TTS;
+    const collectionSnapshots = await this.firebase.db
+      .collectionGroup(firestoreConstants.COLLECTION_STATS_COLL)
+      .where('period', '==', 'all')
+      .where('updatedAt', '<', staleIfUpdatedBefore)
+      .limit(1000)
+      .get();
+
+    const collections: CollectionStats[] = [];
+    collectionSnapshots.docs.forEach((doc) => {
+      collections.push(doc.data() as CollectionStats);
     });
 
     return collections;

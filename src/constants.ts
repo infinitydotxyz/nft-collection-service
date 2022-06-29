@@ -85,13 +85,17 @@ export const NULL_ADDR = '0x0000000000000000000000000000000000000000';
  */
 export const ONE_MIN = 60_000;
 export const ONE_HOUR = 60 * ONE_MIN;
+export const SIX_HOURS = 6 * ONE_HOUR;
+export const TWELVE_HOURS = 12 * ONE_HOUR;
+export const ONE_DAY = 24 * ONE_HOUR;
+export const NUM_OWNERS_TTS = ONE_HOUR * 24; // tts = time to stale
+export const COLLECTION_AGGREGATED_STATS_TTS = TWELVE_HOURS;
 
 /**
  *
  * Concurrency configs
  *
  */
-export const NUM_OWNERS_TTS = ONE_HOUR * 24;
 
 const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;

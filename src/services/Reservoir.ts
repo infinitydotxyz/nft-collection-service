@@ -32,7 +32,7 @@ export default class Reservoir {
     });
   }
 
-  public async fetchDetailedTokensInfoFromReservoir(
+  public async getDetailedTokensInfo(
     chainId: string,
     collectionAddress: string,
     continuation: string,
@@ -55,7 +55,7 @@ export default class Reservoir {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return res.body;
     } catch (e) {
-      console.error('failed to get tokens from reservoir', chainId, collectionAddress, e);
+      console.error('failed to get detailed tokens info from reservoir', chainId, collectionAddress, e);
     }
   }
 
