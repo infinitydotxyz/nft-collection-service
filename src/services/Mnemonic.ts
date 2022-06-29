@@ -3,11 +3,35 @@ import { MNEMONIC_API_KEYS } from '../constants';
 import { randomItem, sleep } from '../utils';
 import { gotErrorHandler } from '../utils/got';
 
+export type mnemonicByParam = 'by_sales_volume' | 'by_avg_price';
+
+type CollectionPeriodStatsContent = {
+  contractAddress?: string;
+  avgPrice?: number;
+  salesVolume?: number;
+  ownerCount?: number;
+  tokenCount?: number;
+};
+
+type TopCollectionsApiResponse = {
+  collections: CollectionPeriodStatsContent[];
+};
+
+export enum StatsPeriod {
+  Hourly = 'hourly',
+  Daily = 'daily',
+  Weekly = 'weekly',
+  Monthly = 'monthly',
+  Yearly = 'yearly',
+  All = 'all'
+}
+
 export default class MnemonicClient {
-  private readonly mnemonicClient: Got;
+  private readonly client: Got;
+
   constructor() {
-    this.mnemonicClient = got.extend({
-      prefixUrl: 'https://canary-ethereum.rest.mnemonichq.com/',
+    this.client = got.extend({
+      prefixUrl: 'https://ethereum.rest.mnemonichq.com/',
       hooks: {
         beforeRequest: [
           (options) => {
@@ -33,7 +57,7 @@ export default class MnemonicClient {
 
   async getERC721Collections(offset = 0, limit = 1): Promise<Contract[]> {
     const res: Response<ContractsResponse> = await this.errorHandler(() => {
-      return this.mnemonicClient.get(`contracts/v1beta1/all`, {
+      return this.client.get(`contracts/v1beta1/all`, {
         searchParams: {
           offset,
           limit,
@@ -49,7 +73,7 @@ export default class MnemonicClient {
 
   async getERC1155Collections(offset = 0, limit = 1): Promise<Contract[]> {
     const res: Response<ContractsResponse> = await this.errorHandler(() => {
-      return this.mnemonicClient.get(`contracts/v1beta1/all`, {
+      return this.client.get(`contracts/v1beta1/all`, {
         searchParams: {
           offset,
           limit,
@@ -65,7 +89,7 @@ export default class MnemonicClient {
 
   async getCollection(address: string): Promise<Contract> {
     const res: Response<{ contract: Contract }> = await this.errorHandler(() => {
-      return this.mnemonicClient.get(`contracts/v1beta1/by_address/${address}`, {
+      return this.client.get(`contracts/v1beta1/by_address/${address}`, {
         responseType: 'json'
       });
     });
@@ -76,7 +100,7 @@ export default class MnemonicClient {
   async getNFTsOfContract(address: string, limit: number, offset: number): Promise<TokensByContractResponse> {
     const res: Response<TokensByContractResponse> = await this.errorHandler(() => {
       const url = `tokens/v1beta1/by_contract/${address}`;
-      return this.mnemonicClient.get(url, {
+      return this.client.get(url, {
         searchParams: {
           offset,
           limit,
@@ -90,11 +114,40 @@ export default class MnemonicClient {
 
   async getNFTMetadata(address: string, tokenId: string): Promise<TokenMetadata> {
     const res: Response<TokenMetadata> = await this.errorHandler(() => {
-      return this.mnemonicClient.get(`tokens/v1beta1/token/${address}/${tokenId}/metadata`, {
+      return this.client.get(`tokens/v1beta1/token/${address}/${tokenId}/metadata`, {
         responseType: 'json'
       });
     });
     return res.body;
+  }
+
+  async getTopCollections(by: mnemonicByParam, period: StatsPeriod, limit: number, offset: number): Promise<TopCollectionsApiResponse | null> {
+    let duration = '';
+    if (period === 'daily') {
+      duration = 'DURATION_1_DAY';
+    } else if (period === 'weekly') {
+      duration = 'DURATION_7_DAYS';
+    } else if (period === 'monthly') {
+      duration = 'DURATION_30_DAYS';
+    }
+
+    const url = `collections/v1beta1/top/${by}?duration=${duration}`;
+    try {
+      const response = await this.errorHandler(() => {
+        return this.client.get(url, {
+          searchParams: {
+            limit,
+            offset,
+            duration
+          },
+          responseType: 'json'
+        });
+      });
+      return response.body as TopCollectionsApiResponse;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
