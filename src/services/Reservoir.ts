@@ -1,4 +1,4 @@
-import { ReservoirDetailedTokensResponse } from '@infinityxyz/lib/types/services/reservoir';
+import { ReservoirDetailedTokensResponse, ReservoirSingleCollectionResponse } from '@infinityxyz/lib/types/services/reservoir';
 import got, { Got, Response } from 'got/dist/source';
 import { singleton } from 'tsyringe';
 import { RESERVOIR_API_KEY } from '../constants';
@@ -56,6 +56,27 @@ export default class Reservoir {
       return res.body;
     } catch (e) {
       console.error('failed to get detailed tokens info from reservoir', chainId, collectionAddress, e);
+    }
+  }
+
+  public async getSingleCollectionInfo(
+    chainId: string,
+    collectionAddress: string
+  ): Promise<ReservoirSingleCollectionResponse | undefined> {
+    try {
+      const res: Response<ReservoirSingleCollectionResponse> = await this.errorHandler(() => {
+        const searchParams: any = {
+          id: collectionAddress
+        };
+        return this.client.get(`collection/v2`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get single contract info from reservoir', chainId, collectionAddress, e);
     }
   }
 

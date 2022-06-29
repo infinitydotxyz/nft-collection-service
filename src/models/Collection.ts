@@ -134,8 +134,15 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.TokenMetadata:
             try {
+              let totalSupply = 1;
               const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
-              const totalSupply = data?.aggregateStat.nftCount ?? 1;
+              if (data) {
+                totalSupply = data.aggregateStat?.nftCount;
+              } else {
+                // fetch from reservoir
+                const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
+                totalSupply = parseInt(String(data?.collection.tokenCount));
+              }
               collection = await this.getCollectionTokenMetadataFromReservoir(
                 totalSupply,
                 collection as CollectionMetadataType,
@@ -228,8 +235,15 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CollectionMints:
             try {
+              let totalSupply = 1;
               const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
-              const totalSupply = data?.aggregateStat.nftCount ?? 1;
+              if (data) {
+                totalSupply = data.aggregateStat?.nftCount;
+              } else {
+                // fetch from reservoir
+                const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
+                totalSupply = parseInt(String(data?.collection.tokenCount));
+              }
 
               if (totalSupply > COLLECTION_MAX_SUPPLY) {
                 throw new CollectionTotalSupplyExceededError(
