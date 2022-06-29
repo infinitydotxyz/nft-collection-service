@@ -73,21 +73,9 @@ export default class Nft {
      */
     if (!token.tokenId) {
       // validate token
-      throw new RefreshTokenMintError(
-        `Invalid mint token property. TokenId is required. tokenId: ${token.tokenId}`
-      );
+      throw new RefreshTokenMintError(`Invalid mint token property. TokenId is required. tokenId: ${token.tokenId}`);
     }
     if (step === RefreshTokenFlow.Mint) {
-      return token as ReturnType<T>;
-    }
-
-    /**
-     * validate uri token
-     */
-    if (!token.tokenUri || typeof token.tokenUri !== 'string') {
-      throw new RefreshTokenUriError(`Invalid Uri Token. Token Id: ${token.tokenId} Token Uri: ${token.tokenUri}`);
-    }
-    if (step === RefreshTokenFlow.Uri) {
       return token as ReturnType<T>;
     }
 
@@ -112,6 +100,16 @@ export default class Nft {
       );
     }
     if (step === RefreshTokenFlow.CacheImage || step === RefreshTokenFlow.Mint) {
+      return token as ReturnType<T>;
+    }
+
+    /**
+     * validate uri token
+     */
+    if (!token.tokenUri || typeof token.tokenUri !== 'string') {
+      throw new RefreshTokenUriError(`Invalid Uri Token. Token Id: ${token.tokenId} Token Uri: ${token.tokenUri}`);
+    }
+    if (step === RefreshTokenFlow.Uri) {
       return token as ReturnType<T>;
     }
 
