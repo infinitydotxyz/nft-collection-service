@@ -25,7 +25,7 @@ import { StatsPeriod } from './services/Mnemonic';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
-export async function main(): Promise<void> {
+export function main(): void {
   try {
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
@@ -38,39 +38,39 @@ export async function main(): Promise<void> {
 
     // await getCollectionNFTsFromAlchemy();
 
-    await writeTopMnemonicCollectionsToLocalFile();
-    return;
+    // await writeTopMnemonicCollectionsToLocalFile();
+    // return;
 
-    const summary = await collectionDao.getCollectionsSummary();
-    fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
+    // const summary = await collectionDao.getCollectionsSummary();
+    // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
 
-    // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
-    logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
+    // // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
+    // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
 
-    const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
-      return {
-        ...acc,
-        [collection.state]: [...(acc[collection.state] || []), collection]
-      };
-    }, {});
+    // const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
+    //   return {
+    //     ...acc,
+    //     [collection.state]: [...(acc[collection.state] || []), collection]
+    //   };
+    // }, {});
 
-    const nonErc721 = [];
+    // const nonErc721 = [];
 
-    for (const [state, collections] of Object.entries(collectionsByState)) {
-      const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
-      console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
-      for (const collection of collections as any[]) {
-        if (collection.error.message === 'Failed to detect token standard') {
-          nonErc721.push(collection);
-        }
-      }
-    }
+    // for (const [state, collections] of Object.entries(collectionsByState)) {
+    //   const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
+    //   console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
+    //   for (const collection of collections as any[]) {
+    //     if (collection.error.message === 'Failed to detect token standard') {
+    //       nonErc721.push(collection);
+    //     }
+    //   }
+    // }
 
-    console.log(
-      `Found: ${nonErc721.length} ${
-        Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
-      }%  collections without ERC721 standard`
-    );
+    // console.log(
+    //   `Found: ${nonErc721.length} ${
+    //     Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
+    //   }%  collections without ERC721 standard`
+    // );
   } catch (err) {
     logger.error(err);
   }
