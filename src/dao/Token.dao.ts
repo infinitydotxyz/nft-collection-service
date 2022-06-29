@@ -1,6 +1,7 @@
 import { singleton } from 'tsyringe';
 import Firebase from '../database/Firebase';
 import { Token } from '@infinityxyz/lib/types/core';
+import { Transform } from 'stream';
 
 @singleton()
 export default class TokenDao {
@@ -31,5 +32,22 @@ export default class TokenDao {
     }
 
     return tokens;
+  }
+
+  streamTokens(chainId: string, address: string): AsyncIterable<Partial<Token>> {
+    const tokensCollection = this.firebase.getTokensCollectionRef(chainId, address);
+
+    const stream = tokensCollection.stream();
+
+    const tokenStream = stream.pipe(new Transform({
+      transform(chunk, encoding, callback) {
+        const token = (chunk as FirebaseFirestore.QueryDocumentSnapshot).data(); 
+        this.push(token);
+        callback();
+      },
+      objectMode: true
+    }));
+  
+    return tokenStream;
   }
 }

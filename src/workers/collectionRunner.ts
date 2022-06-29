@@ -233,7 +233,7 @@ export async function create(
     { collection: Partial<CollectionType>; action?: 'tokenRequest' }
   >;
   let done = false;
-  let valueToInject: Token[] | null = null;
+  let valueToInject: AsyncIterable<Token> | null = null;
 
   let attempt = 0;
   while (!done) {
@@ -288,7 +288,9 @@ export async function create(
           switch (action) {
             case 'tokenRequest':
               await batch.flush();
-              valueToInject = (await tokenDao.getAllTokens(chainId, address)) as Token[];
+
+              // valueToInject = (await tokenDao.getAllTokens(chainId, address)) as Token[];
+              valueToInject = tokenDao.streamTokens(chainId, address) as AsyncIterable<Token>;
               break;
 
             default:
