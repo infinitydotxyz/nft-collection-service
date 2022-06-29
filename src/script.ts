@@ -21,18 +21,24 @@ import { addBlueCheck } from 'scripts/addBlueCheck';
 import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
 import { resetStep } from 'scripts/resetStep';
+import { StatsPeriod } from './services/Mnemonic';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
 export async function main(): Promise<void> {
   try {
-    await reIndex(CreationFlow.TokenMetadataOS);
-    return;
+    // await reIndex(CreationFlow.TokenMetadataOS);
+    // return;
 
     // await updateCollectionMetadata();
     // return;
 
     // await resetStep();
+    // return;
+
+    // await getCollectionNFTsFromAlchemy();
+
+    // await writeTopMnemonicCollectionsToLocalFile();
     // return;
 
     const summary = await collectionDao.getCollectionsSummary();
@@ -65,8 +71,6 @@ export async function main(): Promise<void> {
         Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100
       }%  collections without ERC721 standard`
     );
-
-    // await getCollectionNFTsFromAlchemy();
   } catch (err) {
     logger.error(err);
   }
@@ -118,6 +122,32 @@ export async function getCollectionNFTsFromAlchemy(): Promise<void> {
   // bayc
   const data = await alchemy.getNFTsOfCollection('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', '0');
   console.log(JSON.stringify(data, null, 2));
+}
+
+export async function writeTopMnemonicCollectionsToLocalFile() {
+  const monthlyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Monthly, 500, 0);
+  const weeklyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Weekly, 500, 0);
+  const dailyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Daily, 500, 0);
+
+  // dedup
+  const collections = new Set<string>();
+  monthlyTop500?.collections.forEach((collection) => {
+    collections.add(collection.contractAddress ?? '');
+  });
+  weeklyTop500?.collections.forEach((collection) => {
+    collections.add(collection.contractAddress ?? '');
+  });
+  dailyTop500?.collections.forEach((collection) => {
+    collections.add(collection.contractAddress ?? '');
+  });
+
+  console.log('Total collections', collections.size);
+
+  // write to file
+  const file = path.join(__dirname, '../topMnemonicColls.txt');
+  collections.forEach((collection) => {
+    fs.appendFileSync(file, collection + '\n');
+  });
 }
 
 void main();
