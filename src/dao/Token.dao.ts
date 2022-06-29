@@ -39,15 +39,28 @@ export default class TokenDao {
 
     const stream = tokensCollection.stream();
 
-    const tokenStream = stream.pipe(new Transform({
-      transform(chunk, encoding, callback) {
-        const token = (chunk as FirebaseFirestore.QueryDocumentSnapshot).data(); 
-        this.push(token);
-        callback();
-      },
-      objectMode: true
-    }));
-  
+    let numItems = 0;
+    let lastLog = 0;
+    const log = () => {
+      if (Date.now() > lastLog + 5000) {
+        console.log(`Token stream for ${chainId}/${address} has streamed ${numItems} items`);
+        lastLog = Date.now();
+      }
+    };
+
+    const tokenStream = stream.pipe(
+      new Transform({
+        transform(chunk, encoding, callback) {
+          const token = (chunk as FirebaseFirestore.QueryDocumentSnapshot).data();
+          this.push(token);
+          numItems += 1;
+          log();
+          callback();
+        },
+        objectMode: true
+      })
+    );
+
     return tokenStream;
   }
 }
