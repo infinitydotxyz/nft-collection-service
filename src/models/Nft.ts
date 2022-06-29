@@ -103,16 +103,6 @@ export default class Nft {
       return token as ReturnType<T>;
     }
 
-    /**
-     * validate uri token
-     */
-    if (!token.tokenUri || typeof token.tokenUri !== 'string') {
-      throw new RefreshTokenUriError(`Invalid Uri Token. Token Id: ${token.tokenId} Token Uri: ${token.tokenUri}`);
-    }
-    if (step === RefreshTokenFlow.Uri) {
-      return token as ReturnType<T>;
-    }
-
     return token as ReturnType<T>;
   }
 
