@@ -109,7 +109,7 @@ export default class Collection extends AbstractCollection {
                   volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
                   numOwners: stats.aggregateStat?.ownerCount,
                   topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
-                  updatedAt: Date.now(),
+                  updatedAt: Date.now()
                 };
                 const collectionDocId = getCollectionDocId({
                   chainId: collection.chainId,
@@ -471,7 +471,8 @@ export default class Collection extends AbstractCollection {
       ++numPages;
       void emitter.emit('progress', {
         step: CreationFlow.CollectionMints,
-        progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100
+        progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100,
+        message: `Fetching mints from zora after ${after}`
       });
     }
 
@@ -561,7 +562,8 @@ export default class Collection extends AbstractCollection {
       ++numPages;
       void emitter.emit('progress', {
         step: CreationFlow.TokenMetadata,
-        progress: Math.floor(((numPages * reservoirLimit) / totalSupply) * 100 * 100) / 100
+        progress: Math.floor(((numPages * reservoirLimit) / totalSupply) * 100 * 100) / 100,
+        message: `Fetching token metadata from reservoir after ${continuation}`
       });
     }
 
