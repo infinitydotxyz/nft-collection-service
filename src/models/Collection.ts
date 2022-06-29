@@ -190,8 +190,8 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.AggregateMetadata:
             try {
-              const numNfts = (collection as CollectionTokenMetadataType).numNfts
-              if(numNfts > COLLECTION_MAX_SUPPLY) {
+              const numNfts = (collection as CollectionTokenMetadataType).numNfts;
+              if (numNfts > COLLECTION_MAX_SUPPLY) {
                 collection = {
                   ...collection,
                   numTraitTypes: 0,
@@ -215,7 +215,7 @@ export default class Collection extends AbstractCollection {
                 for await (const token of injectedTokens) {
                   tokens.push(token as Token);
                 }
-  
+
                 collection = this.getCollectionAggregatedMetadata(
                   tokens,
                   collection as CollectionTokenMetadataType,
@@ -322,9 +322,9 @@ export default class Collection extends AbstractCollection {
 
             const invalidTokensReadable = Readable.from(finalTokens, { objectMode: true }).pipe(transformToTokensWithErrors);
 
-            const invalidTokens: {token: Token, err: Error}[] = [];
-            for await(const invalidToken of invalidTokensReadable) {
-              invalidTokens.push(invalidToken as {token: Token, err: Error});
+            const invalidTokens: { token: Token; err: Error }[] = [];
+            for await (const invalidToken of invalidTokensReadable) {
+              invalidTokens.push(invalidToken as { token: Token; err: Error });
             }
 
             if (invalidTokens.length > 0) {
@@ -676,7 +676,7 @@ export default class Collection extends AbstractCollection {
   }
 
   private async getCollectionCachedImages(
-    tokens: AsyncIterable<Partial<Token>> ,
+    tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionType,
     emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow

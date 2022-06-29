@@ -1,4 +1,10 @@
-import { BaseCollection, Collection as CollectionType, CollectionAttributes, CreationFlow, Token } from '@infinityxyz/lib/types/core';
+import {
+  BaseCollection,
+  Collection as CollectionType,
+  CollectionAttributes,
+  CreationFlow,
+  Token
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import deepmerge from 'deepmerge';
 import Emittery from 'emittery';
@@ -168,11 +174,11 @@ export async function create(
 
   const tokens: Map<string, Partial<Token>> = new Map();
   const updateToken = (token: Partial<Token>) => {
-    if(token.tokenId) {
+    if (token.tokenId) {
       const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
       const path = tokenDoc.path;
-      
-      const data = {...token, ...getCollectionData(), error: {} };
+
+      const data = { ...token, ...getCollectionData(), error: {} };
 
       batch.add(tokenDoc, data, { merge: true });
 
@@ -180,25 +186,25 @@ export async function create(
       const res = deepmerge(cachedToken, data);
       tokens.set(path, res);
     }
-  }
+  };
 
   const getTokens = (): AsyncIterable<Partial<Token>> => {
     const tokenValues = Array.from(tokens.values());
     const numNfts = collectionData.numNfts;
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    async function *asyncify() {
+    async function* asyncify() {
       for (const token of tokenValues) {
         yield token;
       }
     }
-    if(numNfts && tokenValues.length >= numNfts) {
+    if (numNfts && tokenValues.length >= numNfts) {
       console.log('using cached tokens');
       const iterator = asyncify();
       return iterator;
     }
     return tokenDao.streamTokens(chainId, address);
-  }
+  };
 
   emitter.on('token', (token) => {
     updateToken(token);

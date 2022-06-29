@@ -48,7 +48,11 @@ export default abstract class Collection {
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck?: boolean
-  ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, AsyncIterable<Partial<Token>> | undefined>;
+  ): AsyncGenerator<
+    { collection: Partial<CollectionType>; action?: 'tokenRequest' },
+    any,
+    AsyncIterable<Partial<Token>> | undefined
+  >;
 
   protected async getCreator(): Promise<{
     deployedAt: number;

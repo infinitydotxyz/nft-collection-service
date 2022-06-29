@@ -33,4 +33,3 @@ export function pageStream<T>(pageSize: number) {
     highWaterMark: pageSize
   });
 }
-

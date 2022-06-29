@@ -1,12 +1,7 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import 'reflect-metadata';
-import {
-  BaseCollection,
-  TokenStandard,
-  UserOwnedCollection,
-  UserOwnedToken
-} from '@infinityxyz/lib/types/core';
+import { BaseCollection, TokenStandard, UserOwnedCollection, UserOwnedToken } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, trimLowerCase } from '@infinityxyz/lib/utils';
 import { firebase } from 'container';
 import { QuerySnapshot } from 'firebase-admin/firestore';
@@ -202,14 +197,14 @@ function updateDataInFirestore(
         { numCollectionNftsOwned: firestore.FieldValue.increment(1) },
         { merge: true }
       );
-      
+
       const isCollectionComplete = collectionDocData.state.create.step === 'complete';
       const metadata = {} as any;
       let slug;
       let numTraitTypes;
       let minter, mintedAt, mintTxHash, mintPrice;
       let tokenUri;
-      
+
       if (zoraTokenData.token.name) {
         metadata.name = zoraTokenData.token.name;
         slug = getSearchFriendlyString(zoraTokenData.token.name);
