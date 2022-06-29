@@ -161,6 +161,7 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.TokenMetadataOS:
             try {
               let tokens: Token[] = [];
+              console.log('Yielding tokens at step:', step);
               const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
               if (!injectedTokens) {
                 throw new CollectionTokenMetadataError('Client failed to inject tokens');
@@ -185,6 +186,7 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.AggregateMetadata:
             try {
               let tokens: Token[] = [];
+              console.log('Yielding tokens at step:', step);
               const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
               if (!injectedTokens) {
                 throw new CollectionAggregateMetadataError('Client failed to inject tokens');
@@ -212,6 +214,7 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.CacheImage:
             try {
               let tokens: Token[] = [];
+              console.log('Yielding tokens at step:', step);
               const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
               if (!injectedTokens) {
                 throw new CollectionCacheImageError('Client failed to inject tokens');
@@ -274,7 +277,7 @@ export default class Collection extends AbstractCollection {
              * validate tokens
              */
             await batch.flush();
-
+            console.log('Yielding tokens at step:', step);
             const finalTokens: Array<Partial<Token>> | undefined = yield {
               collection: collection,
               action: 'tokenRequest'
