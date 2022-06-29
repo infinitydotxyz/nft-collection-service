@@ -2,7 +2,9 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
+  ChainId,
   Collection as CollectionType,
+  CollectionStats,
   CreationFlow,
   Erc721Metadata,
   Erc721Token,
@@ -13,9 +15,9 @@ import {
   Token,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
-import { getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
-import { logger, opensea, reservoir, zora } from '../container';
+import { firebase, logger, opensea, reservoir, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
 import {
@@ -47,6 +49,7 @@ type CollectionCreatorType = Pick<
   | 'state'
   | 'indexInitiator'
 >;
+
 type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
 type CollectionMintsType = CollectionMetadataType;
 type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
@@ -94,6 +97,32 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.CollectionMetadata:
             try {
               collection = await this.getCollectionMetadata(collection, CreationFlow.TokenMetadata);
+
+              // fetch all time aggregated stats
+              const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
+              if (stats) {
+                const data: Partial<CollectionStats> = {
+                  chainId: collection.chainId as ChainId,
+                  collectionAddress: collection.address,
+                  volume: stats.aggregateStat?.salesVolume?.chainTokenPrice,
+                  numSales: stats.aggregateStat?.salesVolume?.totalCount,
+                  volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
+                  numOwners: stats.aggregateStat?.ownerCount,
+                  topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
+                  updatedAt: Date.now(),
+                };
+                const collectionDocId = getCollectionDocId({
+                  chainId: collection.chainId,
+                  collectionAddress: collection.address
+                });
+                const allTimeCollStatsDocRef = firebase.db
+                  .collection(firestoreConstants.COLLECTIONS_COLL)
+                  .doc(collectionDocId)
+                  .collection(firestoreConstants.COLLECTION_STATS_COLL)
+                  .doc('all');
+                batch.add(allTimeCollStatsDocRef, data, { merge: true });
+              }
+
               yield { collection };
             } catch (err: any) {
               const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get collection metadata';
@@ -405,7 +434,7 @@ export default class Collection extends AbstractCollection {
     let numPages = 0;
     while (hasNextPage) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      const response = await zora.fetchTokensInfoFromZora(this.contract.chainId, this.contract.address, after, zoraLimit);
+      const response = await zora.getTokenMintInfo(this.contract.chainId, this.contract.address, after, zoraLimit);
       after = response?.tokens?.pageInfo?.endCursor ?? '';
       hasNextPage = response?.tokens?.pageInfo?.hasNextPage ?? false;
 
@@ -473,7 +502,7 @@ export default class Collection extends AbstractCollection {
     let numNfts = 0;
     let numPages = 0;
     while (hasNextPage) {
-      const data = await reservoir.fetchDetailedTokensInfoFromReservoir(
+      const data = await reservoir.getDetailedTokensInfo(
         this.contract.chainId,
         this.contract.address,
         continuation,

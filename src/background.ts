@@ -1,10 +1,10 @@
+import { CollectionStats } from '@infinityxyz/lib/types/core';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import chalk from 'chalk';
 import Emittery from 'emittery';
 import { ONE_HOUR } from './constants';
-import { collectionDao, firebase, logger } from './container';
+import { collectionDao, firebase, logger, zora } from './container';
 import BatchHandler from './models/BatchHandler';
-import OpenSeaClient from './services/OpenSea';
-import { Collection } from '@infinityxyz/lib/types/core';
 
 type BackgroundTaskEmitter = Emittery<{ update: { message?: string; error?: string } }>;
 
@@ -16,9 +16,9 @@ interface BackgroundTask {
 
 const tasks: BackgroundTask[] = [
   {
-    name: 'Collection numOwners',
+    name: 'Aggregated collection stats',
     interval: ONE_HOUR,
-    fn: updateCollectionNumOwners
+    fn: updateAggregatedCollectionStats
   }
 ];
 
@@ -66,47 +66,50 @@ export function main(): void {
   }
 }
 
-export async function updateCollectionNumOwners(emitter: BackgroundTaskEmitter): Promise<void> {
-  const openseaClient = new OpenSeaClient();
-
-  const collections = ((await collectionDao.getStaleCollectionOwners()) || ([] as Collection[])).filter((item) => {
-    return !!item?.metadata?.links?.slug;
-  });
-
+export async function updateAggregatedCollectionStats(emitter: BackgroundTaskEmitter): Promise<void> {
+  const collections = (await collectionDao.getCollectionsWithStaleAggregatedStats()) || ([] as CollectionStats[]);
   const batch = new BatchHandler();
-
   void emitter.emit('update', { message: `Found: ${collections.length} collections to update` });
 
   let successful = 0;
   let failed = 0;
 
   for (const collection of collections) {
-    if (collection?.metadata?.links?.slug) {
-      try {
-        const res = await openseaClient.getCollectionStats(collection.metadata.links.slug);
-        const updatedAt = Date.now();
-        const numOwners = res.stats.num_owners;
-
-        if (typeof numOwners === 'number') {
-          const collectionDocRef = firebase.getCollectionDocRef(collection.chainId, collection.address);
-          const update: Pick<Collection, 'numOwners' | 'numOwnersUpdatedAt'> = {
-            numOwners,
-            numOwnersUpdatedAt: updatedAt
-          };
-          batch.add(collectionDocRef, update, { merge: true });
-        }
-
-        successful += 1;
-      } catch (err: any) {
-        failed += 1;
-
-        void emitter.emit('update', {
-          error: `Failed to get collection stats: ${collection.chainId}:${
-            collection.address
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          }. Error: ${err?.toString?.()}`
+    if (!collection.collectionAddress || !collection.chainId) {
+      continue;
+    }
+    try {
+      const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.collectionAddress, 10);
+      if (stats) {
+        const data: Partial<CollectionStats> = {
+          volume: stats.aggregateStat?.salesVolume?.chainTokenPrice,
+          numSales: stats.aggregateStat?.salesVolume?.totalCount,
+          volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
+          numOwners: stats.aggregateStat?.ownerCount,
+          topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
+          updatedAt: Date.now()
+        };
+        const collectionDocId = getCollectionDocId({
+          chainId: collection.chainId,
+          collectionAddress: collection.collectionAddress
         });
+        const allTimeCollStatsDocRef = firebase.db
+          .collection(firestoreConstants.COLLECTIONS_COLL)
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_STATS_COLL)
+          .doc('all');
+        batch.add(allTimeCollStatsDocRef, data, { merge: true });
       }
+      successful += 1;
+    } catch (err: any) {
+      failed += 1;
+
+      void emitter.emit('update', {
+        error: `Failed to get collection stats: ${collection.chainId}:${
+          collection.collectionAddress
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        }. Error: ${err?.toString?.()}`
+      });
     }
   }
 
@@ -122,6 +125,7 @@ export async function updateCollectionNumOwners(emitter: BackgroundTaskEmitter):
   });
 }
 
+// not used anymore
 export async function addNumOwnersUpdatedAtAndDataExportedFields(): Promise<void> {
   try {
     const batch = new BatchHandler();
