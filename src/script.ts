@@ -38,8 +38,8 @@ export async function main(): Promise<void> {
 
     // await getCollectionNFTsFromAlchemy();
 
-    // await writeTopMnemonicCollectionsToLocalFile();
-    // return;
+    await writeTopMnemonicCollectionsToLocalFile();
+    return;
 
     const summary = await collectionDao.getCollectionsSummary();
     fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
@@ -144,10 +144,12 @@ export async function writeTopMnemonicCollectionsToLocalFile() {
   console.log('Total collections', collections.size);
 
   // write to file
-  const file = path.join(__dirname, '../topMnemonicColls.txt');
-  collections.forEach((collection) => {
-    fs.appendFileSync(file, collection + '\n');
-  });
+  const file = path.join(__dirname, '../topMnemonicColls.json');
+  fs.appendFileSync(file, '[');
+  for (const collection of collections) {
+    fs.appendFileSync(file, `{ "address": "${collection}"},`);
+  }
+  fs.appendFileSync(file, ']');
 }
 
 void main();
