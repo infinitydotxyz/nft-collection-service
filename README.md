@@ -21,7 +21,7 @@
                 * `task` (optional) - the type of task to run. Valid tasks include 
                     * `create` (default) - creates a collection
             * File Mode
-                * `file` (required) - path the a file structured as    
+                * `file` (required) - path to a file structured as    
                 * `hasBlueCheck` (optional) - overrides hasBlueCheck for every item in the file
                 * `reset` (optional) - if set to `true` all collections will be reset and all data will be collected
                 ```ts
