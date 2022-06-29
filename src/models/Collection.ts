@@ -190,22 +190,39 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.AggregateMetadata:
             try {
-              const tokens: Token[] = [];
-              console.log('Yielding tokens at step:', step);
-              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-              if (!injectedTokens) {
-                throw new CollectionAggregateMetadataError('Client failed to inject tokens');
+              const numNfts = (collection as CollectionTokenMetadataType).numNfts
+              if(numNfts > COLLECTION_MAX_SUPPLY) {
+                collection = {
+                  ...collection,
+                  numTraitTypes: 0,
+                  numOwnersUpdatedAt: 0,
+                  state: {
+                    ...collection.state,
+                    create: {
+                      progress: 0,
+                      step: CreationFlow.CacheImage,
+                      updatedAt: Date.now()
+                    }
+                  }
+                };
+              } else {
+                const tokens: Token[] = [];
+                console.log('Yielding tokens at step:', step);
+                const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+                if (!injectedTokens) {
+                  throw new CollectionAggregateMetadataError('Client failed to inject tokens');
+                }
+                for await (const token of injectedTokens) {
+                  tokens.push(token as Token);
+                }
+  
+                collection = this.getCollectionAggregatedMetadata(
+                  tokens,
+                  collection as CollectionTokenMetadataType,
+                  emitter,
+                  CreationFlow.CacheImage
+                );
               }
-              for await (const token of injectedTokens) {
-                tokens.push(token as Token);
-              }
-
-              collection = this.getCollectionAggregatedMetadata(
-                tokens,
-                collection as CollectionTokenMetadataType,
-                emitter,
-                CreationFlow.CacheImage
-              );
 
               yield { collection };
             } catch (err: any) {
