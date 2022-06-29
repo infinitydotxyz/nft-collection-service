@@ -2,6 +2,7 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import {
+  BaseCollection,
   ChainId,
   Collection as CollectionType,
   CollectionStats,
@@ -16,10 +17,11 @@ import {
   TokenStandard
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
+import Emittery from 'emittery';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { firebase, logger, opensea, reservoir, zora } from '../container';
 import BatchHandler from './BatchHandler';
-import AbstractCollection, { CollectionEmitter } from './Collection.abstract';
+import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
 import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
@@ -65,7 +67,7 @@ export default class Collection extends AbstractCollection {
    */
   async *createCollection(
     initialCollection: Partial<CollectionType>,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck?: boolean
@@ -132,11 +134,8 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.TokenMetadata:
             try {
-              const slug = (collection as CollectionMetadataType).metadata.links.slug;
-              if (!slug) {
-                throw new Error('Failed to get collection slug');
-              }
-              const totalSupply = await this.collectionMetadataProvider.getTotalSupply(slug);
+              const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
+              const totalSupply = data?.aggregateStat.nftCount ?? 1;
               collection = await this.getCollectionTokenMetadataFromReservoir(
                 totalSupply,
                 collection as CollectionMetadataType,
@@ -229,13 +228,10 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CollectionMints:
             try {
-              const slug = (collection as CollectionMetadataType).metadata.links.slug;
-              if (!slug) {
-                throw new Error('Failed to get collection slug');
-              }
-              const totalSupply = await this.collectionMetadataProvider.getTotalSupply(slug);
+              const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
+              const totalSupply = data?.aggregateStat.nftCount ?? 1;
 
-              if (Number.isNaN(totalSupply) || totalSupply > COLLECTION_MAX_SUPPLY) {
+              if (totalSupply > COLLECTION_MAX_SUPPLY) {
                 throw new CollectionTotalSupplyExceededError(
                   `Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`
                 );
@@ -425,11 +421,17 @@ export default class Collection extends AbstractCollection {
   private async getCollectionMintsFromZora(
     totalSupply: number,
     collection: CollectionMetadataType,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionMintsType> {
+    // fetch saved cursor
+    const collectionDocId = getCollectionDocId({ chainId: collection.chainId, collectionAddress: collection.address });
+    const data = (
+      await firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get()
+    ).data() as BaseCollection;
+    let after = data?.state?.create?.zoraCursor ?? '';
+
     const zoraLimit = 500;
-    let after = '';
     let hasNextPage = true;
     let numPages = 0;
     while (hasNextPage) {
@@ -472,7 +474,8 @@ export default class Collection extends AbstractCollection {
       void emitter.emit('progress', {
         step: CreationFlow.CollectionMints,
         progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100,
-        message: `Fetching mints from zora after ${after}`
+        zoraCursor: after,
+        message: after
       });
     }
 
@@ -494,11 +497,17 @@ export default class Collection extends AbstractCollection {
   private async getCollectionTokenMetadataFromReservoir(
     totalSupply: number,
     collection: CollectionMintsType,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
+    // fetch saved cursor
+    const collectionDocId = getCollectionDocId({ chainId: collection.chainId, collectionAddress: collection.address });
+    const data = (
+      await firebase.db.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get()
+    ).data() as BaseCollection;
+    let continuation = data?.state?.create?.reservoirCursor ?? '';
+
     const reservoirLimit = 50;
-    let continuation = '';
     let hasNextPage = true;
     let numNfts = 0;
     let numPages = 0;
@@ -563,7 +572,8 @@ export default class Collection extends AbstractCollection {
       void emitter.emit('progress', {
         step: CreationFlow.TokenMetadata,
         progress: Math.floor(((numPages * reservoirLimit) / totalSupply) * 100 * 100) / 100,
-        message: `Fetching token metadata from reservoir after ${continuation}`
+        reservoirCursor: continuation,
+        message: continuation
       });
     }
 
@@ -586,7 +596,7 @@ export default class Collection extends AbstractCollection {
   private getCollectionAggregatedMetadata(
     tokens: Token[],
     collection: CollectionTokenMetadataType,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): CollectionType {
     const attributes = this.contract.aggregateTraits(tokens) ?? {};
@@ -620,7 +630,7 @@ export default class Collection extends AbstractCollection {
   private async getCollectionCachedImages(
     tokens: Token[],
     collection: CollectionType,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     const openseaLimit = 50;
@@ -711,7 +721,7 @@ export default class Collection extends AbstractCollection {
   private async getCollectionTokenMetadataFromOS(
     tokens: Array<Partial<Token>>,
     collection: CollectionTokenMetadataType,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     // metadata less tokens

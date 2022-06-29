@@ -9,7 +9,8 @@ import {
   RefreshTokenFlow,
   Token,
   Collection as CollectionType,
-  CollectionAttributes
+  CollectionAttributes,
+  CreationFlow
 } from '@infinityxyz/lib/types/core';
 import Emittery from 'emittery';
 import { ethers } from 'ethers';
@@ -18,15 +19,15 @@ import { logger } from '../container';
 import { normalizeAddress } from '../utils/ethers';
 import BatchHandler from './BatchHandler';
 
-export type CollectionEmitter = Emittery<{
+export type CollectionEmitterType = {
   token: Token;
   metadata: MetadataData & Partial<Token>;
   image: ImageData & Partial<Token>;
   mint: MintToken;
   attributes: CollectionAttributes;
   tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-  progress: { step: string; progress: number; message?: string };
-}>;
+  progress: { step: CreationFlow; progress: number; message?: string; zoraCursor?: string; reservoirCursor?: string };
+};
 
 export default abstract class Collection {
   protected readonly contract: Contract;
@@ -43,7 +44,7 @@ export default abstract class Collection {
 
   abstract createCollection(
     initialCollection: Partial<CollectionType>,
-    emitter: CollectionEmitter,
+    emitter: Emittery<CollectionEmitterType>,
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck?: boolean

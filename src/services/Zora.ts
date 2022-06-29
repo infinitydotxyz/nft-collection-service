@@ -52,6 +52,7 @@ export default class Zora {
     }
   }
 
+  // default sorting by tokenId ascending
   public async getTokenMintInfo(
     chainId: string,
     collectionAddress: string,
@@ -61,7 +62,7 @@ export default class Zora {
     try {
       const query = gql`
         query MyQuery {
-          tokens(where: { collectionAddresses: "${collectionAddress}"}, networks: {network: ETHEREUM, chain: MAINNET}, pagination: {after: "${after}", limit: ${limit}}) {
+          tokens(where: { collectionAddresses: "${collectionAddress}"}, networks: {network: ETHEREUM, chain: MAINNET}, pagination: {after: "${after}", limit: ${limit}}, sort: {sortKey: TOKEN_ID, sortDirection: ASC}) {
             nodes {
               token {
                 tokenId
