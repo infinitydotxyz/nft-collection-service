@@ -456,32 +456,34 @@ export default class Collection extends AbstractCollection {
 
       const tokens = response?.tokens?.nodes ?? [];
       for (const mintToken of tokens) {
-        const minter = mintToken.token.mintInfo.originatorAddress;
-        const blockTimestamp = mintToken.token.mintInfo.mintContext.blockTimestamp;
-        const mintedAt = blockTimestamp ? new Date(blockTimestamp).getTime() : 0;
-        const txHash = mintToken.token.mintInfo.mintContext.transactionHash;
-        const mintPrice = mintToken.token.mintInfo.price.chainTokenPrice.decimal;
-        const mintCurrencyAddress = mintToken.token.mintInfo.price.chainTokenPrice.currency.address;
-        const mintCurrencyDecimals = mintToken.token.mintInfo.price.chainTokenPrice.currency.decimals;
-        const mintCurrencyName = mintToken.token.mintInfo.price.chainTokenPrice.currency.name;
+        if (mintToken.token && mintToken.token.tokenId && mintToken.token.mintInfo && mintToken.token.mintInfo.mintContext) {
+          const minter = mintToken.token.mintInfo.originatorAddress;
+          const blockTimestamp = mintToken.token.mintInfo.mintContext.blockTimestamp;
+          const mintedAt = blockTimestamp ? new Date(blockTimestamp).getTime() : 0;
+          const txHash = mintToken.token.mintInfo.mintContext.transactionHash;
+          const mintPrice = mintToken.token.mintInfo.price.chainTokenPrice.decimal;
+          const mintCurrencyAddress = mintToken.token.mintInfo.price.chainTokenPrice.currency.address;
+          const mintCurrencyDecimals = mintToken.token.mintInfo.price.chainTokenPrice.currency.decimals;
+          const mintCurrencyName = mintToken.token.mintInfo.price.chainTokenPrice.currency.name;
 
-        const token: MintToken = {
-          chainId: this.contract.chainId,
-          tokenId: mintToken.token.tokenId,
-          tokenUri: mintToken.token.tokenUrl,
-          mintedAt,
-          minter: normalizeAddress(minter),
-          mintTxHash: txHash,
-          image: {
-            originalUrl: mintToken?.token?.image?.url ?? '',
-            updatedAt: Date.now()
-          },
-          mintPrice,
-          mintCurrencyAddress,
-          mintCurrencyDecimals,
-          mintCurrencyName
-        };
-        void emitter.emit('mint', token);
+          const token: MintToken = {
+            chainId: this.contract.chainId,
+            tokenId: mintToken.token.tokenId,
+            tokenUri: mintToken.token.tokenUrl,
+            mintedAt,
+            minter: normalizeAddress(minter),
+            mintTxHash: txHash,
+            image: {
+              originalUrl: mintToken?.token?.image?.url ?? '',
+              updatedAt: Date.now()
+            },
+            mintPrice,
+            mintCurrencyAddress,
+            mintCurrencyDecimals,
+            mintCurrencyName
+          };
+          void emitter.emit('mint', token);
+        }
       }
 
       ++numPages;
