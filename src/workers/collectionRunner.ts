@@ -1,23 +1,16 @@
-import { Worker } from 'worker_threads';
+import { BaseCollection, Collection as CollectionType, CollectionAttributes, CreationFlow, Token } from '@infinityxyz/lib/types/core';
+import { firestoreConstants, getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import Emittery from 'emittery';
+import { CollectionEmitterType } from 'models/Collection.abstract';
+import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
+import { Worker } from 'worker_threads';
+import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import { firebase, logger, tokenDao } from '../container';
+import BatchHandler from '../models/BatchHandler';
+import Collection from '../models/Collection';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
 import ContractFactory from '../models/contracts/ContractFactory';
-import Collection from '../models/Collection';
-import {
-  Collection as CollectionType,
-  CollectionAttributes,
-  CreationFlow,
-  ImageData,
-  MetadataData,
-  MintToken,
-  Token
-} from '@infinityxyz/lib/types/core';
-import BatchHandler from '../models/BatchHandler';
-import Emittery from 'emittery';
-import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
-import Contract from 'models/contracts/Contract.interface';
-import { firestoreConstants, getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 
 export async function createCollection(
   address: string,
@@ -123,19 +116,11 @@ export async function create(
     return `[${dateStr}][${chainId}:${address}][ ${formatNum(progress, ' ', 5)}% ][${step}]${message ? ' ' + message : ''}`;
   };
 
-  const emitter = new Emittery<{
-    token: Token;
-    metadata: MetadataData & Partial<Token>;
-    image: ImageData & Partial<Token>;
-    mint: MintToken;
-    attributes: CollectionAttributes;
-    tokenError: { error: { reason: string; timestamp: number }; tokenId: string };
-    progress: { step: string; progress: number; message?: string };
-  }>();
+  const emitter = new Emittery<CollectionEmitterType>();
 
   let lastLogAt = 0;
   let lastProgressUpdateAt = 0;
-  emitter.on('progress', ({ step, progress, message }) => {
+  emitter.on('progress', ({ step, progress, message, zoraCursor, reservoirCursor }) => {
     const now = Date.now();
     if (progress === 100 || now > lastLogAt + 1000) {
       lastLogAt = now;
@@ -143,7 +128,26 @@ export async function create(
     }
     if (progress === 100 || now > lastProgressUpdateAt + 10_000) {
       lastProgressUpdateAt = now;
-      collectionDoc.update({ 'state.create.progress': progress, 'state.create.step': step }).catch((err) => {
+      const data: Partial<BaseCollection> = {
+        state: {
+          version: 1,
+          export: {
+            done: false
+          },
+          create: {
+            progress,
+            step,
+            updatedAt: now
+          }
+        }
+      };
+      if (zoraCursor && data.state) {
+        data.state.create.zoraCursor = zoraCursor;
+      }
+      if (reservoirCursor && data.state) {
+        data.state.create.reservoirCursor = reservoirCursor;
+      }
+      collectionDoc.set(data, { merge: true }).catch((err) => {
         logger.error('Failed to update collection progress');
         logger.error(err);
       });
