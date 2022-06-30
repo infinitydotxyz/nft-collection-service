@@ -102,7 +102,6 @@ export class UnknownError extends CreationFlowError {
   }
 }
 
-
 export class CollectionTotalSupplyExceededError extends CreationFlowError {
   constructor(message?: string) {
     super(CreationFlow.Invalid, message);

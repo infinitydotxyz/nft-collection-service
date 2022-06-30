@@ -1,5 +1,12 @@
-import { BaseCollection, Collection as CollectionType, CollectionAttributes, CreationFlow, Token } from '@infinityxyz/lib/types/core';
+import {
+  BaseCollection,
+  Collection as CollectionType,
+  CollectionAttributes,
+  CreationFlow,
+  Token
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import deepmerge from 'deepmerge';
 import Emittery from 'emittery';
 import { CollectionEmitterType } from 'models/Collection.abstract';
 import Contract from 'models/contracts/Contract.interface';
@@ -165,19 +172,50 @@ export async function create(
     return token;
   };
 
+  const tokens: Map<string, Partial<Token>> = new Map();
+  const updateToken = (token: Partial<Token>) => {
+    if (token.tokenId) {
+      const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
+      const path = tokenDoc.path;
+
+      const data = { ...token, ...getCollectionData(), error: {} };
+
+      batch.add(tokenDoc, data, { merge: true });
+
+      const cachedToken = tokens.get(path) ?? {};
+      const res = deepmerge(cachedToken, data);
+      tokens.set(path, res);
+    }
+  };
+
+  const getTokens = (): AsyncIterable<Partial<Token>> => {
+    const tokenValues = Array.from(tokens.values());
+    const numNfts = collectionData.numNfts;
+
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async function* asyncify() {
+      for (const token of tokenValues) {
+        yield token;
+      }
+    }
+    if (numNfts && tokenValues.length >= numNfts) {
+      console.log('using cached tokens');
+      const iterator = asyncify();
+      return iterator;
+    }
+    return tokenDao.streamTokens(chainId, address);
+  };
+
   emitter.on('token', (token) => {
-    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
+    updateToken(token);
   });
 
   emitter.on('image', (token) => {
-    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
+    updateToken(token);
   });
 
   emitter.on('mint', (token) => {
-    const tokenDoc = collectionDoc.collection('nfts').doc(token.tokenId);
-    batch.add(tokenDoc, { ...token, ...getCollectionData(), error: {} }, { merge: true });
+    updateToken(token);
   });
 
   emitter.on('attributes', (attributes: CollectionAttributes) => {
@@ -215,17 +253,6 @@ export async function create(
     }
   });
 
-  emitter.on('tokenError', (data) => {
-    const error = {
-      reason: data.error,
-      timestamp: Date.now()
-    };
-    if (data?.tokenId) {
-      const tokenDoc = collectionDoc.collection('nfts').doc(data.tokenId);
-      batch.add(tokenDoc, error, { merge: true });
-    }
-  });
-
   let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck);
 
   let next: IteratorResult<
@@ -233,7 +260,7 @@ export async function create(
     { collection: Partial<CollectionType>; action?: 'tokenRequest' }
   >;
   let done = false;
-  let valueToInject: Token[] | null = null;
+  let valueToInject: AsyncIterable<Partial<Token>> | null = null;
 
   let attempt = 0;
   while (!done) {
@@ -288,7 +315,7 @@ export async function create(
           switch (action) {
             case 'tokenRequest':
               await batch.flush();
-              valueToInject = (await tokenDao.getAllTokens(chainId, address)) as Token[];
+              valueToInject = getTokens();
               break;
 
             default:

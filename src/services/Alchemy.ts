@@ -59,7 +59,7 @@ interface CollectionNFTsResponse {
     title?: string;
     description?: string;
     tokenUri: { raw: string; gateway: string };
-    media?: Array<{raw: string; gateway: string; thumbnail: string}>
+    media?: Array<{ raw: string; gateway: string; thumbnail: string }>;
     metadata?: { tokenId: number; name: string; image: string; attributes: Array<{ value: string; trait_type: string }> };
   }>;
 }

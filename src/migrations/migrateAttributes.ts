@@ -55,8 +55,8 @@ function rewriteMalformedAtrributes(
       const data = {
         ...attributeDocData,
         attributeType: attributeDocData?.attributeType || attributeDoc.id,
-        attributeTypeSlug: attributeDocData?.attributeTypeSlug || getSearchFriendlyString(attributeDoc.id),
-      }
+        attributeTypeSlug: attributeDocData?.attributeTypeSlug || getSearchFriendlyString(attributeDoc.id)
+      };
       batch.add(attributeDoc.ref, data, { merge: true });
     }
   }
