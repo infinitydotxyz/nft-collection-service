@@ -116,6 +116,7 @@ export default class Collection extends AbstractCollection {
                   numSales: stats.aggregateStat?.salesVolume?.totalCount,
                   volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
                   numOwners: stats.aggregateStat?.ownerCount,
+                  numNfts: stats.aggregateStat?.nftCount,
                   topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
                   updatedAt: Date.now()
                 };
