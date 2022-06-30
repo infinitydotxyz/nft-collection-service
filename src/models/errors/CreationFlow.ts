@@ -59,10 +59,15 @@ export class CollectionMintsError extends CreationFlowError {
     };
   }
 }
-
 export class CollectionTokenMetadataError extends CreationFlowError {
   constructor(message?: string) {
     super(CreationFlow.TokenMetadata, message);
+  }
+}
+
+export class CollectionTokenMetadataOSError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.TokenMetadataOS, message);
   }
 }
 

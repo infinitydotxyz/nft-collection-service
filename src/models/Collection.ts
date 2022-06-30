@@ -27,17 +27,14 @@ import AbstractCollection, { CollectionEmitterType } from './Collection.abstract
 import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
-  CollectionCreatorError,
-  CollectionImageValidationError,
-  CollectionIndexingError,
-  CollectionMetadataError,
+  CollectionCreatorError, CollectionMetadataError,
   CollectionMintsError,
   CollectionTokenMetadataError,
+  CollectionTokenMetadataOSError,
   CollectionTotalSupplyExceededError,
   CreationFlowError,
   UnknownError
 } from './errors/CreationFlow';
-import { RefreshTokenImageError, RefreshTokenMetadataError, RefreshTokenMintError } from './errors/RefreshTokenFlow';
 import Nft from './Nft';
 
 type CollectionCreatorType = Pick<
@@ -332,15 +329,8 @@ export default class Collection extends AbstractCollection {
 
             if (invalidTokens.length > 0) {
               logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
-              if (invalidTokens[0].err instanceof RefreshTokenMintError) {
-                throw new CollectionMintsError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenMetadataError) {
-                throw new CollectionTokenMetadataError(`Received ${invalidTokens.length} invalid tokens`);
-              } else if (invalidTokens[0].err instanceof RefreshTokenImageError) {
-                throw new CollectionImageValidationError(`Received ${invalidTokens.length} invalid tokens`);
-              } else {
-                throw new CollectionIndexingError(`Received ${invalidTokens.length} invalid tokens`);
-              }
+              // retries from token metadata os step
+              throw new CollectionTokenMetadataOSError(`Received ${invalidTokens.length} invalid tokens`);
             }
             void emitter.emit('progress', { step, progress: 100 });
             return;
@@ -524,7 +514,7 @@ export default class Collection extends AbstractCollection {
       }
 
       ++numPages;
-      
+
       void emitter.emit('progress', {
         step: CreationFlow.CollectionMints,
         progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100,
