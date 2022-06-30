@@ -23,39 +23,30 @@ import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
 import { resetStep } from 'scripts/resetStep';
 import { StatsPeriod } from './services/Mnemonic';
 
-// eslint-disable-next-line @typescript-eslint/require-await
 // do not remove commented code
-export function main(): void {
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function main(): Promise<void> {
   try {
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
-
     // await updateCollectionMetadata();
     // return;
-
     // await resetStep();
     // return;
-
     // await getCollectionNFTsFromAlchemy();
-
     // await writeTopMnemonicCollectionsToLocalFile();
     // return;
-
     // const summary = await collectionDao.getCollectionsSummary();
     // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
-
     // // const summary: any = JSON.parse(await readFile('./summary.json', 'utf8'));
     // logger.log(`Found: ${summary.collections.length} collections. Number of complete collections: ${summary.numberComplete}`);
-
     // const collectionsByState = summary.collections.reduce((acc: Record<string, any[]>, collection: any) => {
     //   return {
     //     ...acc,
     //     [collection.state]: [...(acc[collection.state] || []), collection]
     //   };
     // }, {});
-
     // const nonErc721 = [];
-
     // for (const [state, collections] of Object.entries(collectionsByState)) {
     //   const percentInState = Math.floor(((collections as any[]).length / summary.collections.length) * 10000) / 100;
     //   console.log(`Found: ${(collections as any[]).length} ${percentInState}% collections in state: ${state}`);
@@ -65,7 +56,6 @@ export function main(): void {
     //     }
     //   }
     // }
-
     // console.log(
     //   `Found: ${nonErc721.length} ${
     //     Math.floor((nonErc721.length / summary.collections.length) * 10000) / 100

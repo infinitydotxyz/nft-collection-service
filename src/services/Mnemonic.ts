@@ -121,7 +121,12 @@ export default class MnemonicClient {
     return res.body;
   }
 
-  async getTopCollections(by: mnemonicByParam, period: StatsPeriod, limit: number, offset: number): Promise<TopCollectionsApiResponse | null> {
+  async getTopCollections(
+    by: mnemonicByParam,
+    period: StatsPeriod,
+    limit: number,
+    offset: number
+  ): Promise<TopCollectionsApiResponse | null> {
     let duration = '';
     if (period === 'daily') {
       duration = 'DURATION_1_DAY';

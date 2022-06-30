@@ -18,6 +18,8 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
+import { Readable, Transform } from 'stream';
+import { filterStream, pageStream } from 'utils/streams';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { firebase, logger, opensea, reservoir, zora } from '../container';
 import BatchHandler from './BatchHandler';
@@ -71,7 +73,11 @@ export default class Collection extends AbstractCollection {
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck?: boolean
-  ): AsyncGenerator<{ collection: Partial<CollectionType>; action?: 'tokenRequest' }, any, Array<Partial<Token>> | undefined> {
+  ): AsyncGenerator<
+    { collection: Partial<CollectionType>; action?: 'tokenRequest' },
+    any,
+    AsyncIterable<Partial<Token>> | undefined
+  > {
     let collection: CollectionCreatorType | CollectionMetadataType | CollectionTokenMetadataType | CollectionType =
       initialCollection as any;
     let step: CreationFlow = collection?.state?.create?.step || CreationFlow.CollectionCreator;
@@ -160,15 +166,14 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.TokenMetadataOS:
             try {
-              let tokens: Token[] = [];
               console.log('Yielding tokens at step:', step);
               const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
               if (!injectedTokens) {
                 throw new CollectionTokenMetadataError('Client failed to inject tokens');
               }
-              tokens = injectedTokens as Token[];
+
               collection = await this.getCollectionTokenMetadataFromOS(
-                tokens,
+                injectedTokens,
                 collection as CollectionTokenMetadataType,
                 emitter,
                 CreationFlow.AggregateMetadata
@@ -185,20 +190,39 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.AggregateMetadata:
             try {
-              let tokens: Token[] = [];
-              console.log('Yielding tokens at step:', step);
-              const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-              if (!injectedTokens) {
-                throw new CollectionAggregateMetadataError('Client failed to inject tokens');
-              }
-              tokens = injectedTokens as Token[];
+              const numNfts = (collection as CollectionTokenMetadataType).numNfts;
+              if (numNfts > COLLECTION_MAX_SUPPLY) {
+                collection = {
+                  ...collection,
+                  numTraitTypes: 0,
+                  numOwnersUpdatedAt: 0,
+                  state: {
+                    ...collection.state,
+                    create: {
+                      progress: 0,
+                      step: CreationFlow.CacheImage,
+                      updatedAt: Date.now()
+                    }
+                  }
+                };
+              } else {
+                const tokens: Token[] = [];
+                console.log('Yielding tokens at step:', step);
+                const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
+                if (!injectedTokens) {
+                  throw new CollectionAggregateMetadataError('Client failed to inject tokens');
+                }
+                for await (const token of injectedTokens) {
+                  tokens.push(token as Token);
+                }
 
-              collection = this.getCollectionAggregatedMetadata(
-                tokens,
-                collection as CollectionTokenMetadataType,
-                emitter,
-                CreationFlow.CacheImage
-              );
+                collection = this.getCollectionAggregatedMetadata(
+                  tokens,
+                  collection as CollectionTokenMetadataType,
+                  emitter,
+                  CreationFlow.CacheImage
+                );
+              }
 
               yield { collection };
             } catch (err: any) {
@@ -213,16 +237,14 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CacheImage:
             try {
-              let tokens: Token[] = [];
               console.log('Yielding tokens at step:', step);
               const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
               if (!injectedTokens) {
                 throw new CollectionCacheImageError('Client failed to inject tokens');
               }
-              tokens = injectedTokens as Token[];
 
               collection = await this.getCollectionCachedImages(
-                tokens,
+                injectedTokens,
                 collection as CollectionType,
                 emitter,
                 CreationFlow.CollectionMints // skipping validate image
@@ -278,24 +300,31 @@ export default class Collection extends AbstractCollection {
              */
             await batch.flush();
             console.log('Yielding tokens at step:', step);
-            const finalTokens: Array<Partial<Token>> | undefined = yield {
+            const finalTokens: AsyncIterable<Partial<Token>> | undefined = yield {
               collection: collection,
               action: 'tokenRequest'
             };
-
             if (!finalTokens) {
               throw new CollectionTokenMetadataError('Token metadata received undefined tokens');
             }
 
-            const invalidTokens = [];
-            for (const token of finalTokens) {
-              try {
-                Nft.validateToken(token, RefreshTokenFlow.Complete);
-              } catch (err) {
-                if (token.tokenId) {
-                  invalidTokens.push({ token, err });
+            const transformToTokensWithErrors = new Transform({
+              transform(token: Token, encoding: string, callback) {
+                try {
+                  Nft.validateToken(token, RefreshTokenFlow.Complete);
+                } catch (err) {
+                  this.push({ token, err });
                 }
-              }
+                callback();
+              },
+              objectMode: true
+            });
+
+            const invalidTokensReadable = Readable.from(finalTokens, { objectMode: true }).pipe(transformToTokensWithErrors);
+
+            const invalidTokens: { token: Token; err: Error }[] = [];
+            for await (const invalidToken of invalidTokensReadable) {
+              invalidTokens.push(invalidToken as { token: Token; err: Error });
             }
 
             if (invalidTokens.length > 0) {
@@ -647,84 +676,139 @@ export default class Collection extends AbstractCollection {
   }
 
   private async getCollectionCachedImages(
-    tokens: Token[],
+    tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionType,
     emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
-    const openseaLimit = 50;
+    const noImage = (token: Token) => {
+      return !token?.image?.url;
+    };
     const openseaTokenIdsLimit = 20;
 
-    const tokensMap: { [key: string]: Token } = tokens.reduce((acc, item) => {
-      if (item?.tokenId) {
-        return {
-          ...acc,
-          [item.tokenId]: item
-        };
-      }
-      return acc;
-    }, {});
+    const imageLessTokenPages = Readable.from(tokens, { objectMode: true })
+      .pipe(filterStream(noImage))
+      .pipe(pageStream(openseaTokenIdsLimit));
 
     // fetch tokens that don't have images
-    const imageLessTokens = [];
-    for (const token of tokens) {
-      if (!token.image || !token.image.url) {
-        imageLessTokens.push(token);
+    const updateImageViaOpenseaTokenIds = async (tokens: Token[]) => {
+      let tokenIdsConcat = '';
+      for (const token of tokens) {
+        tokenIdsConcat += `token_ids=${token.tokenId}&`;
       }
+
+      const tokensMap: { [key: string]: Token } = tokens.reduce((acc, item) => {
+        if (item?.tokenId) {
+          return {
+            ...acc,
+            [item.tokenId]: item
+          };
+        }
+        return acc;
+      }, {});
+
+      const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
+      for (const datum of data.assets) {
+        const token = tokensMap[datum?.token_id];
+        const metadata = token?.metadata;
+        const imageToken: ImageData & Partial<Token> = {
+          tokenId: datum.token_id,
+          image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
+        } as ImageToken;
+        void emitter.emit('image', imageToken);
+      }
+    };
+
+    let tokensUpdated = 0;
+    for await (const tokens of imageLessTokenPages) {
+      await updateImageViaOpenseaTokenIds(tokens as Token[]);
+      tokensUpdated += tokens.length;
+      void emitter.emit('progress', {
+        step: CreationFlow.TokenMetadataOS,
+        progress: Math.floor((tokensUpdated / collection.numNfts) * 100 * 100) / 100
+      });
     }
-    const numImagelessTokens = imageLessTokens.length;
-    const numTokens = tokens.length;
-    const percentFailed = Math.floor((numImagelessTokens / numTokens) * 100);
+
+    void emitter.emit('progress', {
+      step: CreationFlow.TokenMetadataOS,
+      progress: 100
+    });
+
+    // const updateImageViaOpenseaContract = async () => {
+    //   let hasNext = true;
+    //   let cursor = '';
+
+    //   const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, cursor);
+    //   // update cursor
+    //   hasNext = data.assets.length > 0;
+    //   cursor = data.next;
+    //   for (const datum of data.assets) {
+    //     const token = tokensMap[datum?.token_id];
+    //     const metadata = token?.metadata;
+    //     const imageToken: ImageData & Partial<Token> = {
+    //       tokenId: datum.token_id,
+    //       image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
+    //     } as ImageToken;
+    //     void emitter.emit('image', imageToken);
+    //   }
+    //   void emitter.emit('progress', {
+    //     step: CreationFlow.CacheImage,
+    //     progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+    //   });
+    // };
+
+    // const numImagelessTokens = imageLessTokens.length;
+    // const numTokens = tokens.length;
+    // const percentFailed = Math.floor((numImagelessTokens / numTokens) * 100);
     // fetch images from OS
-    if (percentFailed < 40) {
-      const numIters = Math.ceil(numImagelessTokens / openseaTokenIdsLimit);
-      for (let i = 0; i < numIters; i++) {
-        const tokenSlice = tokens.slice(i * openseaTokenIdsLimit, (i + 1) * openseaTokenIdsLimit);
-        let tokenIdsConcat = '';
-        for (const token of tokenSlice) {
-          tokenIdsConcat += `token_ids=${token.tokenId}&`;
-        }
-        const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
-        for (const datum of data.assets) {
-          const token = tokensMap[datum?.token_id];
-          const metadata = token?.metadata;
-          const imageToken: ImageData & Partial<Token> = {
-            tokenId: datum.token_id,
-            image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
-          } as ImageToken;
-          void emitter.emit('image', imageToken);
-        }
-        void emitter.emit('progress', {
-          step: CreationFlow.CacheImage,
-          progress: Math.floor(((i * openseaTokenIdsLimit) / numImagelessTokens) * 100 * 100) / 100
-        });
-      }
-    } else {
-      const numIters = Math.ceil(numTokens / openseaLimit);
-      let cursor = '';
-      for (let i = 0; i < numIters; i++) {
-        const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, cursor);
-        // update cursor
-        cursor = data.next;
-        for (const datum of data.assets) {
-          const token = tokensMap[datum?.token_id];
-          const metadata = token?.metadata;
-          const imageToken: ImageData & Partial<Token> = {
-            tokenId: datum.token_id,
-            image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
-          } as ImageToken;
-          void emitter.emit('image', imageToken);
-        }
-        void emitter.emit('progress', {
-          step: CreationFlow.CacheImage,
-          progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
-        });
-      }
-    }
+    // if (percentFailed < 40) {
+    //   const numIters = Math.ceil(numImagelessTokens / openseaTokenIdsLimit);
+    //   for (let i = 0; i < numIters; i++) {
+    //     const tokenSlice = tokens.slice(i * openseaTokenIdsLimit, (i + 1) * openseaTokenIdsLimit);
+    //     let tokenIdsConcat = '';
+    //     for (const token of tokenSlice) {
+    //       tokenIdsConcat += `token_ids=${token.tokenId}&`;
+    //     }
+    //     const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
+    //     for (const datum of data.assets) {
+    //       const token = tokensMap[datum?.token_id];
+    //       const metadata = token?.metadata;
+    //       const imageToken: ImageData & Partial<Token> = {
+    //         tokenId: datum.token_id,
+    //         image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
+    //       } as ImageToken;
+    //       void emitter.emit('image', imageToken);
+    //     }
+    //     void emitter.emit('progress', {
+    //       step: CreationFlow.CacheImage,
+    //       progress: Math.floor(((i * openseaTokenIdsLimit) / numImagelessTokens) * 100 * 100) / 100
+    //     });
+    //   }
+    // } else {
+    //   const numIters = Math.ceil(numTokens / openseaLimit);
+    //   let cursor = '';
+    //   for (let i = 0; i < numIters; i++) {
+    //     const data = await opensea.getNFTsOfContract(this.contract.address, openseaLimit, cursor);
+    //     // update cursor
+    //     cursor = data.next;
+    //     for (const datum of data.assets) {
+    //       const token = tokensMap[datum?.token_id];
+    //       const metadata = token?.metadata;
+    //       const imageToken: ImageData & Partial<Token> = {
+    //         tokenId: datum.token_id,
+    //         image: { url: datum.image_url, originalUrl: datum.image_original_url ?? metadata?.image, updatedAt: Date.now() }
+    //       } as ImageToken;
+    //       void emitter.emit('image', imageToken);
+    //     }
+    //     void emitter.emit('progress', {
+    //       step: CreationFlow.CacheImage,
+    //       progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+    //     });
+    //   }
+    // }
 
     const cachedImageCollection: CollectionTokenMetadataType = {
       ...(collection as CollectionTokenMetadataType),
-      numNfts: tokens.length,
       state: {
         ...collection.state,
         create: {
@@ -738,28 +822,25 @@ export default class Collection extends AbstractCollection {
   }
 
   private async getCollectionTokenMetadataFromOS(
-    tokens: Array<Partial<Token>>,
+    tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionTokenMetadataType,
     emitter: Emittery<CollectionEmitterType>,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
-    // metadata less tokens
-    const metadataLessTokens = [];
-    for (const token of tokens) {
+    const hasMetadata = (token: Partial<Token>) => {
       try {
         Nft.validateToken(token, RefreshTokenFlow.Metadata);
+        return true;
       } catch (err) {
-        metadataLessTokens.push(token);
+        return false;
       }
-    }
-    const numTokens = metadataLessTokens.length;
+    };
     const openseaLimit = 20;
-    const numIters = Math.ceil(numTokens / openseaLimit);
-    for (let i = 0; i < numIters; i++) {
-      const tokenIds = tokens.slice(i * openseaLimit, (i + 1) * openseaLimit);
+
+    const updateTokens = async (tokens: Partial<Token>[]) => {
       let tokenIdsConcat = '';
-      for (const tokenId of tokenIds) {
-        tokenIdsConcat += `token_ids=${tokenId.tokenId}&`;
+      for (const token of tokens) {
+        tokenIdsConcat += `token_ids=${token.tokenId}&`;
       }
       const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
       for (const datum of data.assets) {
@@ -785,15 +866,29 @@ export default class Collection extends AbstractCollection {
         };
         void emitter.emit('token', token);
       }
+    };
+
+    const metadataLessTokenPages = Readable.from(tokens, { objectMode: true })
+      .pipe(filterStream(hasMetadata))
+      .pipe(pageStream(openseaLimit));
+
+    let tokensUpdated = 0;
+    for await (const tokens of metadataLessTokenPages) {
+      tokensUpdated += tokens.length;
+      await updateTokens(tokens as Partial<Token>[]);
       void emitter.emit('progress', {
         step: CreationFlow.TokenMetadataOS,
-        progress: Math.floor(((i * openseaLimit) / numTokens) * 100 * 100) / 100
+        progress: Math.floor((tokensUpdated / collection.numNfts) * 100 * 100) / 100
       });
     }
 
+    void emitter.emit('progress', {
+      step: CreationFlow.TokenMetadataOS,
+      progress: 100
+    });
+
     const collectionMetadataCollection: CollectionTokenMetadataType = {
       ...collection,
-      numNfts: tokens.length,
       state: {
         ...collection.state,
         create: {
