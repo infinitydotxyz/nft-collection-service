@@ -81,11 +81,11 @@ export async function create(
   const data = await collectionDoc.get();
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
-  const oneHourAgo = Date.now() - ONE_HOUR;
-  if (!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
-    log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
-    return;
-  }
+  // const oneHourAgo = Date.now() - ONE_HOUR;
+  // if (!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+  //   log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
+  //   return;
+  // }
 
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
@@ -281,17 +281,17 @@ export async function create(
         if (successful) {
           log(`Collection Completed: ${chainId}:${address}`);
           return;
-        } else if (indexerRan) {
-          log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
-          return;
-        } else if (unknownError) {
-          log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
-          return;
-        } else if (invalid) {
-          log(
-            `Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`
-          );
-          return;
+        // } else if (indexerRan) {
+        //   log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+        //   return;
+        // } else if (unknownError) {
+        //   log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
+        //   return;
+        // } else if (invalid) {
+        //   log(
+        //     `Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`
+        //   );
+        //   return;
         } else {
           attempt += 1;
           if (attempt >= 3) {

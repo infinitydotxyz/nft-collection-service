@@ -193,6 +193,7 @@ export default class Collection extends AbstractCollection {
             try {
               const numNfts = (collection as CollectionTokenMetadataType).numNfts;
               if (numNfts > COLLECTION_MAX_SUPPLY) {
+                console.log('Collection has too many tokens to aggregate metadata', collection.address);
                 collection = {
                   ...collection,
                   numTraitTypes: 0,
@@ -271,11 +272,11 @@ export default class Collection extends AbstractCollection {
                 totalSupply = parseInt(String(data?.collection.tokenCount));
               }
 
-              if (totalSupply > COLLECTION_MAX_SUPPLY) {
-                throw new CollectionTotalSupplyExceededError(
-                  `Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`
-                );
-              }
+              // if (totalSupply > COLLECTION_MAX_SUPPLY) {
+              //   throw new CollectionTotalSupplyExceededError(
+              //     `Collection total supply is ${totalSupply}. Max supply to index is ${COLLECTION_MAX_SUPPLY}`
+              //   );
+              // }
 
               collection = await this.getCollectionMintsFromZora(
                 totalSupply,
@@ -314,6 +315,7 @@ export default class Collection extends AbstractCollection {
                 try {
                   Nft.validateToken(token, RefreshTokenFlow.Complete);
                 } catch (err) {
+                  console.log(token, err);
                   this.push({ token, err });
                 }
                 callback();
@@ -506,20 +508,23 @@ export default class Collection extends AbstractCollection {
             mintedAt,
             minter: normalizeAddress(minter),
             mintTxHash: txHash,
-            image: {
-              originalUrl: mintToken?.token?.image?.url ?? '',
-              updatedAt: Date.now()
-            },
             mintPrice,
             mintCurrencyAddress,
             mintCurrencyDecimals,
             mintCurrencyName
           };
+
+          if (mintToken?.token?.image?.url && token.image) {
+            token.image.originalUrl = mintToken?.token?.image?.url;
+            token.image.updatedAt = Date.now();
+          }
+
           void emitter.emit('mint', token);
         }
       }
 
       ++numPages;
+      
       void emitter.emit('progress', {
         step: CreationFlow.CollectionMints,
         progress: Math.floor(((numPages * zoraLimit) / totalSupply) * 100 * 100) / 100,
@@ -863,8 +868,13 @@ export default class Collection extends AbstractCollection {
             animation_url: datum?.animation_url ?? '',
             youtube_url: ''
           },
-          image: { url: datum.image_url, originalUrl: datum.image_original_url, updatedAt: Date.now() }
+          image: { originalUrl: datum.image_original_url, updatedAt: Date.now() }
         };
+
+        if (datum.image_url && token.image) {
+          token.image.url = datum.image_url;
+        }
+
         void emitter.emit('token', token);
       }
     };
