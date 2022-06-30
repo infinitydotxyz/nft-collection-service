@@ -312,7 +312,6 @@ export default class Collection extends AbstractCollection {
                 try {
                   Nft.validateToken(token, RefreshTokenFlow.Complete);
                 } catch (err) {
-                  console.log(token, err);
                   this.push({ token, err });
                 }
                 callback();
