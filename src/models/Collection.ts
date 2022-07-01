@@ -27,7 +27,7 @@ import AbstractCollection, { CollectionEmitterType } from './Collection.abstract
 import {
   CollectionAggregateMetadataError,
   CollectionCacheImageError,
-  CollectionCreatorError, CollectionMetadataError,
+  CollectionCreatorError, CollectionIncompleteError, CollectionMetadataError,
   CollectionMintsError,
   CollectionTokenMetadataError,
   CollectionTokenMetadataOSError,
@@ -328,8 +328,7 @@ export default class Collection extends AbstractCollection {
 
             if (invalidTokens.length > 0) {
               logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
-              // retries from token metadata os step
-              throw new CollectionTokenMetadataOSError(`Received ${invalidTokens.length} invalid tokens`);
+              throw new CollectionIncompleteError(`Received ${invalidTokens.length} invalid tokens`);
             }
             void emitter.emit('progress', { step, progress: 100 });
             return;

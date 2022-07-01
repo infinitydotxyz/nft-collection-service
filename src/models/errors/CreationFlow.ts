@@ -95,6 +95,12 @@ export class CollectionImageValidationError extends CreationFlowError {
   }
 }
 
+export class CollectionIncompleteError extends CreationFlowError {
+  constructor(message?: string) {
+    super(CreationFlow.Incomplete, message);
+  }
+}
+
 export class CollectionIndexingError extends CreationFlowError {
   constructor(message?: string) {
     super(CreationFlow.Incomplete, message);
