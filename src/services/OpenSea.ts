@@ -230,6 +230,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
             throw new Error('Not found');
 
           case 429:
+            console.log('OS Rate limit exceeded, sleeping 1 second');
             await sleep(1000);
             throw new Error('Rate limited');
 
