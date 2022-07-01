@@ -657,6 +657,92 @@ export default class Collection extends AbstractCollection {
     return collectionMintsCollection;
   }
 
+  private async getCollectionTokenMetadataFromOS(
+    tokens: AsyncIterable<Partial<Token>>,
+    collection: CollectionTokenMetadataType,
+    emitter: Emittery<CollectionEmitterType>,
+    nextStep: CreationFlow
+  ): Promise<CollectionTokenMetadataType> {
+    const hasMetadata = (token: Partial<Token>) => {
+      try {
+        Nft.validateToken(token, RefreshTokenFlow.Metadata);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+    const openseaLimit = 20;
+
+    const updateTokens = async (tokens: Partial<Token>[]) => {
+      let tokenIdsConcat = '';
+      for (const token of tokens) {
+        tokenIdsConcat += `token_ids=${token.tokenId}&`;
+      }
+      const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
+      for (const datum of data.assets) {
+        const token: Erc721Token = {
+          updatedAt: Date.now(),
+          tokenId: datum.token_id,
+          slug: getSearchFriendlyString(datum.name),
+          numTraitTypes: datum.traits?.length,
+          tokenStandard: TokenStandard.ERC721, // default
+          metadata: {
+            name: datum.name ?? null,
+            title: datum.name ?? null,
+            image: datum.image_url ?? '',
+            image_data: '',
+            external_url: datum?.external_link ?? '',
+            description: datum.description ?? '',
+            attributes: datum.traits,
+            background_color: datum.background_color ?? '',
+            animation_url: datum?.animation_url ?? '',
+            youtube_url: ''
+          },
+          image: { originalUrl: datum.image_original_url, updatedAt: Date.now() }
+        };
+
+        if (datum.image_url && token.image) {
+          token.image.url = datum.image_url;
+        }
+
+        void emitter.emit('token', token);
+      }
+    };
+
+    const metadataLessTokenPages = Readable.from(tokens, { objectMode: true })
+      .pipe(filterStream(hasMetadata))
+      .pipe(pageStream(openseaLimit));
+
+    let tokensUpdated = 0;
+    for await (const tokens of metadataLessTokenPages) {
+      tokensUpdated += tokens.length;
+      await updateTokens(tokens as Partial<Token>[]);
+      void emitter.emit('progress', {
+        step: CreationFlow.TokenMetadataOS,
+        progress: Math.floor((tokensUpdated / collection.numNfts) * 100 * 100) / 100
+      });
+    }
+
+    void emitter.emit('progress', {
+      step: CreationFlow.TokenMetadataOS,
+      progress: 100
+    });
+
+    const collectionMetadataCollection: CollectionTokenMetadataType = {
+      ...collection,
+      state: {
+        ...collection.state,
+        create: {
+          updatedAt: Date.now(),
+          progress: 100,
+          step: nextStep // update step
+        }
+      }
+    };
+
+    return collectionMetadataCollection;
+  }
+
   private getCollectionAggregatedMetadata(
     tokens: Token[],
     collection: CollectionTokenMetadataType,
@@ -762,91 +848,5 @@ export default class Collection extends AbstractCollection {
       }
     };
     return cachedImageCollection;
-  }
-
-  private async getCollectionTokenMetadataFromOS(
-    tokens: AsyncIterable<Partial<Token>>,
-    collection: CollectionTokenMetadataType,
-    emitter: Emittery<CollectionEmitterType>,
-    nextStep: CreationFlow
-  ): Promise<CollectionTokenMetadataType> {
-    const hasMetadata = (token: Partial<Token>) => {
-      try {
-        Nft.validateToken(token, RefreshTokenFlow.Metadata);
-        return true;
-      } catch (err) {
-        return false;
-      }
-    };
-    const openseaLimit = 20;
-
-    const updateTokens = async (tokens: Partial<Token>[]) => {
-      let tokenIdsConcat = '';
-      for (const token of tokens) {
-        tokenIdsConcat += `token_ids=${token.tokenId}&`;
-      }
-      const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
-      for (const datum of data.assets) {
-        const token: Erc721Token = {
-          updatedAt: Date.now(),
-          tokenId: datum.token_id,
-          slug: getSearchFriendlyString(datum.name),
-          numTraitTypes: datum.traits?.length,
-          tokenStandard: TokenStandard.ERC721, // default
-          metadata: {
-            name: datum.name ?? null,
-            title: datum.name ?? null,
-            image: datum.image_url ?? '',
-            image_data: '',
-            external_url: datum?.external_link ?? '',
-            description: datum.description ?? '',
-            attributes: datum.traits,
-            background_color: datum.background_color ?? '',
-            animation_url: datum?.animation_url ?? '',
-            youtube_url: ''
-          },
-          image: { originalUrl: datum.image_original_url, updatedAt: Date.now() }
-        };
-
-        if (datum.image_url && token.image) {
-          token.image.url = datum.image_url;
-        }
-
-        void emitter.emit('token', token);
-      }
-    };
-
-    const metadataLessTokenPages = Readable.from(tokens, { objectMode: true })
-      .pipe(filterStream(hasMetadata))
-      .pipe(pageStream(openseaLimit));
-
-    let tokensUpdated = 0;
-    for await (const tokens of metadataLessTokenPages) {
-      tokensUpdated += tokens.length;
-      await updateTokens(tokens as Partial<Token>[]);
-      void emitter.emit('progress', {
-        step: CreationFlow.TokenMetadataOS,
-        progress: Math.floor((tokensUpdated / collection.numNfts) * 100 * 100) / 100
-      });
-    }
-
-    void emitter.emit('progress', {
-      step: CreationFlow.TokenMetadataOS,
-      progress: 100
-    });
-
-    const collectionMetadataCollection: CollectionTokenMetadataType = {
-      ...collection,
-      state: {
-        ...collection.state,
-        create: {
-          updatedAt: Date.now(),
-          progress: 100,
-          step: nextStep // update step
-        }
-      }
-    };
-
-    return collectionMetadataCollection;
   }
 }
