@@ -1,4 +1,4 @@
-import { ZoraTokensResponse, ZoraAggregateCollectionStatsResponse } from '@infinityxyz/lib/types/services/zora';
+import { ZoraAggregateCollectionStatsResponse, ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora';
 import { gql, GraphQLClient } from 'graphql-request';
 import { singleton } from 'tsyringe';
 import { ZORA_API_KEY } from '../constants';
@@ -108,7 +108,7 @@ export default class Zora {
       const data = await this.zoraClient.request(query);
       return data as ZoraTokensResponse;
     } catch (e) {
-      console.error('failed to get token mint info from zora', chainId, collectionAddress, e);
+      console.error('Failed to get tokens from zora', chainId, collectionAddress, e);
     }
   }
 }
