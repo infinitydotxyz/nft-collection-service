@@ -101,7 +101,7 @@ const available = v8.getHeapStatistics().total_available_size;
 const availableInMB = Math.floor(available / 1000000 / 1000) * 1000;
 const maxExpectedImageSize = 10; // MB
 
-export const COLLECTION_TASK_CONCURRENCY = 2;
+export const COLLECTION_TASK_CONCURRENCY = 6;
 
 const maxConcurrencyPerCollection = Math.floor(availableInMB / 1.5 / maxExpectedImageSize / COLLECTION_TASK_CONCURRENCY);
 let maxConcurrencyForIPFS = INFURA_API_KEYS.length * 100;
