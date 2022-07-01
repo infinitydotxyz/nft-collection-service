@@ -740,13 +740,13 @@ export default class Collection extends AbstractCollection {
       await updateImageViaOpenseaTokenIds(tokens as Token[]);
       tokensUpdated += tokens.length;
       void emitter.emit('progress', {
-        step: CreationFlow.TokenMetadataOS,
+        step: CreationFlow.CacheImage,
         progress: Math.floor((tokensUpdated / collection.numNfts) * 100 * 100) / 100
       });
     }
 
     void emitter.emit('progress', {
-      step: CreationFlow.TokenMetadataOS,
+      step: CreationFlow.CacheImage,
       progress: 100
     });
 
