@@ -1,7 +1,10 @@
-import { ZoraTokensResponse, ZoraAggregateCollectionStatsResponse } from '@infinityxyz/lib/types/services/zora';
+import { ZoraAggregateCollectionStatsResponse, ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora';
+import { sleep } from '@infinityxyz/lib/utils';
+import { Response } from 'got/dist/source';
 import { gql, GraphQLClient } from 'graphql-request';
 import { singleton } from 'tsyringe';
 import { ZORA_API_KEY } from '../constants';
+import { gotErrorHandler } from '../utils/got';
 
 @singleton()
 export default class Zora {
@@ -105,10 +108,66 @@ export default class Zora {
         }
       `;
 
-      const data = await this.zoraClient.request(query);
-      return data as ZoraTokensResponse;
+      const res: Response<ZoraTokensResponse> = await this.errorHandler(() => {
+        return this.zoraClient.request(query, {
+          responseType: 'json'
+        });
+      });
+
+      return res.body;
     } catch (e) {
       console.error('failed to get token mint info from zora', chainId, collectionAddress, e);
+    }
+  }
+
+  private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
+    let attempt = 0;
+
+    for (;;) {
+      attempt += 1;
+
+      try {
+        const res: Response<T> = await request();
+
+        switch (res.statusCode) {
+          case 200:
+            return res;
+
+          case 400:
+            throw new Error(res.statusMessage);
+
+          case 404:
+            throw new Error('Not found');
+
+          case 429:
+            console.log('Zora Rate limit exceeded, sleeping 1 second');
+            await sleep(1000);
+            throw new Error('Zora Rate limited');
+
+          case 500:
+            throw new Error('Internal server error');
+
+          case 504:
+            await sleep(5000);
+            throw new Error('Zora down');
+
+          default:
+            await sleep(2000);
+            throw new Error(`Unknown status code: ${res.statusCode}`);
+        }
+      } catch (err) {
+        const handlerRes = gotErrorHandler(err);
+        if ('retry' in handlerRes) {
+          await sleep(handlerRes.delay);
+        } else if (!handlerRes.fatal) {
+          // unknown error
+          if (attempt >= maxAttempts) {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
     }
   }
 }

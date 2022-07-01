@@ -232,7 +232,7 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
           case 429:
             console.log('OS Rate limit exceeded, sleeping 1 second');
             await sleep(1000);
-            throw new Error('Rate limited');
+            throw new Error('OS Rate limited');
 
           case 500:
             throw new Error('Internal server error');

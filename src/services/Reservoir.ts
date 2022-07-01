@@ -100,15 +100,16 @@ export default class Reservoir {
             throw new Error('Not found');
 
           case 429:
-            await sleep(2000);
-            throw new Error('Rate limited');
+            console.log('Reservoir Rate limit exceeded, sleeping 1 second');
+            await sleep(1000);
+            throw new Error('Reservoir Rate limited');
 
           case 500:
             throw new Error('Internal server error');
 
           case 504:
             await sleep(5000);
-            throw new Error('OpenSea down');
+            throw new Error('Reservoir down');
 
           default:
             await sleep(2000);
