@@ -294,7 +294,7 @@ export async function create(
           return;
         } else {
           attempt += 1;
-          if (attempt >= 3) {
+          if (attempt >= 2) {
             log(`Failed to complete collection: ${chainId}:${address}`);
             logger.error(collectionData.state?.create.error);
             return;
