@@ -29,9 +29,7 @@ import {
   CollectionCacheImageError,
   CollectionCreatorError, CollectionIncompleteError, CollectionMetadataError,
   CollectionMintsError,
-  CollectionTokenMetadataError,
-  CollectionTokenMetadataOSError,
-  CollectionTotalSupplyExceededError,
+  CollectionTokenMetadataError, CollectionTotalSupplyExceededError,
   CreationFlowError,
   UnknownError
 } from './errors/CreationFlow';
