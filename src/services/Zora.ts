@@ -53,7 +53,7 @@ export default class Zora {
   }
 
   // default sorting by tokenId ascending
-  public async getTokenMintInfo(
+  public async getTokens(
     chainId: string,
     collectionAddress: string,
     after: string,
@@ -67,6 +67,11 @@ export default class Zora {
               token {
                 tokenId
                 tokenUrl
+                attributes {
+                  displayType
+                  traitType
+                  value
+                }
                 image {
                   url
                 }
