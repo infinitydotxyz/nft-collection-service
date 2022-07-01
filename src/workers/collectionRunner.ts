@@ -87,6 +87,26 @@ export async function create(
     return;
   }
 
+  const successful = currentCollection?.state?.create?.step === CreationFlow.Complete;
+  const indexerRan = currentCollection?.state?.create?.step === CreationFlow.Incomplete;
+  const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
+  const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
+  if (successful) {
+    log(`Collection Completed: ${chainId}:${address}`);
+    return;
+  } else if (indexerRan) {
+    log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+    return;
+  } else if (unknownError) {
+    log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
+    return;
+  } else if (invalid) {
+    log(
+      `Received invalid collection: ${chainId}:${address} due to ${currentCollection?.state?.create?.error?.message}. Skipping for now`
+    );
+    return;
+  }
+
   if (!currentCollection?.indexInitiator) {
     const now = Date.now();
     const collection: Partial<CollectionType> = {
@@ -274,36 +294,16 @@ export async function create(
       done = next.done ?? false;
 
       if (done) {
-        const successful = collectionData?.state?.create?.step === CreationFlow.Complete;
-        const indexerRan = collectionData?.state?.create?.step === CreationFlow.Incomplete;
-        const unknownError = collectionData?.state?.create?.step === CreationFlow.Unknown;
-        const invalid = collectionData?.state?.create?.step === CreationFlow.Invalid;
-        if (successful) {
-          log(`Collection Completed: ${chainId}:${address}`);
+        attempt += 1;
+        if (attempt >= 2) {
+          log(`Failed to complete collection: ${chainId}:${address}`);
+          logger.error(collectionData.state?.create.error);
           return;
-        } else if (indexerRan) {
-          log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
-          return;
-        } else if (unknownError) {
-          log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
-          return;
-        } else if (invalid) {
-          log(
-            `Received invalid collection: ${chainId}:${address} due to ${collectionData?.state?.create?.error?.message}. Skipping for now`
-          );
-          return;
-        } else {
-          attempt += 1;
-          if (attempt >= 2) {
-            log(`Failed to complete collection: ${chainId}:${address}`);
-            logger.error(collectionData.state?.create.error);
-            return;
-          }
-
-          log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
-          iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck);
-          done = false;
         }
+
+        log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
+        iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck);
+        done = false;
       } else {
         const { collection: updatedCollection, action } = next.value;
         collectionData = updatedCollection;
