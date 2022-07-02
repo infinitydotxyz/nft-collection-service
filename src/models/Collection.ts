@@ -191,30 +191,6 @@ export default class Collection extends AbstractCollection {
             }
             break;
 
-          // case CreationFlow.TokenMetadataOS:
-          //   try {
-          //     console.log('Yielding tokens at step:', step);
-          //     const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-          //     if (!injectedTokens) {
-          //       throw new CollectionTokenMetadataError('Client failed to inject tokens');
-          //     }
-
-          //     collection = await this.getCollectionTokenMetadataFromOS(
-          //       injectedTokens,
-          //       collection as CollectionTokenMetadataType,
-          //       emitter,
-          //       CreationFlow.AggregateMetadata
-          //     );
-
-          //     yield { collection };
-          //   } catch (err: any) {
-          //     logger.error('Failed to get token metadata from OS', err);
-          //     // if any token fails we should throw an error
-          //     const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
-          //     throw new CollectionTokenMetadataError(message);
-          //   }
-          //   break;
-
           case CreationFlow.AggregateMetadata:
             try {
               const numNfts = (collection as CollectionTokenMetadataType).numNfts;
@@ -262,29 +238,6 @@ export default class Collection extends AbstractCollection {
               throw new CollectionAggregateMetadataError(message);
             }
             break;
-
-          // case CreationFlow.CacheImage:
-          //   try {
-          //     console.log('Yielding tokens at step:', step);
-          //     const injectedTokens = yield { collection: collection, action: 'tokenRequest' };
-          //     if (!injectedTokens) {
-          //       throw new CollectionCacheImageError('Client failed to inject tokens');
-          //     }
-
-          //     collection = await this.getCollectionCachedImages(
-          //       injectedTokens,
-          //       collection as CollectionType,
-          //       emitter,
-          //       CreationFlow.Complete
-          //     );
-          //     yield { collection };
-          //   } catch (err: any) {
-          //     logger.error('Failed to cache images', err);
-          //     // if any token fails we should throw an error
-          //     const message = typeof err?.message === 'string' ? (err.message as string) : 'Failed to get all tokens';
-          //     throw new CollectionCacheImageError(message);
-          //   }
-          //   break;
 
           case CreationFlow.Complete:
             /**
