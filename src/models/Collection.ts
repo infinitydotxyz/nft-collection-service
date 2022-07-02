@@ -247,7 +247,7 @@ export default class Collection extends AbstractCollection {
                   tokens,
                   collection as CollectionTokenMetadataType,
                   emitter,
-                  CreationFlow.CacheImage
+                  CreationFlow.Complete
                 );
               }
 
