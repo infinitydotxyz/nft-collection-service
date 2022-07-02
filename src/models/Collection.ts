@@ -24,7 +24,8 @@ import { firebase, logger, opensea, reservoir, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
 import {
-  CollectionAggregateMetadataError, CollectionCreatorError,
+  CollectionAggregateMetadataError,
+  CollectionCreatorError,
   CollectionIncompleteError,
   CollectionMetadataError,
   CollectionMintsError,
@@ -320,6 +321,8 @@ export default class Collection extends AbstractCollection {
 
             if (invalidTokens.length > 0) {
               logger.error('Final invalid tokens', JSON.stringify(invalidTokens.map((token) => token.token.tokenId)));
+              // write invalid tokens to firestore
+              this.writeInvalidTokensToFirestore(collection.chainId, collection.address, invalidTokens);
               throw new CollectionIncompleteError(`Received ${invalidTokens.length} invalid tokens`);
             }
             void emitter.emit('progress', { step, progress: 100 });
@@ -846,5 +849,28 @@ export default class Collection extends AbstractCollection {
       }
     };
     return cachedImageCollection;
+  }
+
+  private writeInvalidTokensToFirestore(chainId: string, collectionAddress: string, invalidNfts: { token: Token; err: Error }[]) {
+    const batchHandler = new BatchHandler();
+    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+    const invalidNftsCollection = firebase.db
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL);
+
+    for (const invalidNft of invalidNfts) {
+      const nftDocRef = invalidNftsCollection.doc(invalidNft.token.tokenId);
+      batchHandler.add(nftDocRef, invalidNft.token, { merge: true });
+    }
+
+    batchHandler
+      .flush()
+      .then(() => {
+        console.log('Invalid nfts written to firestore');
+      })
+      .catch((err) => {
+        console.error('Error writing invalid nfts to firestore', err);
+      });
   }
 }
