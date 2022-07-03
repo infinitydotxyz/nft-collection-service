@@ -807,14 +807,16 @@ export default class Collection extends AbstractCollection {
   private writeInvalidTokensToFirestore(chainId: string, collectionAddress: string, invalidNfts: { token: Token; err: Error }[]) {
     const batchHandler = new BatchHandler();
     const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
-    const invalidNftsCollection = firebase.db
+    console.log('Writing invalid tokens to firestore for', chainId, collectionAddress, 'with collection doc id', collectionDocId);
+    const invalidNftsCollectionRef = firebase.db
       .collection(firestoreConstants.COLLECTIONS_COLL)
       .doc(collectionDocId)
       .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL);
-
     for (const invalidNft of invalidNfts) {
-      const nftDocRef = invalidNftsCollection.doc(invalidNft.token.tokenId);
-      batchHandler.add(nftDocRef, invalidNft.token, { merge: true });
+      if (invalidNft.token.tokenId) {
+        const nftDocRef = invalidNftsCollectionRef.doc(invalidNft.token.tokenId);
+        batchHandler.add(nftDocRef, invalidNft.token, { merge: true });
+      }
     }
 
     batchHandler
