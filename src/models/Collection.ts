@@ -820,10 +820,10 @@ export default class Collection extends AbstractCollection {
     batchHandler
       .flush()
       .then(() => {
-        console.log('Invalid nfts written to firestore');
+        console.log('Invalid nfts written to firestore for', chainId, collectionAddress);
       })
       .catch((err) => {
-        console.error('Error writing invalid nfts to firestore', err);
+        console.error('Error writing invalid nfts to firestore for', chainId, collectionAddress, err);
       });
   }
 }
