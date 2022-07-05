@@ -40,7 +40,7 @@ export default abstract class Contract implements IContract {
 
   protected contract: ethers.Contract;
 
-  protected provider: ethers.providers.JsonRpcProvider;
+  protected provider: ethers.providers.StaticJsonRpcProvider;
 
   abstract calculateRarity(tokens: Token[], collectionAttributes?: CollectionAttributes): Token[];
 
@@ -105,7 +105,7 @@ export default abstract class Contract implements IContract {
    */
   protected async paginateLogs(
     thunkedLogRequest: ThunkedLogRequest,
-    provider: ethers.providers.JsonRpcProvider,
+    provider: ethers.providers.StaticJsonRpcProvider,
     options: PaginateLogsOptions
   ): Promise<HistoricalLogs> {
     // eslint-disable-next-line prefer-const
@@ -113,7 +113,7 @@ export default abstract class Contract implements IContract {
 
     toBlock = toBlock ?? 'latest';
 
-    const getMaxBlock = async (provider: ethers.providers.JsonRpcProvider, toBlock: number | 'latest'): Promise<number> => {
+    const getMaxBlock = async (provider: ethers.providers.StaticJsonRpcProvider, toBlock: number | 'latest'): Promise<number> => {
       let maxBlock: number;
       if (typeof toBlock === 'string') {
         try {
