@@ -1,9 +1,9 @@
 import { sleep } from './';
 import { logger, providers } from '../container';
-import { JsonRpcProvider } from '@ethersproject/providers';
+import { StaticJsonRpcProvider } from '@ethersproject/providers';
 import { ethers } from 'ethers';
 
-export function getProviderByChainId(chainId: string): JsonRpcProvider {
+export function getProviderByChainId(chainId: string): StaticJsonRpcProvider {
   return providers.getProviderByChainId(chainId);
 }
 
