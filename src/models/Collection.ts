@@ -440,12 +440,18 @@ export default class Collection extends AbstractCollection {
         if (tokenId) {
           const name = token.name;
           const metadata: Erc721Metadata = {
-            attributes: [],
-            name,
-            title: name,
-            image: token.image,
-            description: token.description
+            attributes: []
           };
+          if (name) {
+            metadata.name = name;
+            metadata.title = name;
+          }
+          if (token.image) {
+            metadata.image = token.image;
+          }
+          if (token.description) {
+            metadata.description = token.description;
+          }
 
           for (const attr of token.attributes) {
             if (metadata.attributes) {
@@ -464,12 +470,15 @@ export default class Collection extends AbstractCollection {
             metadata,
             updatedAt: Date.now(),
             owner: token.owner,
-            image: {
-              url: token.image,
-              updatedAt: Date.now()
-            },
             tokenStandard: TokenStandard.ERC721 // default
           };
+          if (token.image) {
+            tokenWithMetadata.image = {
+              url: token.image,
+              updatedAt: Date.now()
+            };
+          }
+
           void emitter.emit('token', tokenWithMetadata);
         }
       }
