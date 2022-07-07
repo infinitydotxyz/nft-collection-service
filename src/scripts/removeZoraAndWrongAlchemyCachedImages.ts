@@ -20,6 +20,7 @@ let totalAlchemyCachedImagesRemoved = 0;
 let totalColls = 0;
 let totalNfts = 0;
 let totallh3 = 0;
+let totalAlchemyCachedImagesFetched = 0;
 
 export async function removeZoraAndWrongAlchemyCachedImages() {
   // fetch collections from firestore
@@ -110,6 +111,7 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
         console.log(`Total lh3 images so far: ${totallh3}`);
         console.log(`Total zora images removed so far: ${totalZoraRemoved}`);
         console.log(`Total alchemy cached images removed so far: ${totalAlchemyCachedImagesRemoved}`);
+        console.log(`Total alchemy cached images fetched so far: ${totalAlchemyCachedImagesFetched}`);
       })
       .catch((e) => {
         console.error('Error removing zora images for collection', collection, e);
@@ -176,10 +178,11 @@ function fetchAlchemyCachedImage(
     .then((alchemyData) => {
       const dataToSave: Partial<Token> = {};
       const cachedImage = alchemyData?.media?.[0]?.gateway;
-      if (cachedImage && cachedImage.includes('cloudinary')) {
+      if (cachedImage?.includes('cloudinary')) {
         dataToSave.alchemyCachedImage = cachedImage;
+        totalAlchemyCachedImagesFetched++;
+        fsBatchHandler.add(tokenRef, dataToSave, { merge: true });
       }
-      fsBatchHandler.add(tokenRef, dataToSave, { merge: true });
     })
     .catch((err) => {
       console.error('Error fetching alchemy cached image', collection, tokenId, err);
