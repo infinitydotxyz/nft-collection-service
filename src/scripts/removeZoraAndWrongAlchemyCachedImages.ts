@@ -143,3 +143,5 @@ function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts:
     }
   }
 }
+
+void removeZoraAndWrongAlchemyCachedImages();
