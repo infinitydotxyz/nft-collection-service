@@ -35,7 +35,7 @@ export default class Alchemy {
     logger.log('===');
   }
 
-  async getNFTMetadata(address: string, tokenId: number): Promise<AlchemyNftWithMetadata> {
+  async getNFTMetadata(address: string, tokenId: string): Promise<AlchemyNftWithMetadata> {
     // Fetch metadata for a particular NFT:
     const baseURL = `${process.env.JSON_RPC_MAINNET1}/getNFTMetadata`;
     const url = `${baseURL}?contractAddress=${address}&tokenId=${tokenId}&tokenType=ERC721`;

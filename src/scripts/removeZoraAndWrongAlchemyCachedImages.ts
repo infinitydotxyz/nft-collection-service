@@ -3,7 +3,7 @@
 import 'reflect-metadata';
 import { Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
-import { firebase } from 'container';
+import { alchemy, firebase } from 'container';
 import { firestore } from 'firebase-admin';
 import { QuerySnapshot } from 'firebase-admin/firestore';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
@@ -92,7 +92,7 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
         cursor = nfts.docs[nfts.size - 1].get('tokenId');
 
         // write to firestore
-        updateDataInFirestore(nftCollRef, nfts, fsBatchHandler);
+        updateDataInFirestore(collection, nftCollRef, nfts, fsBatchHandler);
         done = nfts.size < limit;
       } catch (err) {
         console.error(err);
@@ -121,7 +121,12 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
   }
 }
 
-function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts: QuerySnapshot, fsBatchHandler: BatchHandler) {
+function updateDataInFirestore(
+  collection: string,
+  nftsCollRef: firestore.CollectionReference,
+  nfts: QuerySnapshot,
+  fsBatchHandler: BatchHandler
+) {
   for (const nft of nfts.docs) {
     // update asset in collection/nfts collection
     const data = nft.data() as Token;
@@ -132,6 +137,9 @@ function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts:
       // check if image is lh3
       if (data.image && data.image.url?.includes('lh3')) {
         totallh3++;
+      } else {
+        // fetch alchemy cached image async
+        fetchAlchemyCachedImage(collection, tokenId, tokenRef, fsBatchHandler);
       }
 
       // remove zora image from url field
@@ -155,6 +163,27 @@ function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts:
       }
     }
   }
+}
+
+function fetchAlchemyCachedImage(
+  collection: string,
+  tokenId: string,
+  tokenRef: firestore.DocumentReference,
+  fsBatchHandler: BatchHandler
+) {
+  alchemy
+    .getNFTMetadata(collection, tokenId)
+    .then((alchemyData) => {
+      const dataToSave: Partial<Token> = {};
+      const cachedImage = alchemyData?.media?.[0]?.gateway;
+      if (cachedImage && cachedImage.includes('cloudinary')) {
+        dataToSave.alchemyCachedImage = cachedImage;
+      }
+      fsBatchHandler.add(tokenRef, dataToSave, { merge: true });
+    })
+    .catch((err) => {
+      console.error('Error fetching alchemy cached image', collection, tokenId, err);
+    });
 }
 
 void removeZoraAndWrongAlchemyCachedImages();
