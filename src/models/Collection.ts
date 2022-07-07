@@ -462,9 +462,17 @@ export default class Collection extends AbstractCollection {
             }
           }
 
+          let tokenIdNumeric = NaN;
+          try {
+            tokenIdNumeric = Number(tokenId);
+          } catch(err) {
+            console.error('tokenId cannot be converted to string', err);
+          }
+
           const tokenWithMetadata: Erc721Token = {
             slug: getSearchFriendlyString(name),
             tokenId,
+            tokenIdNumeric,
             chainId: this.contract.chainId,
             numTraitTypes: token.attributes.length ?? 0,
             metadata,
@@ -558,8 +566,16 @@ export default class Collection extends AbstractCollection {
             metadata.description = description;
           }
 
+          let tokenIdNumeric = NaN;
+          try {
+            tokenIdNumeric = Number(tokenId);
+          } catch (err) {
+            console.error('tokenId cannot be converted to string', err);
+          }
+
           const token: Erc721Token = {
             tokenId,
+            tokenIdNumeric,
             numTraitTypes: metadata?.attributes?.length ?? 0,
             metadata,
             updatedAt: Date.now(),
@@ -643,9 +659,19 @@ export default class Collection extends AbstractCollection {
       }
       const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
       for (const datum of data.assets) {
+
+        const tokenId = datum.token_id;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('tokenId cannot be converted to string', err);
+        }
+
         const token: Erc721Token = {
           updatedAt: Date.now(),
-          tokenId: datum.token_id,
+          tokenId,
+          tokenIdNumeric,
           slug: getSearchFriendlyString(datum.name),
           numTraitTypes: datum.traits?.length,
           tokenStandard: TokenStandard.ERC721, // default
