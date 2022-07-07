@@ -136,6 +136,14 @@ function updateDataInFirestore(
     if (data && tokenId) {
       const tokenRef = nftsCollRef.doc(tokenId);
 
+      // store tokenId as a number
+      try {
+        const tokenIdNumeric = Number(tokenId);
+        fsBatchHandler.add(tokenRef, { tokenIdNumeric }, { merge: true });
+      } catch (e) {
+        console.error('Error converting tokenId to number', tokenId, e);
+      }
+
       // check if image is lh3
       if (data.image && data.image.url?.includes('lh3')) {
         totallh3++;
