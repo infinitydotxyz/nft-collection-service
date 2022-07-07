@@ -17,6 +17,9 @@ const errorFile = path.join(__dirname, 'errors.txt');
 
 let totalZoraRemoved = 0;
 let totalAlchemyCachedImagesRemoved = 0;
+let totalColls = 0;
+let totalNfts = 0;
+let totallh3 = 0;
 
 export async function removeZoraAndWrongAlchemyCachedImages() {
   // fetch collections from firestore
@@ -71,6 +74,7 @@ async function runAFew(colls: QuerySnapshot) {
 
 async function run(collection: string, nftCollRef: firestore.CollectionReference) {
   try {
+    totalColls++;
     console.log('Updating nfts for', collection, '....');
     const fsBatchHandler = new BatchHandler();
     const limit = 500;
@@ -81,6 +85,7 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
       try {
         const nfts = await nftCollRef.orderBy('tokenId', 'asc').limit(limit).startAfter(cursor).get();
         totalFetchedSoFar += nfts.size;
+        totalNfts += nfts.size;
         console.log('Total fetched so far', totalFetchedSoFar);
 
         // update cursor
@@ -100,6 +105,9 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
       .flush()
       .then(() => {
         console.log(`===================== Finished removing zora images for collection ${collection} ========================`);
+        console.log(`Total colls so far: ${totalColls}`);
+        console.log(`Total nfts so far: ${totalNfts}`);
+        console.log(`Total lh3 images so far: ${totallh3}`);
         console.log(`Total zora images removed so far: ${totalZoraRemoved}`);
         console.log(`Total alchemy cached images removed so far: ${totalAlchemyCachedImagesRemoved}`);
       })
@@ -120,6 +128,11 @@ function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts:
     const tokenId = data?.tokenId;
     if (data && tokenId) {
       const tokenRef = nftsCollRef.doc(tokenId);
+
+      // check if image is lh3
+      if (data.image && data.image.url?.includes('lh3')) {
+        totallh3++;
+      }
 
       // remove zora image from url field
       const imageUrl = data.image?.url;
