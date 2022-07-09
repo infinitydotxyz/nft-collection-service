@@ -10,7 +10,7 @@ export default class Alchemy {
   private readonly web3: AlchemyWeb3;
 
   constructor() {
-    this.web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET1 ?? '');
+    this.web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET0 ?? '');
   }
 
   async getNFTsOfOwner(address: string): Promise<void> {
@@ -37,14 +37,14 @@ export default class Alchemy {
 
   async getNFTMetadata(address: string, tokenId: string): Promise<AlchemyNftWithMetadata> {
     // Fetch metadata for a particular NFT:
-    const baseURL = `${process.env.JSON_RPC_MAINNET1}/getNFTMetadata`;
+    const baseURL = `${process.env.JSON_RPC_MAINNET0}/getNFTMetadata`;
     const url = `${baseURL}?contractAddress=${address}&tokenId=${tokenId}&tokenType=ERC721`;
     const res = (await axios.get(url)).data as AlchemyNftWithMetadata;
     return res;
   }
 
   async getNFTsOfCollection(contractAddr: string, startToken: string): Promise<CollectionNFTsResponse> {
-    const baseURL = `${process.env.JSON_RPC_MAINNET1}/getNFTsForCollection`;
+    const baseURL = `${process.env.JSON_RPC_MAINNET0}/getNFTsForCollection`;
     const withMetadata = 'true';
     const url = `${baseURL}?contractAddress=${contractAddr}&startToken=${startToken}&withMetadata=${withMetadata}`;
     const res = (await axios.get(url)).data as CollectionNFTsResponse;
