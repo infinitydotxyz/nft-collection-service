@@ -10,7 +10,7 @@ export default class Alchemy {
   private readonly web3: AlchemyWeb3;
 
   constructor() {
-    this.web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET1 ?? '');
+    this.web3 = createAlchemyWeb3(process.env.JSON_RPC_MAINNET0 ?? '');
   }
 
   async getNFTsOfOwner(address: string): Promise<void> {
