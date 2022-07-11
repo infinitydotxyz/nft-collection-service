@@ -91,22 +91,24 @@ export async function create(
   const indexerRan = currentCollection?.state?.create?.step === CreationFlow.Incomplete;
   const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
   const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
-  if (successful) {
-    log(`Collection Completed: ${chainId}:${address}`);
-    return;
-  } else if (indexerRan) {
+  if (successful || indexerRan) {
     // check if this is a collection that is currently being minted
     // one way to check is if there is a large diversion in totalSupply from the last time
     const prevTotalSupply = currentCollection?.numNfts ?? 0;
     const currentStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
     const currentTotalSupply = currentStats?.aggregateStat.nftCount ?? 0;
-    if (currentTotalSupply - prevTotalSupply > 100) {
-      log(`Collection ${chainId}:${address} is being minted. Re-indexing...`);
+    const divergenceThreshold = 100;
+    if (currentTotalSupply - prevTotalSupply > divergenceThreshold) {
+      log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
       // reset
-      await collectionDoc.set({ state: { create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now() } } }, { merge: true });
-      return;
+      await collectionDoc.set(
+        { state: { create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now() } } },
+        { merge: true }
+      );
     } else {
-      log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+      log(
+        `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
+      );
       return;
     }
   } else if (unknownError) {
