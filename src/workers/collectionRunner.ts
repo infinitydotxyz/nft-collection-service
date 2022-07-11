@@ -13,7 +13,7 @@ import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
-import { firebase, logger, tokenDao } from '../container';
+import { firebase, logger, tokenDao, zora } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Collection from '../models/Collection';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -95,8 +95,20 @@ export async function create(
     log(`Collection Completed: ${chainId}:${address}`);
     return;
   } else if (indexerRan) {
-    log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
-    return;
+    // check if this is a collection that is currently being minted
+    // one way to check is if there is a large diversion in totalSupply from the last time
+    const prevTotalSupply = currentCollection?.numNfts ?? 0;
+    const currentStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
+    const currentTotalSupply = currentStats?.aggregateStat.nftCount ?? 0;
+    if (currentTotalSupply - prevTotalSupply > 100) {
+      log(`Collection ${chainId}:${address} is being minted. Re-indexing...`);
+      // reset
+      await collectionDoc.set({ state: { create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now() } } }, { merge: true });
+      return;
+    } else {
+      log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
+      return;
+    }
   } else if (unknownError) {
     log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
     return;
