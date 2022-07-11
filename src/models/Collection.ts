@@ -465,7 +465,7 @@ export default class Collection extends AbstractCollection {
           let tokenIdNumeric = NaN;
           try {
             tokenIdNumeric = Number(tokenId);
-          } catch(err) {
+          } catch (err) {
             console.error('tokenId cannot be converted to string', err);
           }
 
@@ -659,7 +659,6 @@ export default class Collection extends AbstractCollection {
       }
       const data = await opensea.getTokenIdsOfContract(this.contract.address, tokenIdsConcat);
       for (const datum of data.assets) {
-
         const tokenId = datum.token_id;
         let tokenIdNumeric = NaN;
         try {
