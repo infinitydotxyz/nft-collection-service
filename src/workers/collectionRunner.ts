@@ -101,10 +101,7 @@ export async function create(
     if (currentTotalSupply - prevTotalSupply > divergenceThreshold) {
       log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
       // reset
-      await collectionDoc.set(
-        { state: { create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now() } } },
-        { merge: true }
-      );
+      currentCollection.state = { create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now(), progress: 0 }, version: COLLECTION_SCHEMA_VERSION, export: { done: currentCollection?.state?.export.done ?? false } };
     } else {
       log(
         `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
