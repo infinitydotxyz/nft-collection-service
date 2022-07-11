@@ -13,7 +13,7 @@ import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
-import { firebase, logger, tokenDao } from '../container';
+import { firebase, logger, tokenDao, zora } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Collection from '../models/Collection';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -91,12 +91,28 @@ export async function create(
   const indexerRan = currentCollection?.state?.create?.step === CreationFlow.Incomplete;
   const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
   const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
-  if (successful) {
-    log(`Collection Completed: ${chainId}:${address}`);
-    return;
-  } else if (indexerRan) {
-    log(`Ran indexer for collection: ${chainId}:${address} previously. Skipping for now`);
-    return;
+  if (successful || indexerRan) {
+    // check if this is a collection that is currently being minted
+    // one way to check is if there is a large diversion in totalSupply from the last time
+    const prevTotalSupply = currentCollection?.numNfts ?? 0;
+    const currentStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
+    const currentTotalSupply = currentStats?.aggregateStat.nftCount ?? 0;
+    const divergenceThreshold = 100;
+    if (currentTotalSupply - prevTotalSupply > divergenceThreshold) {
+      log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
+      // reset
+      currentCollection.state = {
+        create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now(), progress: 0 },
+        version: COLLECTION_SCHEMA_VERSION,
+        export: { done: currentCollection?.state?.export.done ?? false }
+      };
+      await collectionDoc.set(currentCollection, { merge: true });
+    } else {
+      log(
+        `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
+      );
+      return;
+    }
   } else if (unknownError) {
     log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
     return;
