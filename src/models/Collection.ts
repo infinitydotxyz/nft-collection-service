@@ -601,8 +601,7 @@ export default class Collection extends AbstractCollection {
             token.mintCurrencyDecimals = mintCurrencyDecimals;
             token.mintCurrencyName = mintCurrencyName;
 
-            if (tokenInfo?.token?.image?.url && token.image) {
-              token.image.originalUrl = tokenInfo?.token?.image?.url;
+            if (token.image) {
               token.image.updatedAt = Date.now();
             }
           }
