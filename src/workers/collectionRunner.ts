@@ -81,8 +81,16 @@ export async function create(
   const data = await collectionDoc.get();
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
+  // check if this is a collection that is currently being minted
+  // one way to check is if there is a large diversion in totalSupply from the last time
+  const prevTotalSupply = currentCollection?.numNfts ?? 0;
+  const zoraAggregatedStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
+  const currentTotalSupply = zoraAggregatedStats?.aggregateStat.nftCount ?? 0;
+  const divergenceThreshold = 100;
+  const isMinting = currentTotalSupply - prevTotalSupply > divergenceThreshold;
+
   const oneHourAgo = Date.now() - ONE_HOUR;
-  if (!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+  if (!reset && !isMinting && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
     log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
     return;
   }
@@ -92,13 +100,7 @@ export async function create(
   const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
   const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
   if (successful || indexerRan) {
-    // check if this is a collection that is currently being minted
-    // one way to check is if there is a large diversion in totalSupply from the last time
-    const prevTotalSupply = currentCollection?.numNfts ?? 0;
-    const currentStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
-    const currentTotalSupply = currentStats?.aggregateStat.nftCount ?? 0;
-    const divergenceThreshold = 100;
-    if (currentTotalSupply - prevTotalSupply > divergenceThreshold) {
+    if (isMinting) {
       log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
       // reset
       currentCollection.state = {
