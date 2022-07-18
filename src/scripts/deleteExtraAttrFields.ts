@@ -1,9 +1,9 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import 'reflect-metadata';
-import { Token } from '@infinityxyz/lib/types/core';
+import { Erc721Token } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
-import { alchemy, firebase } from 'container';
+import { firebase } from 'container';
 import { firestore } from 'firebase-admin';
 import { QuerySnapshot } from 'firebase-admin/firestore';
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'fs';
@@ -14,14 +14,10 @@ const db = firebase.db;
 
 const errorFile = path.join(__dirname, 'errors.txt');
 
-let totalZoraRemoved = 0;
-let totalAlchemyCachedImagesRemoved = 0;
 let totalColls = 0;
 let totalNfts = 0;
-let totallh3 = 0;
-let totalAlchemyCachedImagesFetched = 0;
 
-export async function removeZoraAndWrongAlchemyCachedImages() {
+export async function deleteExtraAttrFields() {
   // fetch collections from firestore
   console.log('============================== Fetching collections from firestore =================================');
   let startAfter = '';
@@ -92,7 +88,7 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
         cursor = nfts.docs[nfts.size - 1].get('tokenId');
 
         // write to firestore
-        updateDataInFirestore(collection, nftCollRef, nfts, fsBatchHandler);
+        updateDataInFirestore(nftCollRef, nfts, fsBatchHandler);
         done = nfts.size < limit;
       } catch (err) {
         console.error(err);
@@ -107,10 +103,6 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
         console.log(`===================== Finished removing zora images for collection ${collection} ========================`);
         console.log(`Total colls so far: ${totalColls}`);
         console.log(`Total nfts so far: ${totalNfts}`);
-        console.log(`Total lh3 images so far: ${totallh3}`);
-        console.log(`Total zora images removed so far: ${totalZoraRemoved}`);
-        console.log(`Total alchemy cached images removed so far: ${totalAlchemyCachedImagesRemoved}`);
-        console.log(`Total alchemy cached images fetched so far: ${totalAlchemyCachedImagesFetched}`);
       })
       .catch((e) => {
         console.error('Error removing zora images for collection', collection, e);
@@ -123,77 +115,20 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
 }
 
 function updateDataInFirestore(
-  collection: string,
   nftsCollRef: firestore.CollectionReference,
   nfts: QuerySnapshot,
   fsBatchHandler: BatchHandler
 ) {
   for (const nft of nfts.docs) {
     // update asset in collection/nfts collection
-    const data = nft.data() as Token;
+    const data = nft.data() as Erc721Token;
     const tokenId = data?.tokenId;
     if (data && tokenId) {
       const tokenRef = nftsCollRef.doc(tokenId);
-
-      // store tokenId as a number
-      try {
-        const tokenIdNumeric = Number(tokenId);
-        fsBatchHandler.add(tokenRef, { tokenIdNumeric }, { merge: true });
-      } catch (e) {
-        console.error('Error converting tokenId to number', tokenId, e);
-      }
-
-      // check if image is lh3
-      if (data.image && data.image.url?.includes('lh3')) {
-        totallh3++;
-      } else {
-        // fetch alchemy cached image async
-        fetchAlchemyCachedImage(collection, tokenId, tokenRef, fsBatchHandler);
-      }
-
-      // remove zora image from url field
-      const imageUrl = data.image?.url;
-      const isZoraImage = imageUrl?.includes('api.zora.co');
-      if (isZoraImage) {
-        const image = {
-          url: firestore.FieldValue.delete(),
-          originalUrl: data.image?.originalUrl,
-          updatedAt: Date.now()
-        };
-        totalZoraRemoved++;
-        fsBatchHandler.add(tokenRef, { image }, { merge: true });
-      }
-
-      // remove wrong alchemy cached image
-      const isCorrectAlchemyCachedImage = data.alchemyCachedImage?.includes('cloudinary');
-      if (data.alchemyCachedImage && !isCorrectAlchemyCachedImage) {
-        totalAlchemyCachedImagesRemoved++;
-        fsBatchHandler.add(tokenRef, { alchemyCachedImage: firestore.FieldValue.delete() }, { merge: true });
-      }
+      const newAttrs = (data.metadata?.attributes ?? []).map((attr) => ({ trait_type: attr.trait_type, value: attr.value }));
+      fsBatchHandler.add(tokenRef, { metadata: { attributes: newAttrs } }, { merge: true });
     }
   }
 }
 
-function fetchAlchemyCachedImage(
-  collection: string,
-  tokenId: string,
-  tokenRef: firestore.DocumentReference,
-  fsBatchHandler: BatchHandler
-) {
-  alchemy
-    .getNFTMetadata(collection, tokenId)
-    .then((alchemyData) => {
-      const dataToSave: Partial<Token> = {};
-      const cachedImage = alchemyData?.media?.[0]?.gateway;
-      if (cachedImage?.includes('cloudinary')) {
-        dataToSave.alchemyCachedImage = cachedImage;
-        totalAlchemyCachedImagesFetched++;
-        fsBatchHandler.add(tokenRef, dataToSave, { merge: true });
-      }
-    })
-    .catch((err) => {
-      console.error('Error fetching alchemy cached image', collection, tokenId, err);
-    });
-}
-
-void removeZoraAndWrongAlchemyCachedImages();
+void deleteExtraAttrFields();

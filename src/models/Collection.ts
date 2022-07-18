@@ -680,7 +680,7 @@ export default class Collection extends AbstractCollection {
             image_data: '',
             external_url: datum?.external_link ?? '',
             description: datum.description ?? '',
-            attributes: datum.traits,
+            attributes: datum.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value })),
             background_color: datum.background_color ?? '',
             animation_url: datum?.animation_url ?? '',
             youtube_url: ''
