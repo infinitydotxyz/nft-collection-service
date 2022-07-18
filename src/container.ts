@@ -9,7 +9,6 @@ import OpenSeaClient from './services/OpenSea';
 import Logger from './utils/Logger';
 import Providers from './models/Providers';
 import Alchemy from './services/Alchemy';
-import MnemonicClient from './services/Mnemonic';
 import Zora from './services/Zora';
 import Reservoir from './services/Reservoir';
 
@@ -23,7 +22,6 @@ export const collectionDao: CollectionDao = container.resolve(CollectionDao);
 export const collectionService: CollectionService = container.resolve(delay(() => CollectionService));
 export const moralis: Moralis = container.resolve(Moralis);
 export const opensea: OpenSeaClient = container.resolve(OpenSeaClient);
-export const mnemonic: MnemonicClient = container.resolve(MnemonicClient);
 export const alchemy: Alchemy = container.resolve(Alchemy);
 export const zora: Zora = container.resolve(Zora);
 export const reservoir: Reservoir = container.resolve(Reservoir);
