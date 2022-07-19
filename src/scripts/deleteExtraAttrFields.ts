@@ -114,18 +114,17 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
   }
 }
 
-function updateDataInFirestore(
-  nftsCollRef: firestore.CollectionReference,
-  nfts: QuerySnapshot,
-  fsBatchHandler: BatchHandler
-) {
+function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts: QuerySnapshot, fsBatchHandler: BatchHandler) {
   for (const nft of nfts.docs) {
     // update asset in collection/nfts collection
     const data = nft.data() as Erc721Token;
     const tokenId = data?.tokenId;
     if (data && tokenId) {
       const tokenRef = nftsCollRef.doc(tokenId);
-      const newAttrs = (data.metadata?.attributes ?? []).map((attr) => ({ trait_type: attr.trait_type, value: attr.value }));
+      const newAttrs = (data.metadata?.attributes ?? []).map((attr) => ({
+        trait_type: attr.trait_type ?? (attr as any).traitType,
+        value: attr.value
+      }));
       fsBatchHandler.add(tokenRef, { metadata: { attributes: newAttrs } }, { merge: true });
     }
   }
