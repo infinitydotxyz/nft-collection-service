@@ -70,6 +70,16 @@ async function runAFew(colls: QuerySnapshot) {
 
 async function run(collection: string, nftCollRef: firestore.CollectionReference) {
   try {
+    // ignore if too many nfts
+    // gods unchained, ens, unstoppable domains
+    if (
+      collection === '0x0e3a2a1f2146d86a604adc220b4967a898d7fe07' ||
+      collection === '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85' ||
+      collection === '0x049aba7510f45ba5b64ea9e658e342f904db358d' ||
+      collection === '0xd1e5b0ff1287aa9f9a268759062e4ab08b9dacbe'
+    ) {
+      return;
+    }
     totalColls++;
     console.log('Updating nfts for', collection, '....');
     const fsBatchHandler = new BatchHandler();
