@@ -100,12 +100,12 @@ async function run(collection: string, nftCollRef: firestore.CollectionReference
     fsBatchHandler
       .flush()
       .then(() => {
-        console.log(`===================== Finished removing zora images for collection ${collection} ========================`);
+        console.log(`===================== Finished updating attrs for collection ${collection} ========================`);
         console.log(`Total colls so far: ${totalColls}`);
         console.log(`Total nfts so far: ${totalNfts}`);
       })
       .catch((e) => {
-        console.error('Error removing zora images for collection', collection, e);
+        console.error('Error updating attrs for collection', collection, e);
         appendFileSync(errorFile, `${collection}\n`);
       });
   } catch (e) {
