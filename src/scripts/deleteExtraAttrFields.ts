@@ -131,10 +131,10 @@ function updateDataInFirestore(nftsCollRef: firestore.CollectionReference, nfts:
     const tokenId = data?.tokenId;
     if (data && tokenId) {
       const tokenRef = nftsCollRef.doc(tokenId);
-      const newAttrs = (data.metadata?.attributes ?? []).map((attr) => ({
-        trait_type: attr.trait_type ?? (attr as any).traitType,
-        value: attr.value
-      }));
+      const newAttrs = (data.metadata?.attributes ?? []).map((attr) => {
+        const isTraitValueNumeric = !isNaN(Number(attr.value));
+        return { trait_type: attr.trait_type, value: isTraitValueNumeric ? Number(attr.value) : attr.value };
+      });
       fsBatchHandler.add(tokenRef, { metadata: { attributes: newAttrs } }, { merge: true });
     }
   }
