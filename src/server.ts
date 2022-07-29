@@ -105,9 +105,7 @@ export async function main(): Promise<void> {
           }
         };
 
-        const [response] = await client.createTask(request);
-        logger.log(response);
-
+        await client.createTask(request);
         res.sendStatus(202); // added to queue
         return;
       } catch (err: any) {
