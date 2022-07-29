@@ -12,7 +12,7 @@ import { CollectionEmitterType } from 'models/Collection.abstract';
 import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
 import { Worker } from 'worker_threads';
-import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
+import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import { firebase, logger, tokenDao, zora } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Collection from '../models/Collection';
@@ -88,6 +88,11 @@ export async function create(
   const currentTotalSupply = zoraAggregatedStats?.aggregateStat.nftCount ?? 0;
   const divergenceThreshold = 100;
   const isMinting = currentTotalSupply - prevTotalSupply > divergenceThreshold;
+
+  if (prevTotalSupply >= COLLECTION_MAX_SUPPLY || currentTotalSupply >= COLLECTION_MAX_SUPPLY) {
+    log(`Collection ${chainId}:${address} has too many tokens to index`);
+    return;
+  }
 
   const oneHourAgo = Date.now() - ONE_HOUR;
   if (!reset && !isMinting && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
