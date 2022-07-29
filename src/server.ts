@@ -41,10 +41,11 @@ export async function main(): Promise<void> {
    */
   app.post(
     '/collection',
-    async (req: Request<any, { chainId: string; address: string; indexInitiator: string }>, res: Response) => {
+    async (req: Request<any, { chainId: string; address: string; indexInitiator: string; reset?: boolean }>, res: Response) => {
       let address: string;
       let chainId: string;
       let indexInitiator: string;
+      const reset = (req.body.reset ?? false) as boolean;
 
       address = req.body.address as string;
       chainId = req.body.chainId as string;
@@ -78,7 +79,8 @@ export async function main(): Promise<void> {
         const payload = JSON.stringify({
           chainId,
           address,
-          indexInitiator
+          indexInitiator,
+          reset
         });
         const parent = client.queuePath(PROJECT, PROJECT_LOCATION, COLLECTION_QUEUE);
 
@@ -124,19 +126,18 @@ export async function main(): Promise<void> {
    */
   app.post(
     '/queue/collection',
-    async (req: Request<any, { chainId: string; address: string; indexInitiator: string }>, res: Response) => {
+    async (req: Request<any, { chainId: string; address: string; indexInitiator: string; reset?: boolean }>, res: Response) => {
       let address: string;
       let chainId: string;
       let indexInitiator: string;
+      const reset = (req.body.reset ?? false) as boolean;
+
       try {
         const authHeader = req.headers['x-api-key'];
         if (authHeader !== COLLECTION_QUEUE_API_KEY) {
           res.sendStatus(403);
           return;
         }
-
-        logger.log(req.headers);
-        logger.log(req.body);
 
         const buffer = req.body as Buffer;
         const data = JSON.parse(buffer.toString());
@@ -165,7 +166,7 @@ export async function main(): Promise<void> {
           return;
         }
 
-        await collectionService.createCollection(address, chainId, false, false, indexInitiator);
+        await collectionService.createCollection(address, chainId, false, reset, indexInitiator);
         res.sendStatus(200);
       } catch (err) {
         logger.error(err);
