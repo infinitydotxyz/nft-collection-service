@@ -26,7 +26,7 @@ import { resetStep } from 'scripts/resetStep';
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
-    await addV1AirdropToCurrentRewards();
+    // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
     // await updateCollectionMetadata();
