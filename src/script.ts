@@ -26,6 +26,7 @@ import { resetStep } from 'scripts/resetStep';
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
+    await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
     // await updateCollectionMetadata();
@@ -82,6 +83,27 @@ export function flattener(): void {
     }
   }
   fs.appendFileSync('results.json', ']');
+}
+
+export async function addV1AirdropToCurrentRewards(): Promise<void> {
+  const data = await firebase.db.collection('airdropStats').get();
+  const numUsers = data.docs.length;
+  console.log(`Found ${numUsers} users`);
+  data.forEach(async (doc) => {
+    // await sleep(2000);
+    const user = doc.id;
+    const v1Airdrop = doc.get('finalEarnedTokens') as number;
+    if (v1Airdrop) {
+      await firebase.db
+        .collection('users')
+        .doc(user)
+        .collection('userRewards')
+        .doc('1')
+        .collection('userAllTimeRewards')
+        .doc('userAllTimeTransactionFeeRewards')
+        .set({ v1Airdrop }, { merge: true });
+    }
+  });
 }
 
 export async function appendDisplayTypeToCollections(): Promise<void> {
