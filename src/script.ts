@@ -89,8 +89,8 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
   const data = await firebase.db.collection('airdropStats').get();
   const numUsers = data.docs.length;
   console.log(`Found ${numUsers} users`);
-  data.forEach(async (doc) => {
-    // await sleep(2000);
+  let totalUpdatedSoFar = 0;
+  for (const doc of data.docs) {
     const user = doc.id;
     const v1Airdrop = doc.get('finalEarnedTokens') as number;
     if (v1Airdrop) {
@@ -103,7 +103,8 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
         .doc('userAllTimeTransactionFeeRewards')
         .set({ v1Airdrop }, { merge: true });
     }
-  });
+    console.log(`Updated user: ${user}, total updated so far, ${++totalUpdatedSoFar}`);
+  }
 }
 
 export async function appendDisplayTypeToCollections(): Promise<void> {
