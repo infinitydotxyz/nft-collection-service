@@ -95,7 +95,12 @@ export async function create(
   }
 
   const oneHourAgo = Date.now() - ONE_HOUR;
-  if (!reset && !isMinting && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+  if (
+    !reset &&
+    !isMinting &&
+    currentCollection?.state?.create?.updatedAt &&
+    currentCollection?.state?.create?.updatedAt > oneHourAgo
+  ) {
     log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
     return;
   }
@@ -114,12 +119,13 @@ export async function create(
         export: { done: currentCollection?.state?.export.done ?? false }
       };
       await collectionDoc.set(currentCollection, { merge: true });
-    } else {
-      log(
-        `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
-      );
-      return;
     }
+    // } else {
+    //   log(
+    //     `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
+    //   );
+    //   return;
+    // }
   } else if (unknownError) {
     log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
     return;
