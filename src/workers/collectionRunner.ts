@@ -12,7 +12,7 @@ import { CollectionEmitterType } from 'models/Collection.abstract';
 import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
 import { Worker } from 'worker_threads';
-import { COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
+import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION, NULL_ADDR, ONE_HOUR } from '../constants';
 import { firebase, logger, tokenDao, zora } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Collection from '../models/Collection';
@@ -81,8 +81,26 @@ export async function create(
   const data = await collectionDoc.get();
   const currentCollection = (reset ? {} : data.data() ?? {}) as Partial<CollectionType>;
 
+  // check if this is a collection that is currently being minted
+  // one way to check is if there is a large diversion in totalSupply from the last time
+  const prevTotalSupply = currentCollection?.numNfts ?? 0;
+  const zoraAggregatedStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
+  const currentTotalSupply = zoraAggregatedStats?.aggregateStat.nftCount ?? 0;
+  const divergenceThreshold = 100;
+  const isMinting = currentTotalSupply - prevTotalSupply > divergenceThreshold;
+
+  if (prevTotalSupply >= COLLECTION_MAX_SUPPLY || currentTotalSupply >= COLLECTION_MAX_SUPPLY) {
+    log(`Collection ${chainId}:${address} has too many tokens to index`);
+    return;
+  }
+
   const oneHourAgo = Date.now() - ONE_HOUR;
-  if (!reset && currentCollection?.state?.create?.updatedAt && currentCollection?.state?.create?.updatedAt > oneHourAgo) {
+  if (
+    !reset &&
+    !isMinting &&
+    currentCollection?.state?.create?.updatedAt &&
+    currentCollection?.state?.create?.updatedAt > oneHourAgo
+  ) {
     log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
     return;
   }
@@ -92,13 +110,7 @@ export async function create(
   const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
   const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
   if (successful || indexerRan) {
-    // check if this is a collection that is currently being minted
-    // one way to check is if there is a large diversion in totalSupply from the last time
-    const prevTotalSupply = currentCollection?.numNfts ?? 0;
-    const currentStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
-    const currentTotalSupply = currentStats?.aggregateStat.nftCount ?? 0;
-    const divergenceThreshold = 100;
-    if (currentTotalSupply - prevTotalSupply > divergenceThreshold) {
+    if (isMinting) {
       log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
       // reset
       currentCollection.state = {
@@ -107,12 +119,13 @@ export async function create(
         export: { done: currentCollection?.state?.export.done ?? false }
       };
       await collectionDoc.set(currentCollection, { merge: true });
-    } else {
-      log(
-        `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
-      );
-      return;
     }
+    // } else {
+    //   log(
+    //     `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
+    //   );
+    //   return;
+    // }
   } else if (unknownError) {
     log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
     return;

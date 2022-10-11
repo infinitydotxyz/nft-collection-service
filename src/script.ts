@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import 'dotenv/config';
 import 'reflect-metadata';
-import { firebase, logger, opensea, mnemonic, collectionDao, alchemy, zora } from './container';
+import { firebase, logger, opensea, collectionDao, alchemy, zora } from './container';
 import { sleep } from './utils';
 import { readFile } from 'fs/promises';
 import fs from 'fs';
@@ -21,12 +21,12 @@ import { addBlueCheck } from 'scripts/addBlueCheck';
 import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
 import { resetStep } from 'scripts/resetStep';
-import { StatsPeriod } from './services/Mnemonic';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
+    // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
     // await updateCollectionMetadata();
@@ -34,7 +34,6 @@ export async function main(): Promise<void> {
     // await resetStep();
     // return;
     // await getCollectionNFTsFromAlchemy();
-    // await writeTopMnemonicCollectionsToLocalFile();
     // return;
     // const summary = await collectionDao.getCollectionsSummary();
     // fs.writeFileSync('./summary.json', JSON.stringify(summary, null, 2));
@@ -86,6 +85,28 @@ export function flattener(): void {
   fs.appendFileSync('results.json', ']');
 }
 
+export async function addV1AirdropToCurrentRewards(): Promise<void> {
+  const data = await firebase.db.collection('airdropStats').get();
+  const numUsers = data.docs.length;
+  console.log(`Found ${numUsers} users`);
+  let totalUpdatedSoFar = 0;
+  for (const doc of data.docs) {
+    const user = doc.id;
+    const v1Airdrop = doc.get('finalEarnedTokens') as number;
+    if (v1Airdrop) {
+      await firebase.db
+        .collection('users')
+        .doc(user)
+        .collection('userRewards')
+        .doc('1')
+        .collection('userAllTimeRewards')
+        .doc('userAllTimeTransactionFeeRewards')
+        .set({ v1Airdrop }, { merge: true });
+    }
+    console.log(`Updated user: ${user}, total updated so far, ${++totalUpdatedSoFar}`);
+  }
+}
+
 export async function appendDisplayTypeToCollections(): Promise<void> {
   const data = await firebase.db.collection('collections').get();
   data.forEach(async (doc) => {
@@ -103,43 +124,10 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
   });
 }
 
-export async function getCollectionsFromMnemonic(): Promise<void> {
-  const data = await mnemonic.getERC721Collections();
-  console.log(data);
-}
-
 export async function getCollectionNFTsFromAlchemy(): Promise<void> {
   // bayc
   const data = await alchemy.getNFTsOfCollection('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d', '0');
   console.log(JSON.stringify(data, null, 2));
-}
-
-export async function writeTopMnemonicCollectionsToLocalFile() {
-  const monthlyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Monthly, 500, 0);
-  const weeklyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Weekly, 500, 0);
-  const dailyTop500 = await mnemonic.getTopCollections('by_sales_volume', StatsPeriod.Daily, 500, 0);
-
-  // dedup
-  const collections = new Set<string>();
-  monthlyTop500?.collections.forEach((collection) => {
-    collections.add(collection.contractAddress ?? '');
-  });
-  weeklyTop500?.collections.forEach((collection) => {
-    collections.add(collection.contractAddress ?? '');
-  });
-  dailyTop500?.collections.forEach((collection) => {
-    collections.add(collection.contractAddress ?? '');
-  });
-
-  console.log('Total collections', collections.size);
-
-  // write to file
-  const file = path.join(__dirname, '../topMnemonicColls.json');
-  fs.appendFileSync(file, '[');
-  for (const collection of collections) {
-    fs.appendFileSync(file, `{ "address": "${collection}"},`);
-  }
-  fs.appendFileSync(file, ']');
 }
 
 void main();

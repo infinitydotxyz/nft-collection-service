@@ -455,9 +455,10 @@ export default class Collection extends AbstractCollection {
 
           for (const attr of token.attributes) {
             if (metadata.attributes) {
+              const isTraitValueNumeric = !isNaN(Number(attr.value));
               metadata.attributes.push({
                 trait_type: attr.key,
-                value: attr.value
+                value: isTraitValueNumeric ? Number(attr.value) : attr.value
               });
             }
           }
@@ -551,9 +552,10 @@ export default class Collection extends AbstractCollection {
           if (attributes && attributes.length > 0) {
             metadata.attributes = [];
             for (const attr of attributes) {
+              const isTraitValueNumeric = !isNaN(Number(attr.value));
               metadata.attributes.push({
                 trait_type: attr.trait_type,
-                value: attr.value
+                value: isTraitValueNumeric ? Number(attr.value) : attr.value
               });
             }
           }
@@ -601,8 +603,7 @@ export default class Collection extends AbstractCollection {
             token.mintCurrencyDecimals = mintCurrencyDecimals;
             token.mintCurrencyName = mintCurrencyName;
 
-            if (tokenInfo?.token?.image?.url && token.image) {
-              token.image.originalUrl = tokenInfo?.token?.image?.url;
+            if (token.image) {
               token.image.updatedAt = Date.now();
             }
           }
@@ -681,7 +682,10 @@ export default class Collection extends AbstractCollection {
             image_data: '',
             external_url: datum?.external_link ?? '',
             description: datum.description ?? '',
-            attributes: datum.traits,
+            attributes: datum.traits.map((trait) => {
+              const isTraitValueNumeric = !isNaN(Number(trait.value));
+              return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+            }),
             background_color: datum.background_color ?? '',
             animation_url: datum?.animation_url ?? '',
             youtube_url: ''

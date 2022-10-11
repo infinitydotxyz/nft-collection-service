@@ -1,6 +1,7 @@
 import { ZoraAggregateCollectionStatsResponse, ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora';
-import { gql, GraphQLClient } from 'graphql-request';
+import { ClientError, gql, GraphQLClient } from 'graphql-request';
 import { singleton } from 'tsyringe';
+import { sleep } from 'utils';
 import { ZORA_API_KEY } from '../constants';
 
 @singleton()
@@ -21,6 +22,21 @@ export default class Zora {
     collectionAddress: string,
     topOwnersLimit: number
   ): Promise<ZoraAggregateCollectionStatsResponse | undefined> {
+    const numRetries = 3;
+    const data = await this.tryFetchStats(chainId, collectionAddress, topOwnersLimit, numRetries);
+    return data as ZoraAggregateCollectionStatsResponse;
+  }
+
+  private async tryFetchStats(
+    chainId: string,
+    collectionAddress: string,
+    topOwnersLimit: number,
+    numRetries: number
+  ): Promise<ZoraAggregateCollectionStatsResponse | undefined> {
+    if (numRetries === 0) {
+      throw Error('Retries exceeded');
+    }
+
     try {
       const query = gql`
         query MyQuery {
@@ -45,20 +61,43 @@ export default class Zora {
         }
       `;
 
-      const data = await this.zoraClient.request(query);
-      return data as ZoraAggregateCollectionStatsResponse;
+      return await this.zoraClient.request(query);
     } catch (e) {
-      console.error('failed to get aggregated collection stats info from zora', chainId, collectionAddress, e);
+      if (e instanceof ClientError) {
+        const status = e.response.status;
+        if (status === 429) {
+          // too many requests
+          await sleep(1000);
+          return this.tryFetchStats(chainId, collectionAddress, topOwnersLimit, --numRetries);
+        }
+      } else {
+        console.error('failed to get aggregated collection stats info from zora', chainId, collectionAddress, e);
+      }
     }
   }
 
-  // default sorting by tokenId ascending
   public async getTokens(
     chainId: string,
     collectionAddress: string,
     after: string,
     limit: number
   ): Promise<ZoraTokensResponse | undefined> {
+    const numRetries = 3;
+    const data = await this.tryFetchTokens(chainId, collectionAddress, after, limit, numRetries);
+    return data as ZoraTokensResponse;
+  }
+
+  private async tryFetchTokens(
+    chainId: string,
+    collectionAddress: string,
+    after: string,
+    limit: number,
+    numRetries: number
+  ): Promise<ZoraTokensResponse | undefined> {
+    if (numRetries === 0) {
+      throw Error('Retries exceeded');
+    }
+
     try {
       const query = gql`
         query MyQuery {
@@ -108,7 +147,16 @@ export default class Zora {
       const data = await this.zoraClient.request(query);
       return data as ZoraTokensResponse;
     } catch (e) {
-      console.error('Failed to get tokens from zora', chainId, collectionAddress, e);
+      if (e instanceof ClientError) {
+        const status = e.response.status;
+        if (status === 429) {
+          // too many requests
+          await sleep(1000);
+          return this.tryFetchTokens(chainId, collectionAddress, after, limit, --numRetries);
+        }
+      } else {
+        console.error('Failed to get tokens from zora', chainId, collectionAddress, e);
+      }
     }
   }
 }
