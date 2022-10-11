@@ -67,7 +67,7 @@ export async function updateCollectionMetadata() {
           metadata.links.medium = resp.links.medium;
         }
         if (resp.links.twitter) {
-          metadata.links.twitter = resp.links.twitter;
+          metadata.links.twitter = resp.links.twitter?.toLowerCase();
         }
         if (resp.links.telegram) {
           metadata.links.telegram = resp.links.telegram;

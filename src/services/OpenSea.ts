@@ -125,7 +125,10 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
         slug: collection?.slug ?? '',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         telegram: collection?.telegram_url ?? '',
-        twitter: typeof collection?.twitter_username === 'string' ? `https://twitter.com/${collection.twitter_username}` : '',
+        twitter:
+          typeof collection?.twitter_username === 'string'
+            ? `https://twitter.com/${collection.twitter_username.toLowerCase()}`
+            : '',
         instagram:
           typeof collection?.instagram_username === 'string' ? `https://instagram.com/${collection.instagram_username}` : '',
         wiki: collection?.wiki_url ?? ''
