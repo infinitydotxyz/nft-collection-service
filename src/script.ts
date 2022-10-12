@@ -15,18 +15,23 @@ import { deleteCollectionGroups } from 'scripts/deleteDataSubColl';
 import { start } from 'scripts/deleteDataSubCollThreads';
 import { fixInfinityStats } from 'scripts/fixInfinityStats';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { CreationFlow } from '@infinityxyz/lib/types/core';
+import { AllTimeTransactionFeeRewardsDoc, ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
 import { reIndex } from 'scripts/reIndex';
 import { addBlueCheck } from 'scripts/addBlueCheck';
 import { updateGoerliDoodlesImages } from 'scripts/updateGoerliDoodlesImages';
 import { updateCollectionMetadata } from 'scripts/updateCollectionMetadata';
 import { resetStep } from 'scripts/resetStep';
+import Firebase from 'database/Firebase';
+import { UserRewardsDto } from '@infinityxyz/lib/types/dto';
+import PQueue from 'p-queue';
+import { CollectionTotalSupplyExceededError } from 'models/errors/CreationFlow';
+import { v1 } from 'firebase-admin/firestore';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
-    // await addV1AirdropToCurrentRewards();
+    await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
     // await updateCollectionMetadata();
@@ -87,6 +92,8 @@ export function flattener(): void {
 
 export async function addV1AirdropToCurrentRewards(): Promise<void> {
   const data = await firebase.db.collection('airdropStats').get();
+
+  const queue = new PQueue({ concurrency: 300 });
   const numUsers = data.docs.length;
   console.log(`Found ${numUsers} users`);
   let totalUpdatedSoFar = 0;
@@ -94,17 +101,55 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
     const user = doc.id;
     const v1Airdrop = doc.get('finalEarnedTokens') as number;
     if (v1Airdrop) {
-      await firebase.db
-        .collection('users')
-        .doc(user)
-        .collection('userRewards')
-        .doc('1')
-        .collection('userAllTimeRewards')
-        .doc('userAllTimeTransactionFeeRewards')
-        .set({ v1Airdrop }, { merge: true });
+      queue
+        .add(async () => {
+          await firebase.db.runTransaction(async (txn) => {
+            const v1AirdropDoc = await txn.get(doc.ref);
+            const v1Airdrop = v1AirdropDoc.get('finalEarnedTokens') ?? (0 as number);
+            const allTimeTxnFeeRewardsRef = firebase.db
+              .collection('users')
+              .doc(user)
+              .collection('userRewards')
+              .doc('1')
+              .collection('userAllTimeRewards')
+              .doc('userAllTimeTransactionFeeRewards') as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
+            const allTimeTxnFeeSnap = await txn.get(allTimeTxnFeeRewardsRef);
+
+            const defaultAllTimeTxnFeesDoc: AllTimeTransactionFeeRewardsDoc = {
+              userAddress: user,
+              chainId: ChainId.Mainnet,
+              rewards: 0,
+              volumeEth: 0,
+              volumeWei: '0',
+              volumeUSDC: 0,
+              updatedAt: Date.now(),
+              userSells: 0,
+              userBuys: 0,
+              protocolFeesWei: '0',
+              protocolFeesEth: 0,
+              protocolFeesUSDC: 0,
+              v1Airdrop: 0
+            };
+
+            let allTimeTxnFees = allTimeTxnFeeSnap.data() ?? defaultAllTimeTxnFeesDoc;
+
+            allTimeTxnFees = {
+              ...defaultAllTimeTxnFeesDoc,
+              ...allTimeTxnFees
+            };
+
+            allTimeTxnFees.v1Airdrop = v1Airdrop;
+            txn.set(allTimeTxnFeeRewardsRef, allTimeTxnFees, { merge: true });
+          });
+          console.log(`Updated user: ${user}, airdrop: ${v1Airdrop} total updated so far, ${++totalUpdatedSoFar}`);
+        })
+        .catch((err) => {
+          console.error(err);
+        });
     }
-    console.log(`Updated user: ${user}, total updated so far, ${++totalUpdatedSoFar}`);
   }
+
+  await queue.onIdle();
 }
 
 export async function appendDisplayTypeToCollections(): Promise<void> {
