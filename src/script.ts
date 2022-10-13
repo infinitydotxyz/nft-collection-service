@@ -31,7 +31,7 @@ import { v1 } from 'firebase-admin/firestore';
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
-    await exportV1AirdropToCsv();
+    // await exportV1AirdropToCsv();
     // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
