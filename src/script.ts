@@ -26,6 +26,7 @@ import { resetStep } from 'scripts/resetStep';
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
+    await exportV1AirdropToCsv();
     // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
     // return;
@@ -103,6 +104,23 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
         .doc('userAllTimeTransactionFeeRewards')
         .set({ v1Airdrop }, { merge: true });
     }
+    console.log(`Updated user: ${user}, total updated so far, ${++totalUpdatedSoFar}`);
+  }
+}
+
+export async function exportV1AirdropToCsv(): Promise<void> {
+  const data = await firebase.db.collection('airdropStats').get();
+  const numUsers = data.docs.length;
+  console.log(`Found ${numUsers} users`);
+  let totalUpdatedSoFar = 0;
+  for (const doc of data.docs) {
+    const user = doc.id;
+    const v1Airdrop = doc.get('finalEarnedTokens') as number;
+    let lines = '';
+    if (v1Airdrop) {
+      lines += `${user},${v1Airdrop}\n`;
+    }
+    fs.appendFileSync('v1Airdrop.csv', lines);
     console.log(`Updated user: ${user}, total updated so far, ${++totalUpdatedSoFar}`);
   }
 }
