@@ -129,7 +129,9 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
               protocolFeesWei: '0',
               protocolFeesEth: 0,
               protocolFeesUSDC: 0,
-              v1Airdrop: 0
+              v1Airdrop: 0,
+              userListings: 0,
+              listingRewards: 0
             };
 
             let allTimeTxnFees = allTimeTxnFeeSnap.data() ?? defaultAllTimeTxnFeesDoc;
