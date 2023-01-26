@@ -463,6 +463,14 @@ export default class Collection extends AbstractCollection {
             }
           }
 
+          const attrMap: any = {};
+          metadata.attributes?.forEach?.((attr) => {
+            const attrType = getSearchFriendlyString(attr.trait_type);
+            const attrValue = getSearchFriendlyString(String(attr.value));
+            attrMap[`${attrType}:::${attrValue}`] = true;
+          });
+          metadata.attributesMap = attrMap;
+
           let tokenIdNumeric = NaN;
           try {
             tokenIdNumeric = Number(tokenId);
@@ -559,6 +567,14 @@ export default class Collection extends AbstractCollection {
               });
             }
           }
+
+          const attrMap: any = {};
+          metadata.attributes?.forEach?.((attr) => {
+            const attrType = getSearchFriendlyString(attr.trait_type);
+            const attrValue = getSearchFriendlyString(String(attr.value));
+            attrMap[`${attrType}:::${attrValue}`] = true;
+          });
+          metadata.attributesMap = attrMap;
 
           if (name) {
             metadata.name = name;
