@@ -26,11 +26,13 @@ import { UserRewardsDto } from '@infinityxyz/lib/types/dto';
 import PQueue from 'p-queue';
 import { CollectionTotalSupplyExceededError } from 'models/errors/CreationFlow';
 import { v1 } from 'firebase-admin/firestore';
+import { createNewAttrStructureInNfts } from 'scripts/newAttrsStructure';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
+    await createNewAttrStructureInNfts();
     // await exportV1AirdropToCsv();
     // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);
