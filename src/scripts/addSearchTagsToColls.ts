@@ -90,7 +90,6 @@ function run(data: BaseCollection) {
     totalColls++;
     const slug = data.slug;
     const collectionMetadata = data.metadata;
-    const firstFourLetters = slug.slice(0, 4);
 
     const searchTags = [trimLowerCase(data.address)];
 
@@ -103,8 +102,27 @@ function run(data: BaseCollection) {
     if (slug) {
       searchTags.push(trimLowerCase(slug));
     }
+
+    const firstThreeLetters = slug.slice(0, 3);
+    const firstFourLetters = slug.slice(0, 4);
+    const firstFiveLetters = slug.slice(0, 5);
+    const firstSixLetters = slug.slice(0, 6);
+    const firstSevenLetters = slug.slice(0, 7);
+
+    if (firstThreeLetters) {
+      searchTags.push(trimLowerCase(firstThreeLetters));
+    }
     if (firstFourLetters) {
       searchTags.push(trimLowerCase(firstFourLetters));
+    }
+    if (firstFiveLetters) {
+      searchTags.push(trimLowerCase(firstFiveLetters));
+    }
+    if (firstSixLetters) {
+      searchTags.push(trimLowerCase(firstSixLetters));
+    }
+    if (firstSevenLetters) {
+      searchTags.push(trimLowerCase(firstSevenLetters));
     }
 
     // write to firestore
