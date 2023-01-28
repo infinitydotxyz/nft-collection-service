@@ -33,7 +33,7 @@ import { addSearchTagsToColls } from 'scripts/addSearchTagsToColls';
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
-    await addSearchTagsToColls();
+    // await addSearchTagsToColls();
     // await createNewAttrStructureInNfts();
     // await exportV1AirdropToCsv();
     // await addV1AirdropToCurrentRewards();
