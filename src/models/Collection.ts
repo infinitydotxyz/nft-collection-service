@@ -389,9 +389,20 @@ export default class Collection extends AbstractCollection {
     }
 
     const firstFourLetters = slug.slice(0, 4);
-    const searchTags = [slug, collection.address, collectionMetadata.name, collectionMetadata.symbol, firstFourLetters].map((e) =>
-      trimLowerCase(e)
-    );
+    const searchTags = [trimLowerCase(slug)];
+
+    if (collection?.address) {
+      searchTags.push(trimLowerCase(collection.address));
+    }
+    if (collectionMetadata?.name) {
+      searchTags.push(trimLowerCase(collectionMetadata.name));
+    }
+    if (collectionMetadata?.symbol) {
+      searchTags.push(trimLowerCase(collectionMetadata.symbol));
+    }
+    if (firstFourLetters) {
+      searchTags.push(trimLowerCase(firstFourLetters));
+    }
 
     const collectionMetadataCollection: CollectionMetadataType = {
       ...collection,
