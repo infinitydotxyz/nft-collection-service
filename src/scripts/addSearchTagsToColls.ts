@@ -22,36 +22,35 @@ export async function addSearchTagsToColls(collection?: string) {
     const collectionDocId = getCollectionDocId({ chainId: '1', collectionAddress: collection });
     const coll = await db.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get();
     run(coll.data() as BaseCollection);
-    return;
-  }
-
-  // fetch collections from firestore
-  console.log('============================== Fetching collections from firestore =================================');
-  let startAfter = '';
-  const offsetFile = path.join(__dirname, 'offset.txt');
-  if (existsSync(offsetFile)) {
-    startAfter = readFileSync(offsetFile, 'utf8');
-  }
-  const limit = 1000;
-  let done = false;
-  while (!done) {
-    const colls = await db
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .orderBy('address', 'asc')
-      .startAfter(startAfter)
-      .limit(limit)
-      .get();
-    console.log('================ START AFTER ===============', startAfter, colls.size);
-    writeFileSync(offsetFile, `${startAfter}`);
-
-    // update cursor
-    startAfter = colls.docs[colls.size - 1].get('address');
-
-    // break condition
-    if (colls.size < limit) {
-      done = true;
+  } else {
+    // fetch collections from firestore
+    console.log('============================== Fetching collections from firestore =================================');
+    let startAfter = '';
+    const offsetFile = path.join(__dirname, 'offset.txt');
+    if (existsSync(offsetFile)) {
+      startAfter = readFileSync(offsetFile, 'utf8');
     }
-    await runAFew(colls);
+    const limit = 1000;
+    let done = false;
+    while (!done) {
+      const colls = await db
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .orderBy('address', 'asc')
+        .startAfter(startAfter)
+        .limit(limit)
+        .get();
+      console.log('================ START AFTER ===============', startAfter, colls.size);
+      writeFileSync(offsetFile, `${startAfter}`);
+
+      // update cursor
+      startAfter = colls.docs[colls.size - 1].get('address');
+
+      // break condition
+      if (colls.size < limit) {
+        done = true;
+      }
+      await runAFew(colls);
+    }
   }
 
   // final flush
