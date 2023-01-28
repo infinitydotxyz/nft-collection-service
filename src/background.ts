@@ -2,7 +2,7 @@ import { CollectionStats } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import chalk from 'chalk';
 import Emittery from 'emittery';
-import { ONE_HOUR, ONE_MIN } from './constants';
+import { ONE_MIN } from './constants';
 import { collectionDao, firebase, logger, zora } from './container';
 import BatchHandler from './models/BatchHandler';
 
