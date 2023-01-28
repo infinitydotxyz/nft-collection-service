@@ -2,7 +2,7 @@ import { CollectionStats } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import chalk from 'chalk';
 import Emittery from 'emittery';
-import { ONE_HOUR } from './constants';
+import { ONE_HOUR, ONE_MIN } from './constants';
 import { collectionDao, firebase, logger, zora } from './container';
 import BatchHandler from './models/BatchHandler';
 
@@ -17,7 +17,7 @@ interface BackgroundTask {
 const tasks: BackgroundTask[] = [
   {
     name: 'Aggregated collection stats',
-    interval: ONE_HOUR,
+    interval: 15 * ONE_MIN,
     fn: updateAggregatedCollectionStats
   }
 ];
