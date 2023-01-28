@@ -388,7 +388,11 @@ export default class Collection extends AbstractCollection {
       throw new Error('Failed to find collection slug');
     }
 
+    const firstThreeLetters = slug.slice(0, 3);
     const firstFourLetters = slug.slice(0, 4);
+    const firstFiveLetters = slug.slice(0, 5);
+    const firstSixLetters = slug.slice(0, 6);
+    const firstSevenLetters = slug.slice(0, 7);
     const searchTags = [trimLowerCase(slug)];
 
     if (collection?.address) {
@@ -400,8 +404,20 @@ export default class Collection extends AbstractCollection {
     if (collectionMetadata?.symbol) {
       searchTags.push(trimLowerCase(collectionMetadata.symbol));
     }
+    if (firstThreeLetters) {
+      searchTags.push(trimLowerCase(firstThreeLetters));
+    }
     if (firstFourLetters) {
       searchTags.push(trimLowerCase(firstFourLetters));
+    }
+    if (firstFiveLetters) {
+      searchTags.push(trimLowerCase(firstFiveLetters));
+    }
+    if (firstSixLetters) {
+      searchTags.push(trimLowerCase(firstSixLetters));
+    }
+    if (firstSevenLetters) {
+      searchTags.push(trimLowerCase(firstSevenLetters));
     }
 
     const collectionMetadataCollection: CollectionMetadataType = {
