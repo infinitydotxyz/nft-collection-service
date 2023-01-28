@@ -27,12 +27,14 @@ import PQueue from 'p-queue';
 import { CollectionTotalSupplyExceededError } from 'models/errors/CreationFlow';
 import { v1 } from 'firebase-admin/firestore';
 import { createNewAttrStructureInNfts } from 'scripts/newAttrsStructure';
+import { addSearchTagsToColls } from 'scripts/addSearchTagsToColls';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
-    await createNewAttrStructureInNfts();
+    await addSearchTagsToColls('0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d');
+    // await createNewAttrStructureInNfts();
     // await exportV1AirdropToCsv();
     // await addV1AirdropToCurrentRewards();
     // await reIndex(CreationFlow.TokenMetadataOS);

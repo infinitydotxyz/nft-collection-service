@@ -1,7 +1,7 @@
 import { sleep } from '../utils';
 import { firebase, logger } from '../container';
 
-const MAX_SIZE = 200;
+const MAX_SIZE = 500;
 const MAX_PAYLOAD_SIZE = (11_534_336 * 3) / 4; // allocate 25% for any metadata that might be in the payload
 
 interface Batch {
@@ -19,6 +19,10 @@ export default class BatchHandler {
 
   get size(): number {
     return this.currentBatch.size;
+  }
+
+  get maxSize(): number {
+    return MAX_SIZE;
   }
 
   add(

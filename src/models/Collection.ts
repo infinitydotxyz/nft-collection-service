@@ -15,7 +15,13 @@ import {
   Token,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId, getSearchFriendlyString, normalizeAddress } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getCollectionDocId,
+  getSearchFriendlyString,
+  normalizeAddress,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
 import { Readable, Transform } from 'stream';
 import { filterStream, pageStream } from 'utils/streams';
@@ -50,7 +56,7 @@ type CollectionCreatorType = Pick<
   | 'indexInitiator'
 >;
 
-type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug'>;
+type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug' | 'searchTags'>;
 type CollectionMintsType = CollectionMetadataType;
 type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
 
@@ -382,11 +388,28 @@ export default class Collection extends AbstractCollection {
       throw new Error('Failed to find collection slug');
     }
 
+    const firstFourLetters = slug.slice(0, 4);
+    const searchTags = [trimLowerCase(slug)];
+
+    if (collection?.address) {
+      searchTags.push(trimLowerCase(collection.address));
+    }
+    if (collectionMetadata?.name) {
+      searchTags.push(trimLowerCase(collectionMetadata.name));
+    }
+    if (collectionMetadata?.symbol) {
+      searchTags.push(trimLowerCase(collectionMetadata.symbol));
+    }
+    if (firstFourLetters) {
+      searchTags.push(trimLowerCase(firstFourLetters));
+    }
+
     const collectionMetadataCollection: CollectionMetadataType = {
       ...collection,
       hasBlueCheck: (hasBlueCheck || collection.hasBlueCheck) ?? false,
       metadata: collectionMetadata,
-      slug: slug,
+      slug,
+      searchTags,
       state: {
         ...collection.state,
         create: {
