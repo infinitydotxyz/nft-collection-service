@@ -42,12 +42,13 @@ export default class Reservoir {
       const res: Response<ReservoirDetailedTokensResponse> = await this.errorHandler(() => {
         const searchParams: any = {
           contract: collectionAddress,
-          limit
+          limit,
+          includeAttributes: true
         };
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return this.client.get(`tokens/details/v4`, {
+        return this.client.get(`tokens/v5`, {
           searchParams,
           responseType: 'json'
         });
