@@ -455,7 +455,7 @@ export default class Collection extends AbstractCollection {
     ).data() as BaseCollection;
     let continuation = data?.state?.create?.reservoirCursor ?? '';
 
-    const reservoirLimit = 50;
+    const reservoirLimit = 100;
     let hasNextPage = true;
     let numNfts = 0;
     let numPages = 0;
@@ -514,8 +514,17 @@ export default class Collection extends AbstractCollection {
           try {
             tokenIdNumeric = Number(tokenId);
           } catch (err) {
-            console.error('tokenId cannot be converted to string', err);
+            console.error('tokenId cannot be converted to number', err);
           }
+
+          const isFlagged = token.isFlagged ?? false;
+          let lastFlagUpdate = 0;
+          try {
+            lastFlagUpdate = new Date(String(token.lastFlagUpdate)).getTime();
+          } catch (err) {
+            console.error('lastFlagUpdate cannot be converted to date', err);
+          }
+          const lastFlagChange = token.lastFlagChange ?? '';
 
           const tokenWithMetadata: Erc721Token = {
             slug: getSearchFriendlyString(name),
@@ -524,6 +533,9 @@ export default class Collection extends AbstractCollection {
             chainId: this.contract.chainId,
             numTraitTypes: token.attributes.length ?? 0,
             metadata,
+            isFlagged,
+            lastFlagUpdate,
+            lastFlagChange,
             updatedAt: Date.now(),
             owner: token.owner,
             tokenStandard: TokenStandard.ERC721 // default
