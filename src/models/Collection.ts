@@ -56,7 +56,7 @@ type CollectionCreatorType = Pick<
   | 'indexInitiator'
 >;
 
-type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug' | 'searchTags'>;
+type CollectionMetadataType = CollectionCreatorType & Pick<CollectionType, 'metadata' | 'slug' | 'searchTags' | 'isSupported'>;
 type CollectionMintsType = CollectionMetadataType;
 type CollectionTokenMetadataType = CollectionMetadataType & Pick<CollectionType, 'numNfts'>;
 
@@ -426,6 +426,7 @@ export default class Collection extends AbstractCollection {
       metadata: collectionMetadata,
       slug,
       searchTags,
+      isSupported: true,
       state: {
         ...collection.state,
         create: {
