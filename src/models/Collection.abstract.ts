@@ -47,7 +47,8 @@ export default abstract class Collection {
     emitter: Emittery<CollectionEmitterType>,
     indexInitiator: string,
     batch: BatchHandler,
-    hasBlueCheck?: boolean
+    hasBlueCheck: boolean,
+    partial: boolean
   ): AsyncGenerator<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
     any,

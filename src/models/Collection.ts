@@ -75,7 +75,8 @@ export default class Collection extends AbstractCollection {
     emitter: Emittery<CollectionEmitterType>,
     indexInitiator: string,
     batch: BatchHandler,
-    hasBlueCheck?: boolean
+    hasBlueCheck: boolean,
+    partial: boolean
   ): AsyncGenerator<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
     any,
@@ -107,20 +108,31 @@ export default class Collection extends AbstractCollection {
 
           case CreationFlow.CollectionMetadata:
             try {
-              collection = await this.getCollectionMetadata(collection, CreationFlow.TokenMetadata);
+              collection = await this.getCollectionMetadata(
+                collection,
+                partial,
+                partial ? CreationFlow.Incomplete : CreationFlow.TokenMetadata
+              );
 
-              // add collection to supported collections
-              const collectionDocId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
-              const supportedCollectionsDocRef = firebase.db.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).doc(collectionDocId);
-              const dataToSave: SupportedCollection = {
-                address: collection.address,
-                slug: (collection as CollectionMetadataType).slug,
-                name: (collection as CollectionMetadataType).metadata.name,
-                chainId: collection.chainId,
-                isSupported: true,
-                metadata: (collection as CollectionMetadataType).metadata
-              };
-              await supportedCollectionsDocRef.set(dataToSave, { merge: true });
+              if (!partial) {
+                // add collection to supported collections
+                const collectionDocId = getCollectionDocId({
+                  collectionAddress: collection.address,
+                  chainId: collection.chainId
+                });
+                const supportedCollectionsDocRef = firebase.db
+                  .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+                  .doc(collectionDocId);
+                const dataToSave: SupportedCollection = {
+                  address: collection.address,
+                  slug: (collection as CollectionMetadataType).slug,
+                  name: (collection as CollectionMetadataType).metadata.name,
+                  chainId: collection.chainId,
+                  isSupported: true,
+                  metadata: (collection as CollectionMetadataType).metadata
+                };
+                await supportedCollectionsDocRef.set(dataToSave, { merge: true });
+              }
 
               // fetch all time aggregated stats
               const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
@@ -391,6 +403,7 @@ export default class Collection extends AbstractCollection {
 
   private async getCollectionMetadata(
     collection: CollectionCreatorType,
+    partial: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
     const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
@@ -440,7 +453,7 @@ export default class Collection extends AbstractCollection {
       metadata: collectionMetadata,
       slug,
       searchTags,
-      isSupported: true,
+      isSupported: !partial,
       state: {
         ...collection.state,
         create: {

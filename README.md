@@ -18,12 +18,14 @@
                 * `chain` (optional) - Base 10 chain id. Defaults to 1
                 * `hasBlueCheck` (optional) - whether the collection is verified (defaults to false)
                 * `reset` (optional) - if set to `true` the collection will be reset and all data will be collected
+                * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed 
                 * `task` (optional) - the type of task to run. Valid tasks include 
                     * `create` (default) - creates a collection
             * File Mode
                 * `file` (required) - path to a file structured as    
                 * `hasBlueCheck` (optional) - overrides hasBlueCheck for every item in the file
                 * `reset` (optional) - if set to `true` all collections will be reset and all data will be collected
+                * * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed
                 ```ts
                 [
                     { 

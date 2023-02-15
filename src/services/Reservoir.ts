@@ -1,6 +1,7 @@
 import { ReservoirDetailedTokensResponse, ReservoirSingleCollectionResponse } from '@infinityxyz/lib/types/services/reservoir';
 import got, { Got, Response } from 'got/dist/source';
 import { singleton } from 'tsyringe';
+import { ReservoirCollectionAttributes } from 'types/Reservoir';
 import { RESERVOIR_API_KEY } from '../constants';
 import { sleep } from '../utils';
 import { gotErrorHandler } from '../utils/got';
@@ -30,6 +31,23 @@ export default class Reservoir {
       cache: false,
       timeout: 20_000
     });
+  }
+
+  public async getCollectionAttributes(
+    chainId: string,
+    collectionAddress: string
+  ): Promise<ReservoirCollectionAttributes | undefined> {
+    try {
+      const res: Response<ReservoirCollectionAttributes> = await this.errorHandler(() => {
+        return this.client.get(`collections/${collectionAddress}/attributes/all/v2`, {
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get coll attrs from reservoir', chainId, collectionAddress, e);
+    }
   }
 
   public async getDetailedTokensInfo(

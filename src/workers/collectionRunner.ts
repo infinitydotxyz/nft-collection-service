@@ -25,13 +25,14 @@ export async function createCollection(
   hasBlueCheck: boolean,
   reset = false,
   indexInitiator = NULL_ADDR,
+  partial = true,
   useWorker = true
 ): Promise<void> {
   if (useWorker) {
     return await new Promise<void>((resolve, reject) => {
       logger.log('Starting worker thread');
       const workerFile = path.resolve(__dirname, './collection.js');
-      const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator] });
+      const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator, partial] });
 
       worker.on('message', (msg) => {
         logger.log(msg);
@@ -51,7 +52,7 @@ export async function createCollection(
   /**
    * run in main process
    */
-  return await create(address, chainId, hasBlueCheck, reset, indexInitiator);
+  return await create(address, chainId, hasBlueCheck, reset, indexInitiator, partial);
 }
 
 export async function create(
@@ -60,9 +61,10 @@ export async function create(
   hasBlueCheck = false,
   reset = false,
   indexInitiator: string,
+  partial = true,
   log = logger.log.bind(logger)
 ): Promise<void> {
-  log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset}`);
+  log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset} Partial: ${partial}`);
   const provider = new CollectionMetadataProvider();
   const contractFactory = new ContractFactory();
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
@@ -302,7 +304,7 @@ export async function create(
     }
   });
 
-  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck);
+  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck, partial);
 
   let next: IteratorResult<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
@@ -331,7 +333,7 @@ export async function create(
         }
 
         log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
-        iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck);
+        iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck, partial);
         done = false;
       } else {
         const { collection: updatedCollection, action } = next.value;
