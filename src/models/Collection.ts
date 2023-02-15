@@ -12,6 +12,7 @@ import {
   ImageData,
   ImageToken,
   RefreshTokenFlow,
+  SupportedCollection,
   Token,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
@@ -107,6 +108,19 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.CollectionMetadata:
             try {
               collection = await this.getCollectionMetadata(collection, CreationFlow.TokenMetadata);
+
+              // add collection to supported collections
+              const collectionDocId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
+              const supportedCollectionsDocRef = firebase.db.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).doc(collectionDocId);
+              const dataToSave: SupportedCollection = {
+                address: collection.address,
+                slug: (collection as CollectionMetadataType).slug,
+                name: (collection as CollectionMetadataType).metadata.name,
+                chainId: collection.chainId,
+                isSupported: true,
+                metadata: (collection as CollectionMetadataType).metadata
+              };
+              await supportedCollectionsDocRef.set(dataToSave, { merge: true });
 
               // fetch all time aggregated stats
               const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
