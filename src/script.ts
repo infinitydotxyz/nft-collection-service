@@ -28,11 +28,13 @@ import { CollectionTotalSupplyExceededError } from 'models/errors/CreationFlow';
 import { v1 } from 'firebase-admin/firestore';
 import { createNewAttrStructureInNfts } from 'scripts/newAttrsStructure';
 import { addSearchTagsToColls } from 'scripts/addSearchTagsToColls';
+import { cleanAttrs } from 'scripts/cleanAttrs';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function main(): Promise<void> {
   try {
+    await cleanAttrs('1', '0x60e4d786628fea6478f785a6d7e704777c86a7c6');
     // await addSearchTagsToColls();
     // await createNewAttrStructureInNfts();
     // await exportV1AirdropToCsv();
