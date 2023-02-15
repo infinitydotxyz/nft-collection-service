@@ -10,9 +10,10 @@ import assert from 'assert';
  */
 export async function createCollection(): Promise<void> {
   assert(!isMainThread, 'Attempted to create collection via a worker thread method in the main thread');
-  const [, , address, chainId, hasBlueCheckArg, resetArg, indexInitiator] = process.argv;
+  const [, , address, chainId, hasBlueCheckArg, resetArg, indexInitiator, partialArg] = process.argv;
   const hasBlueCheck = hasBlueCheckArg === 'true';
   const reset = resetArg === 'true';
+  const partial = partialArg === 'true';
 
   const hex = address.split('0x')[1].substring(0, 6);
   const color = chalk.hex(`#${hex}`);
@@ -23,5 +24,5 @@ export async function createCollection(): Promise<void> {
 
   const log = (args: any | any[]): void => parentPort?.postMessage(color(args));
 
-  await create(address, chainId, hasBlueCheck, reset, indexInitiator, log);
+  await create(address, chainId, hasBlueCheck, reset, indexInitiator, partial, log);
 }

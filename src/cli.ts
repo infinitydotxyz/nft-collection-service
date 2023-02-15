@@ -103,6 +103,10 @@ async function addressMode(): Promise<void> {
     {
       arg: 'reset',
       default: 'false'
+    },
+    {
+      arg: 'partial',
+      default: 'true'
     }
   ];
 
@@ -112,10 +116,11 @@ async function addressMode(): Promise<void> {
   const chainId = args.chain;
   const hasBlueCheck = args.hasBlueCheck === 'true';
   const reset = args.reset === 'true';
+  const partial = args.partial === 'true';
 
   try {
     logger.log(`Starting Task: create Address: ${address} Chain Id: ${chainId} `);
-    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR);
+    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR, partial);
   } catch (err) {
     logger.log(`Failed to complete task`);
     logger.error(err);
@@ -138,6 +143,10 @@ async function fileMode(): Promise<void> {
     {
       arg: 'reset',
       default: 'false'
+    },
+    {
+      arg: 'partial',
+      default: 'true'
     }
   ];
 
@@ -150,6 +159,7 @@ async function fileMode(): Promise<void> {
 
   const hasBlueCheck = args.hasBlueCheck === 'true' ? true : args.hasBlueCheck === 'false' ? false : undefined;
   const reset = args.reset === 'true';
+  const partial = args.partial === 'true';
 
   logger.log(`Creating ${data.length} collections`);
 
@@ -163,7 +173,7 @@ async function fileMode(): Promise<void> {
     const itemHasBlueCheck = typeof item.hasBlueCheck === 'boolean' ? item.hasBlueCheck : false;
     const shouldHaveBlueCheck = (hasBlueCheck === undefined ? itemHasBlueCheck : hasBlueCheck) as boolean;
 
-    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset));
+    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset, NULL_ADDR, partial));
   }
 
   await Promise.allSettled(promises);
