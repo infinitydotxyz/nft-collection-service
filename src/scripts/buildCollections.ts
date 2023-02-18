@@ -137,7 +137,6 @@ export async function buildCollections(): Promise<void> {
               // batch.add(doc, contract, { merge: true });
               try {
                 /**
-                 * TODO add to queue
                  */
                 // await collectionQueue.enqueueCollection(collection.address, collection.chainId, Date.now(), collection);
                 logger.log(

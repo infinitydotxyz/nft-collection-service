@@ -313,7 +313,6 @@ export default class Collection extends AbstractCollection {
             void emitter.emit('progress', { step, progress: 100 });
             return;
 
-          // todo: needs impl
           case CreationFlow.Incomplete:
           case CreationFlow.Unknown:
           case CreationFlow.Invalid:

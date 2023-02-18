@@ -9,7 +9,6 @@ import NotFoundError from '../models/errors/NotFound';
 import { normalize } from 'path';
 import { logger } from '../container';
 
-// todo: joe another protocol is possible: 'data:'
 // e.g of data uri: https://etherscan.io/address/0x05a46f1e545526fb803ff974c790acea34d1f2d6
 enum Protocol {
   HTTPS = 'https:',
