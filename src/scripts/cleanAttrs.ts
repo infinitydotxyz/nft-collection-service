@@ -1,5 +1,6 @@
 import { firestoreConstants, getAttributeDocId, getCollectionDocId } from '@infinityxyz/lib/utils';
-import { firebase, reservoir } from 'container';
+import { firebase } from 'container';
+import Reservoir from 'services/Reservoir';
 import { ReservoirCollectionAttribute } from 'types/Reservoir';
 
 const db = firebase.db;
@@ -15,6 +16,7 @@ export async function cleanAttrs(chainId: string, collection: string) {
       return false;
     }
   });
+  const reservoir = new Reservoir(chainId);
 
   const collectionDocId = getCollectionDocId({ chainId, collectionAddress: collection });
   const attrsCollRef = db

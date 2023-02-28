@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import 'dotenv/config';
 import 'reflect-metadata';
-import { firebase, logger, opensea, collectionDao, alchemy, zora } from './container';
+import { firebase, logger, collectionDao, alchemy, zora } from './container';
 import { sleep } from './utils';
 import { readFile } from 'fs/promises';
 import fs from 'fs';
@@ -29,6 +29,7 @@ import { v1 } from 'firebase-admin/firestore';
 import { createNewAttrStructureInNfts } from 'scripts/newAttrsStructure';
 import { addSearchTagsToColls } from 'scripts/addSearchTagsToColls';
 import { cleanAttrs } from 'scripts/cleanAttrs';
+import OpenSeaClient from 'services/OpenSea';
 
 // do not remove commented code
 // eslint-disable-next-line @typescript-eslint/require-await
@@ -139,7 +140,7 @@ export async function addV1AirdropToCurrentRewards(): Promise<void> {
               userListings: 0,
               listingRewards: 0,
               flowAirdrop: 0,
-              flurAirdrop: 0,
+              flurAirdrop: 0
             };
 
             let allTimeTxnFees = allTimeTxnFeeSnap.data() ?? defaultAllTimeTxnFeesDoc;
@@ -180,8 +181,9 @@ export async function exportV1AirdropToCsv(): Promise<void> {
   }
 }
 
-export async function appendDisplayTypeToCollections(): Promise<void> {
+export async function appendDisplayTypeToCollections(chainId: string): Promise<void> {
   const data = await firebase.db.collection('collections').get();
+  const opensea = new OpenSeaClient(chainId);
   data.forEach(async (doc) => {
     await sleep(2000);
     const address = doc.get('address') as string;
@@ -191,7 +193,7 @@ export async function appendDisplayTypeToCollections(): Promise<void> {
       logger.log(address, resp.displayType);
       await firebase.db
         .collection('collections')
-        .doc('1:' + address)
+        .doc(`${chainId}:${address}`)
         .set({ displayType: resp.displayType }, { merge: true });
     }
   });
@@ -203,4 +205,4 @@ export async function getCollectionNFTsFromAlchemy(): Promise<void> {
   console.log(JSON.stringify(data, null, 2));
 }
 
-void main();
+// void main();

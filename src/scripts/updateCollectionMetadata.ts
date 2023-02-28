@@ -1,8 +1,9 @@
 import { Collection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { firebase, opensea } from 'container';
+import { firebase } from 'container';
 import BatchHandler from 'models/BatchHandler';
 import PQueue from 'p-queue';
+import OpenSeaClient from 'services/OpenSea';
 import { sleep } from 'utils';
 
 export async function updateCollectionMetadata() {
@@ -33,6 +34,7 @@ export async function updateCollectionMetadata() {
         }`
       );
       try {
+        const opensea = new OpenSeaClient(collection.chainId ?? '1');
         const resp = await opensea.getCollectionMetadata(collection.address);
         // only update non empty fields
         const metadata = {

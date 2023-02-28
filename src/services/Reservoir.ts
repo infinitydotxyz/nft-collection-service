@@ -9,9 +9,21 @@ import { gotErrorHandler } from '../utils/got';
 @singleton()
 export default class Reservoir {
   private readonly client: Got;
-  constructor() {
+  constructor(chainId: string) {
+    let prefixUrl;
+    switch (chainId) {
+      case '1':
+        prefixUrl = 'https://api.reservoir.tools/v1';
+        break;
+      case '5':
+        prefixUrl = 'https://api-goerli.reservoir.tools/';
+        break;
+
+      default:
+        throw new Error(`Invalid chainId: ${chainId}`);
+    }
     this.client = got.extend({
-      prefixUrl: 'https://api.reservoir.tools/',
+      prefixUrl,
       hooks: {
         beforeRequest: [
           (options) => {
