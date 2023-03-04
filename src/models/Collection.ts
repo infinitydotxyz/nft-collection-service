@@ -14,7 +14,8 @@ import {
   RefreshTokenFlow,
   SupportedCollection,
   Token,
-  TokenStandard
+  TokenStandard,
+  CollectionMetadata
 } from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
@@ -176,7 +177,8 @@ export default class Collection extends AbstractCollection {
               } else {
                 // fetch from reservoir
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                totalSupply = parseInt(String(data?.collection.tokenCount));
+                const collectionData = data?.collections[0];
+                totalSupply = parseInt(String(collectionData?.tokenCount));
               }
               collection = await this.getTokensFromReservoir(
                 totalSupply,
@@ -202,7 +204,8 @@ export default class Collection extends AbstractCollection {
               } else {
                 // fetch from reservoir
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                totalSupply = parseInt(String(data?.collection.tokenCount));
+                const collectionData = data?.collections[0];
+                totalSupply = parseInt(String(collectionData?.tokenCount));
               }
 
               collection = await this.getTokensFromZora(
@@ -405,9 +408,21 @@ export default class Collection extends AbstractCollection {
     partial: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
-      this.contract.address
-    );
+    const chainId = this.contract.chainId;
+    let hasBlueCheck = false;
+    let collectionMetadata: CollectionMetadata;
+
+    if (chainId === ChainId.Mainnet) {
+      const data = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+      hasBlueCheck = data.hasBlueCheck;
+      collectionMetadata = { ...data };
+    } else if (chainId === ChainId.Goerli) {
+      const data = await reservoir.getCollectionMetadata(chainId, this.contract.address);
+      hasBlueCheck = data.hasBlueCheck;
+      collectionMetadata = { ...data };
+    } else {
+      throw new Error(`Unsupported chainId ${chainId}`);
+    }
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {

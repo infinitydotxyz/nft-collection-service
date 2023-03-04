@@ -1,4 +1,9 @@
-import { ReservoirDetailedTokensResponse, ReservoirSingleCollectionResponse } from '@infinityxyz/lib/types/services/reservoir';
+import { CollectionMetadata } from '@infinityxyz/lib/types/core';
+import {
+  ReservoirCollectionsV5,
+  ReservoirDetailedTokensResponse
+} from '@infinityxyz/lib/types/services/reservoir';
+import { ethers } from 'ethers';
 import got, { Got, Response } from 'got/dist/source';
 import { singleton } from 'tsyringe';
 import { ReservoirCollectionAttributes } from 'types/Reservoir';
@@ -9,6 +14,7 @@ import { gotErrorHandler } from '../utils/got';
 @singleton()
 export default class Reservoir {
   private readonly client: Got;
+  private readonly goerliClient: Got;
   constructor() {
     this.client = got.extend({
       prefixUrl: 'https://api.reservoir.tools/',
@@ -31,6 +37,69 @@ export default class Reservoir {
       cache: false,
       timeout: 20_000
     });
+
+    this.goerliClient = got.extend({
+      prefixUrl: 'https://api-goerli.reservoir.tools/',
+      hooks: {
+        beforeRequest: [
+          (options) => {
+            if (!options?.headers?.['x-api-key']) {
+              if (!options.headers) {
+                options.headers = {};
+              }
+              options.headers['x-api-key'] = RESERVOIR_API_KEY;
+            }
+          }
+        ]
+      },
+      /**
+       * requires us to check status code
+       */
+      throwHttpErrors: false,
+      cache: false,
+      timeout: 20_000
+    });
+  }
+
+  public async getCollectionMetadata(chainId: string, address: string): Promise<CollectionMetadata & { hasBlueCheck: boolean }> {
+    if (!ethers.utils.isAddress(address)) {
+      throw new Error('Invalid address');
+    }
+
+    const data = await this.getSingleCollectionInfo(chainId, address);
+    const collection = data?.collections?.[0];
+
+    if (!collection) {
+      throw new Error('Collection metadata not found');
+    }
+
+    const name = collection.name;
+    const hasBlueCheck = collection.openseaVerificationStatus === 'verified';
+    const dataInInfinityFormat: CollectionMetadata = {
+      name,
+      description: collection.description || '',
+      symbol: '',
+      profileImage: '',
+      bannerImage: collection.banner ?? '',
+      displayType: 'contain',
+      links: {
+        timestamp: new Date().getTime(),
+        discord: collection.discordUrl ?? '',
+        external: collection.externalUrl ?? '',
+        medium: '',
+        slug: collection?.slug ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        telegram: '',
+        twitter:
+          typeof collection?.twitterUsername === 'string'
+            ? `https://twitter.com/${collection.twitterUsername.toLowerCase()}`
+            : '',
+        instagram: '',
+        wiki: ''
+      }
+    };
+
+    return { ...dataInInfinityFormat, hasBlueCheck };
   }
 
   public async getCollectionAttributes(
@@ -38,8 +107,9 @@ export default class Reservoir {
     collectionAddress: string
   ): Promise<ReservoirCollectionAttributes | undefined> {
     try {
+      const client = chainId === '1' ? this.client : this.goerliClient;
       const res: Response<ReservoirCollectionAttributes> = await this.errorHandler(() => {
-        return this.client.get(`collections/${collectionAddress}/attributes/all/v2`, {
+        return client.get(`collections/${collectionAddress}/attributes/all/v2`, {
           responseType: 'json'
         });
       });
@@ -57,6 +127,7 @@ export default class Reservoir {
     limit: number
   ): Promise<ReservoirDetailedTokensResponse | undefined> {
     try {
+      const client = chainId === '1' ? this.client : this.goerliClient;
       const res: Response<ReservoirDetailedTokensResponse> = await this.errorHandler(() => {
         const searchParams: any = {
           contract: collectionAddress,
@@ -66,7 +137,7 @@ export default class Reservoir {
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return this.client.get(`tokens/v5`, {
+        return client.get(`tokens/v5`, {
           searchParams,
           responseType: 'json'
         });
@@ -78,16 +149,14 @@ export default class Reservoir {
     }
   }
 
-  public async getSingleCollectionInfo(
-    chainId: string,
-    collectionAddress: string
-  ): Promise<ReservoirSingleCollectionResponse | undefined> {
+  public async getSingleCollectionInfo(chainId: string, collectionAddress: string): Promise<ReservoirCollectionsV5 | undefined> {
     try {
-      const res: Response<ReservoirSingleCollectionResponse> = await this.errorHandler(() => {
+      const client = chainId === '1' ? this.client : this.goerliClient;
+      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
         const searchParams: any = {
           id: collectionAddress
         };
-        return this.client.get(`collection/v2`, {
+        return client.get(`collections/v5`, {
           searchParams,
           responseType: 'json'
         });
