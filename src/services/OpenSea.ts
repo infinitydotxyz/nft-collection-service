@@ -39,9 +39,10 @@ function formatName(name: string): string {
 export default class OpenSeaClient implements CollectionMetadataProvider {
   private readonly client: Got;
   private readonly clientNoApiKey: Got;
-  constructor() {
+  constructor(chainId: string) {
+    const prefixUrl = chainId === '1' ? 'https://api.opensea.io/api/v1/' : 'https://testnets-api.opensea.io/api/v1/';
     this.client = got.extend({
-      prefixUrl: 'https://api.opensea.io/api/v1/',
+      prefixUrl,
       hooks: {
         beforeRequest: [
           (options) => {
@@ -51,7 +52,9 @@ export default class OpenSeaClient implements CollectionMetadataProvider {
               }
 
               const randomApiKey = randomItem(OPENSEA_API_KEYS);
-              options.headers['x-api-key'] = randomApiKey;
+              if (randomApiKey) {
+                options.headers['x-api-key'] = randomApiKey;
+              }
             }
           }
         ]

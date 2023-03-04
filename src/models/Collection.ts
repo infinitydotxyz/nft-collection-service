@@ -24,12 +24,14 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
+import Reservoir from 'services/Reservoir';
 import { Readable, Transform } from 'stream';
 import { filterStream, pageStream } from 'utils/streams';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
-import { firebase, logger, opensea, reservoir, zora } from '../container';
+import { firebase, logger, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
+import OpenSeaClient from './CollectionMetadataProvider';
 import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
@@ -174,9 +176,11 @@ export default class Collection extends AbstractCollection {
               if (data) {
                 totalSupply = data.aggregateStat?.nftCount;
               } else {
+                const reservoir = new Reservoir(collection.chainId ?? '1');
                 // fetch from reservoir
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                totalSupply = parseInt(String(data?.collection.tokenCount));
+                const collectionData = data?.collections[0];
+                totalSupply = parseInt(String(collectionData?.tokenCount));
               }
               collection = await this.getTokensFromReservoir(
                 totalSupply,
@@ -201,8 +205,10 @@ export default class Collection extends AbstractCollection {
                 totalSupply = data.aggregateStat?.nftCount;
               } else {
                 // fetch from reservoir
+                const reservoir = new Reservoir(collection.chainId ?? '1');
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                totalSupply = parseInt(String(data?.collection.tokenCount));
+                const collectionData = data?.collections[0];
+                totalSupply = parseInt(String(collectionData?.tokenCount));
               }
 
               collection = await this.getTokensFromZora(
@@ -486,6 +492,7 @@ export default class Collection extends AbstractCollection {
     let hasNextPage = true;
     let numNfts = 0;
     let numPages = 0;
+    const reservoir = new Reservoir(collection.chainId ?? '1');
     while (hasNextPage) {
       const data = await reservoir.getDetailedTokensInfo(
         this.contract.chainId,
@@ -735,6 +742,7 @@ export default class Collection extends AbstractCollection {
     tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionTokenMetadataType,
     emitter: Emittery<CollectionEmitterType>,
+    opensea: OpenSeaClient,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     const hasMetadata = (token: Partial<Token>) => {
@@ -867,6 +875,7 @@ export default class Collection extends AbstractCollection {
     tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionType,
     emitter: Emittery<CollectionEmitterType>,
+    opensea: OpenSeaClient,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     const noImage = (token: Token) => {

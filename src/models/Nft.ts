@@ -17,7 +17,7 @@ import {
   RefreshTokenUriError,
   RefreshTokenImageError
 } from './errors/RefreshTokenFlow';
-import { metadataClient, moralis, opensea, logger } from '../container';
+import { metadataClient, moralis, logger } from '../container';
 import Moralis from '../services/Moralis';
 import PQueue from 'p-queue';
 import OpenSeaClient from './CollectionMetadataProvider';
@@ -45,7 +45,13 @@ export default class Nft {
 
   private readonly imageUploadQueue?: PQueue;
 
-  constructor(token: Partial<TokenType>, contract: Contract, tokenUriQueue?: PQueue, imageUploadQueue?: PQueue) {
+  constructor(
+    token: Partial<TokenType>,
+    contract: Contract,
+    opensea: OpenSeaClient,
+    tokenUriQueue?: PQueue,
+    imageUploadQueue?: PQueue
+  ) {
     this.token = token;
     this.contract = contract;
 

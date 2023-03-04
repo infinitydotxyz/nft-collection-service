@@ -65,7 +65,7 @@ export async function create(
   log = logger.log.bind(logger)
 ): Promise<void> {
   log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset} Partial: ${partial}`);
-  const provider = new CollectionMetadataProvider();
+  const provider = new CollectionMetadataProvider(chainId);
   const contractFactory = new ContractFactory();
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
   let contract: Contract;

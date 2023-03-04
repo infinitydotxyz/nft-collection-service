@@ -17,7 +17,7 @@ import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
  * if we do not yet store the collection, saves it to the db
  */
 export async function buildCollections(): Promise<void> {
-  const opensea = new OpenSeaClient();
+  const opensea = new OpenSeaClient('1');
 
   async function* collectionGenerator(): AsyncGenerator<OpenSeaCollection[]> {
     let timeout = 1000;

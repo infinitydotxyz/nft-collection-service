@@ -1,8 +1,9 @@
 import { Collection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { firebase, opensea } from 'container';
+import { firebase } from 'container';
 import BatchHandler from 'models/BatchHandler';
 import PQueue from 'p-queue';
+import OpenSeaClient from 'services/OpenSea';
 import { sleep } from 'utils';
 
 export async function addBlueCheck() {
@@ -21,6 +22,7 @@ export async function addBlueCheck() {
         }`
       );
       try {
+        const opensea = new OpenSeaClient(collection.chainId ?? '1');
         const { hasBlueCheck } = await opensea.getCollectionMetadata(collection.address);
         if (typeof hasBlueCheck === 'boolean' && hasBlueCheck) {
           const update: Partial<Collection> = {
