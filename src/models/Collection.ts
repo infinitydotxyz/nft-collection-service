@@ -14,7 +14,8 @@ import {
   RefreshTokenFlow,
   SupportedCollection,
   Token,
-  TokenStandard
+  TokenStandard,
+  CollectionMetadata
 } from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
@@ -24,14 +25,12 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
-import Reservoir from 'services/Reservoir';
 import { Readable, Transform } from 'stream';
 import { filterStream, pageStream } from 'utils/streams';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { firebase, logger, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
-import OpenSeaClient from './CollectionMetadataProvider';
 import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
@@ -44,6 +43,8 @@ import {
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
+import OpenSeaClient from './CollectionMetadataProvider';
+import Reservoir from 'services/Reservoir';
 
 type CollectionCreatorType = Pick<
   CollectionType,
@@ -411,9 +412,22 @@ export default class Collection extends AbstractCollection {
     partial: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
-      this.contract.address
-    );
+    const chainId = this.contract.chainId;
+    let hasBlueCheck = false;
+    let collectionMetadata: CollectionMetadata;
+
+    if (chainId === ChainId.Mainnet) {
+      const data = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
+      hasBlueCheck = data.hasBlueCheck;
+      collectionMetadata = { ...data };
+    } else if (chainId === ChainId.Goerli) {
+      const reservoir = new Reservoir(collection.chainId ?? '1');
+      const data = await reservoir.getCollectionMetadata(chainId, this.contract.address);
+      hasBlueCheck = data.hasBlueCheck;
+      collectionMetadata = { ...data };
+    } else {
+      throw new Error(`Unsupported chainId ${chainId}`);
+    }
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {
