@@ -62,7 +62,7 @@ export const JSON_RPC_GOERLI_KEYS = (() => {
 })();
 
 export const OPENSEA_API_KEYS = (() => {
-  const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
+  const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY', 0);
   return apiKeys;
 })();
 

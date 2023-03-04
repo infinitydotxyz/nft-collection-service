@@ -14,8 +14,7 @@ import {
   RefreshTokenFlow,
   SupportedCollection,
   Token,
-  TokenStandard,
-  CollectionMetadata
+  TokenStandard
 } from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
@@ -25,12 +24,14 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
+import Reservoir from 'services/Reservoir';
 import { Readable, Transform } from 'stream';
 import { filterStream, pageStream } from 'utils/streams';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
-import { firebase, logger, opensea, reservoir, zora } from '../container';
+import { firebase, logger, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
+import OpenSeaClient from './CollectionMetadataProvider';
 import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
@@ -175,6 +176,7 @@ export default class Collection extends AbstractCollection {
               if (data) {
                 totalSupply = data.aggregateStat?.nftCount;
               } else {
+                const reservoir = new Reservoir(collection.chainId ?? '1');
                 // fetch from reservoir
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
                 const collectionData = data?.collections[0];
@@ -203,6 +205,7 @@ export default class Collection extends AbstractCollection {
                 totalSupply = data.aggregateStat?.nftCount;
               } else {
                 // fetch from reservoir
+                const reservoir = new Reservoir(collection.chainId ?? '1');
                 const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
                 const collectionData = data?.collections[0];
                 totalSupply = parseInt(String(collectionData?.tokenCount));
@@ -408,21 +411,9 @@ export default class Collection extends AbstractCollection {
     partial: boolean,
     nextStep: CreationFlow
   ): Promise<CollectionMetadataType> {
-    const chainId = this.contract.chainId;
-    let hasBlueCheck = false;
-    let collectionMetadata: CollectionMetadata;
-
-    if (chainId === ChainId.Mainnet) {
-      const data = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-      hasBlueCheck = data.hasBlueCheck;
-      collectionMetadata = { ...data };
-    } else if (chainId === ChainId.Goerli) {
-      const data = await reservoir.getCollectionMetadata(chainId, this.contract.address);
-      hasBlueCheck = data.hasBlueCheck;
-      collectionMetadata = { ...data };
-    } else {
-      throw new Error(`Unsupported chainId ${chainId}`);
-    }
+    const { hasBlueCheck, ...collectionMetadata } = await this.collectionMetadataProvider.getCollectionMetadata(
+      this.contract.address
+    );
 
     const slug = getSearchFriendlyString(collectionMetadata.links.slug ?? '');
     if (!slug) {
@@ -501,6 +492,7 @@ export default class Collection extends AbstractCollection {
     let hasNextPage = true;
     let numNfts = 0;
     let numPages = 0;
+    const reservoir = new Reservoir(collection.chainId ?? '1');
     while (hasNextPage) {
       const data = await reservoir.getDetailedTokensInfo(
         this.contract.chainId,
@@ -750,6 +742,7 @@ export default class Collection extends AbstractCollection {
     tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionTokenMetadataType,
     emitter: Emittery<CollectionEmitterType>,
+    opensea: OpenSeaClient,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     const hasMetadata = (token: Partial<Token>) => {
@@ -882,6 +875,7 @@ export default class Collection extends AbstractCollection {
     tokens: AsyncIterable<Partial<Token>>,
     collection: CollectionType,
     emitter: Emittery<CollectionEmitterType>,
+    opensea: OpenSeaClient,
     nextStep: CreationFlow
   ): Promise<CollectionTokenMetadataType> {
     const noImage = (token: Token) => {

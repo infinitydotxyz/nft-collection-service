@@ -14,32 +14,21 @@ import { gotErrorHandler } from '../utils/got';
 @singleton()
 export default class Reservoir {
   private readonly client: Got;
-  private readonly goerliClient: Got;
-  constructor() {
-    this.client = got.extend({
-      prefixUrl: 'https://api.reservoir.tools/',
-      hooks: {
-        beforeRequest: [
-          (options) => {
-            if (!options?.headers?.['x-api-key']) {
-              if (!options.headers) {
-                options.headers = {};
-              }
-              options.headers['x-api-key'] = RESERVOIR_API_KEY;
-            }
-          }
-        ]
-      },
-      /**
-       * requires us to check status code
-       */
-      throwHttpErrors: false,
-      cache: false,
-      timeout: 20_000
-    });
+  constructor(chainId: string) {
+    let prefixUrl;
+    switch (chainId) {
+      case '1':
+        prefixUrl = 'https://api.reservoir.tools/v1';
+        break;
+      case '5':
+        prefixUrl = 'https://api-goerli.reservoir.tools/';
+        break;
 
-    this.goerliClient = got.extend({
-      prefixUrl: 'https://api-goerli.reservoir.tools/',
+      default:
+        throw new Error(`Invalid chainId: ${chainId}`);
+    }
+    this.client = got.extend({
+      prefixUrl,
       hooks: {
         beforeRequest: [
           (options) => {
@@ -107,9 +96,8 @@ export default class Reservoir {
     collectionAddress: string
   ): Promise<ReservoirCollectionAttributes | undefined> {
     try {
-      const client = chainId === '1' ? this.client : this.goerliClient;
       const res: Response<ReservoirCollectionAttributes> = await this.errorHandler(() => {
-        return client.get(`collections/${collectionAddress}/attributes/all/v2`, {
+        return this.client.get(`collections/${collectionAddress}/attributes/all/v2`, {
           responseType: 'json'
         });
       });
@@ -127,7 +115,6 @@ export default class Reservoir {
     limit: number
   ): Promise<ReservoirDetailedTokensResponse | undefined> {
     try {
-      const client = chainId === '1' ? this.client : this.goerliClient;
       const res: Response<ReservoirDetailedTokensResponse> = await this.errorHandler(() => {
         const searchParams: any = {
           contract: collectionAddress,
@@ -137,7 +124,7 @@ export default class Reservoir {
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return client.get(`tokens/v5`, {
+        return this.client.get(`tokens/v5`, {
           searchParams,
           responseType: 'json'
         });
@@ -151,12 +138,11 @@ export default class Reservoir {
 
   public async getSingleCollectionInfo(chainId: string, collectionAddress: string): Promise<ReservoirCollectionsV5 | undefined> {
     try {
-      const client = chainId === '1' ? this.client : this.goerliClient;
       const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
         const searchParams: any = {
           id: collectionAddress
         };
-        return client.get(`collections/v5`, {
+        return this.client.get(`collections/v5`, {
           searchParams,
           responseType: 'json'
         });
