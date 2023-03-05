@@ -18,7 +18,7 @@ export default class Reservoir {
     let prefixUrl;
     switch (chainId) {
       case '1':
-        prefixUrl = 'https://api.reservoir.tools/v1';
+        prefixUrl = 'https://api.reservoir.tools/';
         break;
       case '5':
         prefixUrl = 'https://api-goerli.reservoir.tools/';
