@@ -138,19 +138,26 @@ export default class Collection extends AbstractCollection {
               }
 
               // fetch all time aggregated stats
-              const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
-              if (stats) {
+              const reservoir = new Reservoir(collection.chainId ?? '1');
+              // fetch from reservoir
+              const reservoirData = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
+              const collectionData = reservoirData?.collections[0];
+              if (collectionData) {
                 const data: Partial<CollectionStats> = {
                   chainId: collection.chainId as ChainId,
                   collectionAddress: collection.address,
-                  volume: stats.aggregateStat?.salesVolume?.chainTokenPrice,
-                  numSales: stats.aggregateStat?.salesVolume?.totalCount,
-                  volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
-                  numOwners: stats.aggregateStat?.ownerCount,
-                  numNfts: stats.aggregateStat?.nftCount,
-                  topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
+                  volume: Number(collectionData.volume.allTime),
+                  numSales: Number(collectionData.salesCount?.allTime),
+                  numOwners: Number(collectionData.ownerCount),
+                  numNfts: Number(collectionData.tokenCount),
                   updatedAt: Date.now()
                 };
+
+                const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
+                if (stats?.aggregateStat?.ownersByCount?.nodes) {
+                  data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
+                }
+
                 const collectionDocId = getCollectionDocId({
                   chainId: collection.chainId,
                   collectionAddress: collection.address
@@ -173,16 +180,11 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.TokenMetadata:
             try {
               let totalSupply = 1;
-              const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
-              if (data) {
-                totalSupply = data.aggregateStat?.nftCount;
-              } else {
-                const reservoir = new Reservoir(collection.chainId ?? '1');
-                // fetch from reservoir
-                const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                const collectionData = data?.collections[0];
-                totalSupply = parseInt(String(collectionData?.tokenCount));
-              }
+              const reservoir = new Reservoir(collection.chainId ?? '1');
+              // fetch from reservoir
+              const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
+              const collectionData = data?.collections[0];
+              totalSupply = parseInt(String(collectionData?.tokenCount));
               collection = await this.getTokensFromReservoir(
                 totalSupply,
                 collection as CollectionMetadataType,
@@ -201,16 +203,11 @@ export default class Collection extends AbstractCollection {
           case CreationFlow.CollectionMints:
             try {
               let totalSupply = 1;
-              const data = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 1);
-              if (data) {
-                totalSupply = data.aggregateStat?.nftCount;
-              } else {
-                // fetch from reservoir
-                const reservoir = new Reservoir(collection.chainId ?? '1');
-                const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
-                const collectionData = data?.collections[0];
-                totalSupply = parseInt(String(collectionData?.tokenCount));
-              }
+              // fetch from reservoir
+              const reservoir = new Reservoir(collection.chainId ?? '1');
+              const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
+              const collectionData = data?.collections[0];
+              totalSupply = parseInt(String(collectionData?.tokenCount));
 
               collection = await this.getTokensFromZora(
                 totalSupply,
