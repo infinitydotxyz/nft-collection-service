@@ -139,7 +139,7 @@ export default class Erc721Contract extends AbstractContract {
         console.log('missing metadata for', token.tokenId);
         continue;
       }
-      const attributes = Array.isArray((metadata as any).attributes) ? (metadata as any).attributes : []; // future-TODO handle erc1155 metadata
+      const attributes = Array.isArray((metadata as any).attributes) ? (metadata as any).attributes : []; // future-todo handle erc1155 metadata
 
       for (const attribute of attributes) {
         if ('display_type' in attribute && attribute.display_type) {
