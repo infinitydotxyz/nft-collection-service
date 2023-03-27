@@ -45,6 +45,7 @@ import {
 import Nft from './Nft';
 import OpenSeaClient from './CollectionMetadataProvider';
 import Reservoir from 'services/Reservoir';
+import axios from 'axios';
 
 type CollectionCreatorType = Pick<
   CollectionType,
@@ -586,8 +587,11 @@ export default class Collection extends AbstractCollection {
             tokenStandard: TokenStandard.ERC721 // default
           };
           if (token.image) {
+            const origUrl = token.image;
+            const req = await axios.get(origUrl);
+            const redirectedUrl = req.request.res.responseUrl;
             tokenWithMetadata.image = {
-              url: token.image,
+              url: redirectedUrl,
               updatedAt: Date.now()
             };
           }
