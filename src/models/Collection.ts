@@ -588,10 +588,10 @@ export default class Collection extends AbstractCollection {
           };
           if (token.image) {
             const origUrl = token.image;
-            const req = await axios.get(origUrl);
-            const redirectedUrl = req.request.res.responseUrl;
+            // const req = await axios.get(origUrl);
+            // const redirectedUrl = req.request.res.responseUrl;
             tokenWithMetadata.image = {
-              url: redirectedUrl,
+              url: origUrl,
               updatedAt: Date.now()
             };
           }
