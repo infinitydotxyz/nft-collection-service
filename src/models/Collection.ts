@@ -4,8 +4,7 @@
 import {
   BaseCollection,
   ChainId,
-  Collection as CollectionType,
-  CollectionStats,
+  Collection as CollectionType, CollectionMetadata, CollectionStats,
   CreationFlow,
   Erc721Metadata,
   Erc721Token,
@@ -14,8 +13,7 @@ import {
   RefreshTokenFlow,
   SupportedCollection,
   Token,
-  TokenStandard,
-  CollectionMetadata
+  TokenStandard
 } from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
@@ -25,12 +23,14 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import Emittery from 'emittery';
+import Reservoir from 'services/Reservoir';
 import { Readable, Transform } from 'stream';
 import { filterStream, pageStream } from 'utils/streams';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION } from '../constants';
 import { firebase, logger, zora } from '../container';
 import BatchHandler from './BatchHandler';
 import AbstractCollection, { CollectionEmitterType } from './Collection.abstract';
+import OpenSeaClient from './CollectionMetadataProvider';
 import {
   CollectionAggregateMetadataError,
   CollectionCreatorError,
@@ -43,9 +43,6 @@ import {
   UnknownError
 } from './errors/CreationFlow';
 import Nft from './Nft';
-import OpenSeaClient from './CollectionMetadataProvider';
-import Reservoir from 'services/Reservoir';
-import axios from 'axios';
 
 type CollectionCreatorType = Pick<
   CollectionType,
@@ -588,10 +585,8 @@ export default class Collection extends AbstractCollection {
           };
           if (token.image) {
             const origUrl = token.image;
-            const req = await axios.get(origUrl);
-            const redirectedUrl = req.request.res.responseUrl;
             tokenWithMetadata.image = {
-              url: redirectedUrl,
+              url: origUrl,
               updatedAt: Date.now()
             };
           }
