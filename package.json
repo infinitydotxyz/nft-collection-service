@@ -29,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mavriklabs/nft-collection-service.git"
+    "url": "git+https://github.com/infinitydotxyz/nft-collection-service.git"
   },
   "devDependencies": {
     "@types/bl": "^5.0.2",
