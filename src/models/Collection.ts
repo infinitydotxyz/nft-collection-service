@@ -412,11 +412,7 @@ export default class Collection extends AbstractCollection {
     let collectionMetadata: CollectionMetadata;
 
     if (chainId === ChainId.Mainnet) {
-      const data = await this.collectionMetadataProvider.getCollectionMetadata(this.contract.address);
-      hasBlueCheck = data.hasBlueCheck;
-      collectionMetadata = { ...data };
-    } else if (chainId === ChainId.Goerli) {
-      const reservoir = new Reservoir(collection.chainId ?? '1');
+      const reservoir = new Reservoir('1');
       const data = await reservoir.getCollectionMetadata(chainId, this.contract.address);
       hasBlueCheck = data.hasBlueCheck;
       collectionMetadata = { ...data };
