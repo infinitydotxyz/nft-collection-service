@@ -1,12 +1,8 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
-import {
-  ReservoirCollectionsV5,
-  ReservoirDetailedTokensResponse
-} from '@infinityxyz/lib/types/services/reservoir';
 import { ethers } from 'ethers';
 import got, { Got, Response } from 'got/dist/source';
 import { singleton } from 'tsyringe';
-import { ReservoirCollectionAttributes } from 'types/Reservoir';
+import { ReservoirCollectionAttributes, ReservoirCollectionsV5, ReservoirDetailedTokensResponse } from 'types/Reservoir';
 import { RESERVOIR_API_KEY } from '../constants';
 import { sleep } from '../utils';
 import { gotErrorHandler } from '../utils/got';
@@ -81,6 +77,7 @@ export default class Reservoir {
         telegram: '',
         twitter:
           typeof collection?.twitterUsername === 'string'
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             ? `https://twitter.com/${collection.twitterUsername.toLowerCase()}`
             : '',
         instagram: '',
@@ -119,12 +116,15 @@ export default class Reservoir {
         const searchParams: any = {
           contract: collectionAddress,
           limit,
-          includeAttributes: true
+          includeAttributes: true,
+          sortBy: 'tokenId',
+          sortDirection: 'asc',
+          includeLastSale: true
         };
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return this.client.get(`tokens/v5`, {
+        return this.client.get(`tokens/v6`, {
           searchParams,
           responseType: 'json'
         });
