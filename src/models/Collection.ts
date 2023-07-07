@@ -4,7 +4,9 @@
 import {
   BaseCollection,
   ChainId,
-  Collection as CollectionType, CollectionMetadata, CollectionStats,
+  Collection as CollectionType,
+  CollectionMetadata,
+  CollectionStats,
   CreationFlow,
   Erc721Metadata,
   Erc721Token,
@@ -242,7 +244,7 @@ export default class Collection extends AbstractCollection {
                       updatedAt: Date.now()
                     }
                   }
-                };
+                } as any;
               } else {
                 const tokens: Token[] = [];
                 console.log('Yielding tokens at step:', step);
@@ -575,6 +577,10 @@ export default class Collection extends AbstractCollection {
             isFlagged,
             lastFlagUpdate,
             lastFlagChange,
+            rarityRank: token.rarityRank ?? 0,
+            rarityScore: token.rarity ?? 0,
+            lastSalePriceEth: token.lastSale?.price?.amount?.native ?? 0,
+            lastSaleTimestamp: (token.lastSale?.timestamp ?? 0) * 1000,
             updatedAt: Date.now(),
             owner: token.owner,
             tokenStandard: TokenStandard.ERC721 // default
@@ -642,39 +648,6 @@ export default class Collection extends AbstractCollection {
       for (const tokenInfo of tokens) {
         if (tokenInfo.token && tokenInfo.token.tokenId && tokenInfo.token.attributes) {
           const tokenId = tokenInfo.token.tokenId;
-          const attributes = tokenInfo.token.attributes;
-          const name = tokenInfo?.token?.name;
-          const description = tokenInfo?.token.description;
-
-          const metadata: Erc721Metadata = {};
-
-          if (attributes && attributes.length > 0) {
-            metadata.attributes = [];
-            for (const attr of attributes) {
-              const isTraitValueNumeric = !isNaN(Number(attr.value));
-              metadata.attributes.push({
-                trait_type: attr.trait_type,
-                value: isTraitValueNumeric ? Number(attr.value) : attr.value
-              });
-            }
-          }
-
-          const attrMap: any = {};
-          metadata.attributes?.forEach?.((attr) => {
-            const attrType = getSearchFriendlyString(attr.trait_type);
-            const attrValue = getSearchFriendlyString(String(attr.value));
-            attrMap[`${attrType}:::${attrValue}`] = true;
-          });
-          metadata.attributesMap = attrMap;
-
-          if (name) {
-            metadata.name = name;
-          }
-
-          if (description) {
-            metadata.description = description;
-          }
-
           let tokenIdNumeric = NaN;
           try {
             tokenIdNumeric = Number(tokenId);
@@ -685,10 +658,7 @@ export default class Collection extends AbstractCollection {
           const token: Erc721Token = {
             tokenId,
             tokenIdNumeric,
-            numTraitTypes: metadata?.attributes?.length ?? 0,
-            metadata,
             updatedAt: Date.now(),
-            owner: tokenInfo.token.owner,
             tokenStandard: TokenStandard.ERC721
           };
 
@@ -850,14 +820,6 @@ export default class Collection extends AbstractCollection {
     nextStep: CreationFlow
   ): CollectionType {
     const attributes = this.contract.aggregateTraits(tokens) ?? {};
-    const tokensWithRarity = this.contract.calculateRarity(tokens, attributes);
-    for (const token of tokensWithRarity) {
-      void emitter.emit('token', token).catch((err) => {
-        logger.log('error while emitting token');
-        logger.error(err);
-        // safely ignore
-      });
-    }
     void emitter.emit('attributes', attributes);
 
     const aggregatedCollection: CollectionType = {
