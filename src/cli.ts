@@ -150,12 +150,6 @@ async function fileMode(): Promise<void> {
   const contents = await readFile(filePath, 'utf-8');
   const data = JSON.parse(contents);
 
-  const hasBlueCheck = data.hasBlueCheck === true ? true : data.hasBlueCheck === false ? false : undefined;
-  const reset = data.reset === true;
-  const partial = data.partial === true;
-  const mintData = data.mintData === true;
-  console.log(hasBlueCheck, reset, partial, mintData);
-
   logger.log(`Creating ${data.length} collections`);
 
   const promises: Array<Promise<void>> = [];
@@ -165,10 +159,12 @@ async function fileMode(): Promise<void> {
     }
     const chainId = typeof item?.chainId === 'string' ? (item?.chainId as string) : '1';
 
-    const itemHasBlueCheck = typeof item.hasBlueCheck === 'boolean' ? item.hasBlueCheck : false;
-    const shouldHaveBlueCheck = (hasBlueCheck === undefined ? itemHasBlueCheck : hasBlueCheck) as boolean;
+    const hasBlueCheck = item.hasBlueCheck === true;
+    const reset = item.reset === true;
+    const partial = item.partial === true;
+    const mintData = item.mintData === true;
 
-    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset, NULL_ADDR, partial, mintData));
+    promises.push(collectionService.createCollection(item.address as string, chainId, hasBlueCheck, reset, NULL_ADDR, partial, mintData));
   }
 
   await Promise.allSettled(promises);
