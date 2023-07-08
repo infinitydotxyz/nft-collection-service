@@ -121,10 +121,11 @@ async function addressMode(): Promise<void> {
   const hasBlueCheck = args.hasBlueCheck === 'true';
   const reset = args.reset === 'true';
   const partial = args.partial === 'true';
+  const mintData = args.mintData === 'true';
 
   try {
     logger.log(`Starting Task: create Address: ${address} Chain Id: ${chainId} `);
-    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR, partial);
+    await collectionService.createCollection(address, chainId, hasBlueCheck, reset, NULL_ADDR, partial, mintData);
   } catch (err) {
     logger.log(`Failed to complete task`);
     logger.error(err);
@@ -139,22 +140,6 @@ async function fileMode(): Promise<void> {
       required: {
         errorMessage: 'failed to pass path to input file'
       }
-    },
-    {
-      arg: 'hasBlueCheck',
-      default: ''
-    },
-    {
-      arg: 'reset',
-      default: 'false'
-    },
-    {
-      arg: 'partial',
-      default: 'true'
-    },
-    {
-      arg: 'mintData',
-      default: 'false'
     }
   ];
 
@@ -165,10 +150,11 @@ async function fileMode(): Promise<void> {
   const contents = await readFile(filePath, 'utf-8');
   const data = JSON.parse(contents);
 
-  const hasBlueCheck = args.hasBlueCheck === 'true' ? true : args.hasBlueCheck === 'false' ? false : undefined;
-  const reset = args.reset === 'true';
-  const partial = args.partial === 'true';
-  const mintData = args.mintData === 'true';
+  const hasBlueCheck = data.hasBlueCheck === true ? true : data.hasBlueCheck === false ? false : undefined;
+  const reset = data.reset === true;
+  const partial = data.partial === true;
+  const mintData = data.mintData === true;
+  console.log(hasBlueCheck, reset, partial, mintData);
 
   logger.log(`Creating ${data.length} collections`);
 

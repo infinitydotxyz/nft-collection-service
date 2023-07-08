@@ -23,11 +23,7 @@
                 * `task` (optional) - the type of task to run. Valid tasks include 
                     * `create` (default) - creates a collection
             * File Mode
-                * `file` (required) - path to a file structured as    
-                * `hasBlueCheck` (optional) - overrides hasBlueCheck for every item in the file
-                * `reset` (optional) - if set to `true` all collections will be reset and all data will be collected, defaults to false
-                * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed
-                * `mintData` (optional, defaults to false) - if set to `true` mint prices, timestamps and mint txn hashes will be collected
+                * `file` (required) - path to a file structured as
                 ```ts
                 [
                     { 
