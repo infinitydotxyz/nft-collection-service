@@ -2,10 +2,11 @@ import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { ethers } from 'ethers';
 import got, { Got, Response } from 'got/dist/source';
 import { singleton } from 'tsyringe';
-import { ReservoirCollectionAttributes, ReservoirCollectionsV5, ReservoirDetailedTokensResponse } from 'types/Reservoir';
+import { ReservoirCollectionAttributes, ReservoirCollectionsV6, ReservoirDetailedTokensResponse } from 'types/Reservoir';
 import { RESERVOIR_API_KEY } from '../constants';
 import { sleep } from '../utils';
 import { gotErrorHandler } from '../utils/got';
+import OpenSeaClient from './OpenSea';
 
 @singleton()
 export default class Reservoir {
@@ -54,6 +55,9 @@ export default class Reservoir {
     const data = await this.getSingleCollectionInfo(chainId, address);
     const collection = data?.collections?.[0];
 
+    const opensea = new OpenSeaClient(chainId);
+    const openseaData = await opensea.getCollectionMetadata(address);
+
     if (!collection) {
       throw new Error('Collection metadata not found');
     }
@@ -62,26 +66,27 @@ export default class Reservoir {
     const hasBlueCheck = collection.openseaVerificationStatus === 'verified';
     const dataInInfinityFormat: CollectionMetadata = {
       name,
-      description: collection.description || '',
-      symbol: '',
-      profileImage: '',
-      bannerImage: collection.banner ?? '',
-      displayType: 'contain',
+      description: collection.description || openseaData.description || '',
+      symbol: openseaData.symbol,
+      profileImage: collection.image || openseaData.profileImage || '',
+      bannerImage: collection.banner || openseaData.bannerImage || '',
+      displayType: openseaData.displayType ?? 'contain',
+      mintedTimestamp: (collection.mintedTimestamp ?? 0) * 1000,
       links: {
         timestamp: new Date().getTime(),
-        discord: collection.discordUrl ?? '',
-        external: collection.externalUrl ?? '',
-        medium: '',
-        slug: collection?.slug ?? '',
+        discord: collection.discordUrl || openseaData.links.discord || '',
+        external: collection.externalUrl || openseaData.links.external || '',
+        medium: openseaData.links.medium || '',
+        slug: collection?.slug || openseaData.links.slug || '',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        telegram: '',
+        telegram: openseaData.links.telegram || '',
         twitter:
           typeof collection?.twitterUsername === 'string'
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-            ? `https://twitter.com/${collection.twitterUsername.toLowerCase()}`
-            : '',
-        instagram: '',
-        wiki: ''
+            ? // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+              `https://twitter.com/${collection.twitterUsername.toLowerCase()}`
+            : openseaData.links.twitter || '',
+        instagram: openseaData.links.instagram || '',
+        wiki: openseaData.links.wiki || '',
       }
     };
 
@@ -136,13 +141,14 @@ export default class Reservoir {
     }
   }
 
-  public async getSingleCollectionInfo(chainId: string, collectionAddress: string): Promise<ReservoirCollectionsV5 | undefined> {
+  public async getSingleCollectionInfo(chainId: string, collectionAddress: string): Promise<ReservoirCollectionsV6 | undefined> {
     try {
-      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
+      const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
-          id: collectionAddress
+          id: collectionAddress,
+          includeSalesCount: true
         };
-        return this.client.get(`collections/v5`, {
+        return this.client.get(`collections/v6`, {
           searchParams,
           responseType: 'json'
         });

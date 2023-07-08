@@ -151,6 +151,7 @@ export default class Collection extends AbstractCollection {
                   numSales: Number(collectionData.salesCount?.allTime),
                   numOwners: Number(collectionData.ownerCount),
                   numNfts: Number(collectionData.tokenCount),
+                  floorPrice: Number(collectionData.floorAsk?.price?.amount?.native),
                   updatedAt: Date.now()
                 };
 

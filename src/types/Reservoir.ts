@@ -65,11 +65,11 @@ export declare enum ReservoirCollsSortBy {
   CREATED_AT = 'createdAt',
   FLOOR_ASK_PRICE = 'floorAskPrice'
 }
-export interface ReservoirCollectionsV5 {
-  collections: ReservoirCollectionV5[];
+export interface ReservoirCollectionsV6 {
+  collections: ReservoirCollectionV6[];
   continuation: string;
 }
-export interface ReservoirCollectionV5 {
+export interface ReservoirCollectionV6 {
   id: string;
   name: string;
   slug: string;
@@ -84,8 +84,9 @@ export interface ReservoirCollectionV5 {
   tokenCount: string;
   onSaleCount: string;
   primaryContract: string;
-  floorAsk: ReservoirCollectionFloorAskV5;
-  topBid: ReservoirCollectionTopBidV5;
+  mintedTimestamp: number; // in seconds since epoch
+  floorAsk: ReservoirCollectionFloorAskV6;
+  topBid: ReservoirCollectionTopBidV6;
   rank: ReservoirCollectionPeriodStat;
   volume: ReservoirCollectionPeriodStat;
   volumeChange: ReservoirCollectionPeriodStat;
@@ -96,7 +97,7 @@ export interface ReservoirCollectionV5 {
   salesCount?: ReservoirCollectionPeriodStat;
   attributes?: ReservoirCollectionAttribute[];
 }
-export interface ReservoirCollectionFloorAskV5 {
+export interface ReservoirCollectionFloorAskV6 {
   id: string;
   sourceDomain: string;
   price: {
@@ -123,7 +124,7 @@ export interface ReservoirCollectionFloorAskV5 {
     image: string;
   };
 }
-export interface ReservoirCollectionTopBidV5 {
+export interface ReservoirCollectionTopBidV6 {
   id: string;
   sourceDomain: string;
   price: {
@@ -139,6 +140,12 @@ export interface ReservoirCollectionTopBidV5 {
       usd: number;
       native: number;
     };
+    netAmount: {
+      raw: string;
+      decimal: number;
+      usd: number;
+      native: number;
+    };
   };
   maker: string;
   validFrom: number;
@@ -148,12 +155,6 @@ export interface ReservoirCollectionTopBidV5 {
     tokenId: string;
     name: string;
     image: string;
-  };
-  netAmount?: {
-    raw: string;
-    decimal: number;
-    usd: number;
-    native: number;
   };
 }
 export interface ReservoirSingleCollectionResponse {
