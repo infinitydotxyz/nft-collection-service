@@ -44,7 +44,8 @@ export default class CollectionService extends EventEmitter {
     hasBlueCheck = false,
     reset = false,
     indexInitiator = NULL_ADDR,
-    partial=true
+    partial=true,
+    mintData = false
   ): Promise<void> {
     address = validateAddress(normalizeAddress(address));
     indexInitiator = validateAddress(normalizeAddress(indexInitiator));
@@ -52,7 +53,7 @@ export default class CollectionService extends EventEmitter {
 
     return await this.taskQueue.add(async () => {
       try {
-        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, partial, false);
+        await createCollection(address, chainId, hasBlueCheck, reset, indexInitiator, partial, mintData, false);
       } catch (err) {
         logger.error('Collection errored...', err);
       }

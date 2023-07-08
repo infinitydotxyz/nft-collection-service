@@ -79,7 +79,8 @@ export default class Collection extends AbstractCollection {
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck: boolean,
-    partial: boolean
+    partial: boolean,
+    mintData: boolean
   ): AsyncGenerator<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
     any,
@@ -153,11 +154,6 @@ export default class Collection extends AbstractCollection {
                   updatedAt: Date.now()
                 };
 
-                const stats = await zora.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
-                if (stats?.aggregateStat?.ownersByCount?.nodes) {
-                  data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
-                }
-
                 const collectionDocId = getCollectionDocId({
                   chainId: collection.chainId,
                   collectionAddress: collection.address
@@ -185,11 +181,12 @@ export default class Collection extends AbstractCollection {
               const data = await reservoir.getSingleCollectionInfo(collection.chainId, collection.address);
               const collectionData = data?.collections[0];
               totalSupply = parseInt(String(collectionData?.tokenCount));
+              const nextStep = mintData ? CreationFlow.CollectionMints : CreationFlow.AggregateMetadata;
               collection = await this.getTokensFromReservoir(
                 totalSupply,
                 collection as CollectionMetadataType,
                 emitter,
-                CreationFlow.CollectionMints
+                nextStep
               );
               yield { collection };
             } catch (err: any) {

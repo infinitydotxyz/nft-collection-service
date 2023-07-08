@@ -48,7 +48,8 @@ export default abstract class Collection {
     indexInitiator: string,
     batch: BatchHandler,
     hasBlueCheck: boolean,
-    partial: boolean
+    partial: boolean,
+    mintData: boolean
   ): AsyncGenerator<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
     any,

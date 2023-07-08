@@ -1,8 +1,7 @@
 import {
   BaseCollection,
-  Collection as CollectionType,
   CollectionAttributes,
-  CreationFlow,
+  Collection as CollectionType,
   Token
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getAttributeDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
@@ -13,7 +12,7 @@ import Contract from 'models/contracts/Contract.interface';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { COLLECTION_MAX_SUPPLY, COLLECTION_SCHEMA_VERSION, NULL_ADDR } from '../constants';
-import { firebase, logger, tokenDao, zora } from '../container';
+import { firebase, logger, tokenDao } from '../container';
 import BatchHandler from '../models/BatchHandler';
 import Collection from '../models/Collection';
 import CollectionMetadataProvider from '../models/CollectionMetadataProvider';
@@ -26,13 +25,14 @@ export async function createCollection(
   reset = false,
   indexInitiator = NULL_ADDR,
   partial = true,
+  mintData = false,
   useWorker = true
 ): Promise<void> {
   if (useWorker) {
     return await new Promise<void>((resolve, reject) => {
       logger.log('Starting worker thread');
       const workerFile = path.resolve(__dirname, './collection.js');
-      const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator, partial] });
+      const worker = new Worker(workerFile, { argv: [chainId, address, hasBlueCheck, reset, indexInitiator, partial, mintData] });
 
       worker.on('message', (msg) => {
         logger.log(msg);
@@ -52,7 +52,7 @@ export async function createCollection(
   /**
    * run in main process
    */
-  return await create(address, chainId, hasBlueCheck, reset, indexInitiator, partial);
+  return await create(address, chainId, hasBlueCheck, reset, indexInitiator, partial, mintData);
 }
 
 export async function create(
@@ -62,9 +62,10 @@ export async function create(
   reset = false,
   indexInitiator: string,
   partial = true,
+  mintData = false,
   log = logger.log.bind(logger)
 ): Promise<void> {
-  log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset} Partial: ${partial}`);
+  log(`Starting Collection: ${chainId}:${address} Has Blue Check: ${hasBlueCheck} Reset: ${reset} Partial: ${partial} MintData: ${mintData}`);
   const provider = new CollectionMetadataProvider(chainId);
   const contractFactory = new ContractFactory();
   const collectionDoc = firebase.getCollectionDocRef(chainId, address);
@@ -86,55 +87,9 @@ export async function create(
   // check if this is a collection that is currently being minted
   // one way to check is if there is a large diversion in totalSupply from the last time
   const prevTotalSupply = currentCollection?.numNfts ?? 0;
-  const zoraAggregatedStats = await zora.getAggregatedCollectionStats(chainId, address, 10);
-  const currentTotalSupply = zoraAggregatedStats?.aggregateStat.nftCount ?? 0;
-  const divergenceThreshold = 100;
-  const isMinting = currentTotalSupply - prevTotalSupply > divergenceThreshold;
 
-  if (prevTotalSupply >= COLLECTION_MAX_SUPPLY || currentTotalSupply >= COLLECTION_MAX_SUPPLY) {
+  if (prevTotalSupply >= COLLECTION_MAX_SUPPLY) {
     log(`Collection ${chainId}:${address} has too many tokens to index`);
-    return;
-  }
-
-  // const oneHourAgo = Date.now() - ONE_HOUR;
-  // if (
-  //   !reset &&
-  //   !isMinting &&
-  //   currentCollection?.state?.create?.updatedAt &&
-  //   currentCollection?.state?.create?.updatedAt > oneHourAgo
-  // ) {
-  //   log(`Collection ${chainId}:${address} has been updated in the last hour. Skipping...`);
-  //   return;
-  // }
-
-  const successful = currentCollection?.state?.create?.step === CreationFlow.Complete;
-  const indexerRan = currentCollection?.state?.create?.step === CreationFlow.Incomplete;
-  const unknownError = currentCollection?.state?.create?.step === CreationFlow.Unknown;
-  const invalid = currentCollection?.state?.create?.step === CreationFlow.Invalid;
-  if (successful || indexerRan) {
-    if (isMinting) {
-      log(`Collection ${chainId}:${address}'s total supply diverged by more than ${divergenceThreshold} . Re-indexing...`);
-      // reset
-      currentCollection.state = {
-        create: { step: CreationFlow.CollectionCreator, updatedAt: Date.now(), progress: 0 },
-        version: COLLECTION_SCHEMA_VERSION,
-        export: { done: currentCollection?.state?.export.done ?? false }
-      };
-      await collectionDoc.set(currentCollection, { merge: true });
-    }
-    // } else {
-    //   log(
-    //     `Ran indexer for collection: ${chainId}:${address} previously. It's current state is ${currentCollection?.state?.create?.step} Skipping for now`
-    //   );
-    //   return;
-    // }
-  } else if (unknownError) {
-    log(`Unknown error occurred for collection: ${chainId}:${address} previously. Skipping for now`);
-    return;
-  } else if (invalid) {
-    log(
-      `Received invalid collection: ${chainId}:${address} due to ${currentCollection?.state?.create?.error?.message}. Skipping for now`
-    );
     return;
   }
 
@@ -304,7 +259,7 @@ export async function create(
     }
   });
 
-  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck, partial);
+  let iterator = collection.createCollection(currentCollection, emitter, indexInitiator, batch, hasBlueCheck, partial, mintData);
 
   let next: IteratorResult<
     { collection: Partial<CollectionType>; action?: 'tokenRequest' },
@@ -333,7 +288,7 @@ export async function create(
         }
 
         log(`Failed to complete collection: ${chainId}:${address}. Retrying...`);
-        iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck, partial);
+        iterator = collection.createCollection(collectionData, emitter, indexInitiator, batch, hasBlueCheck, partial, mintData);
         done = false;
       } else {
         const { collection: updatedCollection, action } = next.value;
