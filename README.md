@@ -17,21 +17,26 @@
                 * `address` (required) - the address to run the task for 
                 * `chain` (optional) - Base 10 chain id. Defaults to 1
                 * `hasBlueCheck` (optional) - whether the collection is verified (defaults to false)
-                * `reset` (optional) - if set to `true` the collection will be reset and all data will be collected
-                * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed 
+                * `reset` (optional) - if set to `true` the collection will be reset and all data will be collected, defaults to false
+                * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only collection level metadata will be indexed
+                * `mintData` (optional, defaults to false) - if set to `true` mint prices, timestamps and mint txn hashes will be collected
                 * `task` (optional) - the type of task to run. Valid tasks include 
                     * `create` (default) - creates a collection
             * File Mode
                 * `file` (required) - path to a file structured as    
                 * `hasBlueCheck` (optional) - overrides hasBlueCheck for every item in the file
-                * `reset` (optional) - if set to `true` all collections will be reset and all data will be collected
-                * * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed
+                * `reset` (optional) - if set to `true` all collections will be reset and all data will be collected, defaults to false
+                * `partial` (optional, defaults to true) - if set to `false` collection will be completely indexed, else only           collection level metadata will be indexed
+                * `mintData` (optional, defaults to false) - if set to `true` mint prices, timestamps and mint txn hashes will be collected
                 ```ts
                 [
                     { 
                         address: string, // (required)
                         chainId: string, // (optional) defaults to 1
-                        hasBlueCheck: boolean // (optional) defaults to false
+                        hasBlueCheck: boolean, // (optional) defaults to false
+                        reset: boolean, // (optional) defaults to false
+                        partial: boolean, // (optional) defaults to true
+                        mintData: boolean // (optional) defaults to false
                     },
                     ...
                 ]
