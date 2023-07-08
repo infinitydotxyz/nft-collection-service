@@ -107,6 +107,10 @@ async function addressMode(): Promise<void> {
     {
       arg: 'partial',
       default: 'true'
+    },
+    {
+      arg: 'mintData',
+      default: 'false'
     }
   ];
 
@@ -147,6 +151,10 @@ async function fileMode(): Promise<void> {
     {
       arg: 'partial',
       default: 'true'
+    },
+    {
+      arg: 'mintData',
+      default: 'false'
     }
   ];
 
@@ -160,6 +168,7 @@ async function fileMode(): Promise<void> {
   const hasBlueCheck = args.hasBlueCheck === 'true' ? true : args.hasBlueCheck === 'false' ? false : undefined;
   const reset = args.reset === 'true';
   const partial = args.partial === 'true';
+  const mintData = args.mintData === 'true';
 
   logger.log(`Creating ${data.length} collections`);
 
@@ -173,7 +182,7 @@ async function fileMode(): Promise<void> {
     const itemHasBlueCheck = typeof item.hasBlueCheck === 'boolean' ? item.hasBlueCheck : false;
     const shouldHaveBlueCheck = (hasBlueCheck === undefined ? itemHasBlueCheck : hasBlueCheck) as boolean;
 
-    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset, NULL_ADDR, partial));
+    promises.push(collectionService.createCollection(item.address as string, chainId, shouldHaveBlueCheck, reset, NULL_ADDR, partial, mintData));
   }
 
   await Promise.allSettled(promises);
