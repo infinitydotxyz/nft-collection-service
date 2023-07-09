@@ -565,8 +565,17 @@ export default class Collection extends AbstractCollection {
           }
           const lastFlagChange = token.lastFlagChange ?? '';
 
+          const hasBlueCheck = collection.hasBlueCheck ?? false;
+          const collectionAddress = collection.address ?? '';
+          const collectionSlug = collection.slug ?? '';
+          const collectionName = collection.metadata?.name ?? '';
+
           const tokenWithMetadata: Erc721Token = {
             slug: getSearchFriendlyString(name),
+            collectionAddress,
+            collectionSlug,
+            collectionName,
+            hasBlueCheck,
             tokenId,
             tokenIdNumeric,
             chainId: this.contract.chainId,
