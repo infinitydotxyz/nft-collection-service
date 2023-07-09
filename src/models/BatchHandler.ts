@@ -32,7 +32,7 @@ export default class BatchHandler {
   ): void {
     const objectSize = Buffer.byteLength(JSON.stringify(object ?? {}), 'utf8');
     if (this.currentBatch.size + 1 >= MAX_SIZE || this.currentBatch.payloadSize + objectSize >= MAX_PAYLOAD_SIZE) {
-      this.flush().catch((err) => {
+      this.flush(doc).catch((err) => {
         logger.error(err);
       });
     }
@@ -42,9 +42,9 @@ export default class BatchHandler {
     this.currentBatch.payloadSize += objectSize;
   }
 
-  async flush(): Promise<void> {
+  async flush(doc?: FirebaseFirestore.DocumentReference): Promise<void> {
     if (this.currentBatch.size > 0) {
-      const maxAttempts = 3;
+      const maxAttempts = 5;
       let attempt = 0;
       const batch = this.currentBatch.batch;
       this.currentBatch = this.newBatch();
@@ -54,12 +54,11 @@ export default class BatchHandler {
           await batch.commit();
           return;
         } catch (err) {
-          // logger.error('Failed to commit batch', err);
           if (attempt > maxAttempts) {
-            logger.log(`Failed to commit batch`);
+            logger.log(`Failed to commit batch with ${this.currentBatch.size} doc path: ${doc?.path} and id: ${doc?.id}`);
             throw err;
           }
-          await sleep(1000); // firebase has a limit of 1 write per doc per second
+          await sleep(3000); // firebase has a limit of 1 write per doc per second
         }
       }
     }
